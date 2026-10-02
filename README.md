@@ -8,7 +8,7 @@ Standing Light projects *shading*, not images, onto a real object (the reference
 - Each panel's **depth is in superposition** (a raised and a sunk version). How decided the depth looks in any one frame depends on where the observation lands on that panel's Bloch sphere, and that is drawn *inside the circuit*, never toggled: a pole gives a definite bump or hollow, the equator gives a flat, undecided panel.
 - Geometry only supplies the **barriers and limits**: the glass panes are never lit (they are exactly black, checked on every frame), shared edges set where the shading may change, and the plane windows set how bright each surface may get.
 
-There are two relief engines. **Superposed Relief (v2, `--engine panel`, the default)** has one polarity qubit per panel: 12 facet qubits + 3 polarity qubits = 15 simulated, exactly, on your laptop. **Domain Relief (v3, `--engine domain`)** cuts the wall into local bevel facets, gives every small stretch of bevel its *own* depth qubit and couples those qubits along the geometry's edge graph, including across the creases between panels: 69 simulated qubits in the default configuration, as a matrix-product state. It is the version where the entanglement is between *edges* of the wall, and where a lamp–depth Bell-type test (Mermin) is violated by a state of that size ([Domain Relief](#domain-relief-v3)).
+There are two relief engines. **Superposed Relief (v2, `--engine panel`, the default)** has one polarity qubit per panel: 12 facet qubits + 3 polarity qubits = 15 simulated, exactly, on your laptop. **Domain Relief (v3/v4, `--engine domain`)** cuts the wall into local bevel facets, gives every facet its *own* depth qubit and couples those qubits along the geometry's edge graph, weakly along a boundary and strongly across the seams between panels: 92 simulated qubits in the default configuration, as a matrix-product state. Every crease between panels is entangled (largest negativity 0.26), a lamp-plus-three-depth-qubits **Mermin game** is won in 92% of rounds against a classical maximum of 75% (`G` key, `--game`), and a kicked-Ising evolution (`E` key, `--evolve-steps`) makes the entanglement grow with every step ([Domain Relief](#domain-relief-v3)).
 
 Honest status: at these sizes everything is classically simulable, and a benchmark (`src.quantum.classical_baselines`) measures how far each design can grow before the classical methods stop being cheap. The claim is *structure and scaling*, not quantum advantage, and nothing in the quantum design has yet been run on a Moth engine (see [Status](#status-and-limits)).
 
@@ -57,7 +57,7 @@ To keep several scenes side by side, or to allow spending:
 ```bash
 python -m src.studio --project runs/myroom     # a separate project folder per scene (default: runs/studio)
 python -m src.studio --allow-spend             # lets step 4 submit to Moth (it still shows the cost and asks first)
-python -m src.studio --engine domain           # step 3 opens the domain relief (about 15 s to build) instead of the per-panel one
+python -m src.studio --engine domain           # step 3 opens the domain relief (a few seconds to build) instead of the per-panel one
 ```
 
 The studio writes to its project folder: `labels.json` (the drawing), `calib/` (targets and payloads), `solve/` (Moth results), `studio.json` (which drawing the targets came from, so a changed drawing marks later steps stale).
@@ -103,7 +103,10 @@ python -m src.show                                          # built-in bay windo
 python -m src.show --labels runs/scene/labels.json          # shapes you drew with the pen tool
 python -m src.show --kappa 1.0 --n-dirs 4 --entangle 0.8    # relief knobs (below)
 python -m src.show --engine domain                          # Domain Relief: dozens of qubits, polarity per depth domain (flags below)
-python -m src.show --engine domain --seg-len 100 --lock 0   # finer facets (116 qubits), lamp left as a plain coin
+python -m src.show --engine domain --seg-len 100 --lock 0   # finer facets, lamp left as a plain coin
+python -m src.show --engine domain --game                   # some looks are rounds of the Mermin parity game (G toggles)
+python -m src.show --engine domain --evolve-steps 4         # entanglement grown by four kicked-Ising steps (E advances one more)
+python -m src.show --engine domain --seam-mix 1             # the seams in the graph-state regime (what it costs the game: see below)
 python -m src.show --source relief --circuit FACETS.qasm    # a Moth QDrive circuit for the 15 facet qubits
 python -m src.show --source oracle                          # CLASSICAL rehearsal (also: mock, circuit, complementary)
 python -m src.show --lan                                    # also serve /output and /audience to other machines
@@ -119,9 +122,15 @@ python -m src.show --lan                                    # also serve /output
 | `--calib`, `--run` | directories with calibration targets and engine results (for the demo slides and re-solve) |
 | `--engine` | `panel` (default) or `domain`; the flags below apply to `domain` only |
 | `--seg-len` | facet length along a polygon edge in px (150: 46 facets; 100: 78; smaller: more qubits) |
-| `--group-size` | facets that share one polarity qubit (2). Tilt budget per domain: V = cos(tau)^group-size, whatever the size of the wall |
+| `--group-size` | facets that share one polarity qubit (1: one facet per depth qubit, the most coherent). Tilt budget per domain: V = cos(tau)^group-size, whatever the size of the wall |
 | `--tau` | tilt of each facet in radians (0.5) |
-| `--pol-coupling` | Ising angle between neighbouring domains' polarity qubits (0.5; sign + coplanar, `--crease-sign` across a crease) |
+| `--pol-coupling` | Ising angle between neighbouring domains' polarity qubits along a boundary (0.3, weak; sign + coplanar) |
+| `--crease-coupling`, `--crease-sign` | the same angle across a crease between panels (1.0, strong) and its sign (-1: the depths want to differ across a shared edge) |
+| `--seam-coupling` | ZZ angle between facets that touch across a crease and among seam facets (1.0; pi/2 is a CZ up to local phases) |
+| `--seam-mix` | 0..1 moves ONLY the seam facets toward the equator: the graph-state regime on the seams, visible relief elsewhere (0) |
+| `--leaf-tau`, `--leaf-prefer` | tilt of the facets of the game's leaf domains (0.3: more visibility, more rounds won) and which domains are the leaves (`visible`, or `seam`) |
+| `--game`, `--game-fraction` | start with the parity game on; the fraction of looks that are rounds (0.5) |
+| `--evolve-steps`, `--evolve-zz`, `--evolve-x` | kicked-Ising steps on the facet graph before the polarity attaches (0), and their angles (0.7, 0.5) |
 | `--lock` | coupling of lamp L1 to one polarity qubit per panel with the crater-gauge signs (pi/2: maximal; 0: the lamp is a plain coin) |
 | `--tau-mix`, `--pol-field` | 0..1 moves the facets toward the equator (graph-state regime, V falls); transverse field on the polarity qubits |
 | `--backend` | `auto` (exact up to 20 qubits, else matrix-product state), `exact`, `mps` |
@@ -155,6 +164,7 @@ The default is **no photo**: connect the projector as a display, draw panel and 
 python -m src.quantum.relief_report                # relief frames + both controls, complementarity curve, scaling law, witness table, contrast vs visibility
 python -m src.quantum.relief_report --domain       # + the domain relief: frames, certificate (entangled edges, lamp-depth Mermin), frustration, budget
 python -m src.quantum.classical_baselines          # where classical simulation stops being cheap (a few minutes; per-point time limit)
+python -m src.quantum.seam_benchmark               # seams, the parity game and Floquet time against the classical cost (several minutes)
 python -m src.quantum.domain_moth plan             # Moth payloads for the domain relief (build sends nothing)
 python -m src.run_mock                             # the original classical look test (reproduces the 5 mock figures)
 python -m src.baseline.compare                     # correlated draws vs independent noise, same compose path
@@ -164,7 +174,7 @@ python -m src.quantum.make_frames --source oracle  # a stream of frames with a p
 
 ### 5. Calibration and the glass check on the real wall
 
-Done from the operator panel (Calibrate and Photo test tabs): outline pattern, four-corner re-alignment after the projector moves, a safety margin that shaves projector pixels off every lit region, and a photographed check that the real glass stays dark. See [`standing-light-runbook.md`](standing-light-runbook.md) §3 for the procedure and `python -m src.projector.verify --selftest` for a synthetic run.
+Done from the operator panel (Calibrate and Photo test tabs): outline pattern, four-corner re-alignment after the projector moves, a safety margin that shaves projector pixels off every lit region, and a photographed check that the real glass stays dark. See [`docs/standing-light-runbook.md`](docs/standing-light-runbook.md) §3 for the procedure and `python -m src.projector.verify --selftest` for a synthetic run.
 
 ---
 
@@ -201,11 +211,35 @@ The per-panel engine is three independent-ish 5-qubit systems. Domain Relief cha
 | **lamp lock** | lamp L1 coupled to one polarity qubit per panel with the crater-gauge signs (a raised bevel facing right lit from the right looks like a sunk one facing left lit from the left): the light side and the depth are entangled |
 | **backend** | up to 20 qubits an exact statevector; beyond, Aer's matrix-product-state simulator evolves the state and `src/quantum/mps.py` samples it *exactly* (one polarity outcome per frame, then K photons given it: no post-selection) |
 
-What it was measured to do on the bay window (`python -m src.quantum.relief_report --domain`, 69 qubits, bond dimension ≤ 32):
-- 15 of 25 domain edges carry entanglement between their two domains (negativity, certified; the dephased control has none), including across creases.
-- Lamp + three leaf domains (one per panel): **Mermin value 4.34 against a local bound of 4** (dephased depth: 1.0). No *pair* violates CHSH (best 1.35): that is monogamy, and the code shows it: lock the lamp to *every* domain instead of one per panel and the Mermin violation disappears (`tests.test_domains`). More polarity coupling also lowers it (J 0 → 0.3 → 0.5 gives 6.2 → 5.5 → 4.3).
-- The signed domain graph is *balanced* on its own (every cycle of the bay window crosses each seam an even number of times), so there is no frustration from creases alone. The crater-gauge lock is what frustrates it, and how much depends on which domains are locked: joining the lamp to every domain gives 10 frustrated cycles (13 at 116 qubits); the one-leaf-per-panel lock the show uses gives 3 at 69 qubits and 0 at 116. The Necker-style competition is therefore a property of the lock you choose, not of the geometry.
-- A frame costs about 0.06 s end to end once the 16 conditioned states (4 observations × 4 lights) are built; building them takes about 15 s at startup.
+**Measured at the show's defaults** (`python -m src.quantum.relief_report --domain`: 46 facets + 46 domain qubits = 92 simulated, 96 in the circuit, 52 domain edges of which 6 are creases, bond dimension capped at 32 with a norm deficit of 1.3e-3; weak coupling 0.3 along a boundary, strong 1.0 across a crease, leaf tilt 0.3):
+- 36 of 52 domain edges carry entanglement between their two domains, and **all 6 creases do** (largest negativity 0.26; at the first domain-relief defaults it was one crease of five at 0.01). The dephased control has none.
+- Lamp + three leaf domains: **Mermin value 6.57 against a local bound of 4** (dephased depth: 1.0). No *pair* violates CHSH (best lamp–depth 1.75, best depth–depth 1.94): monogamy. Lock the lamp to *every* domain and even the Mermin violation disappears (`tests.test_domains`).
+- The signed domain graph is *balanced* on its own, so there is no frustration from creases alone; whether the lamp lock frustrates it depends on which domains are locked (3 frustrated cycles at the earlier 69-qubit defaults, 0 at these). The Necker-style competition is a property of the lock you choose, not of the geometry.
+- Frame-level interference signature: the K-photon frame statistics of the coherent state and of control B are identical at the decided observation and differ at the equatorial ones by up to 0.12 against a photon noise of 0.06. Single frames do not show it; an ensemble of a few hundred does.
+- Speed: Aer builds ONE state (about 1-2 s); the lock, the light and the observation are single-qubit gates on its tensors. A look costs about 0.06 s.
+
+### The parity game: the frames certify the state
+
+Every look can be one round of a four-party Mermin (GHZ-style) game between the lamp and the depth qubits of three panels (`src/quantum/parity_game.py`, key `G`, `--game`). A round draws an input S, a uniformly random *even-size* subset of the four parties. A party in S reads its qubit along its setting A', the others along A (the axes are the numerically optimised Mermin frames of the state). Everyone gets a ±1 outcome, and the round is won when `(product of the four outcomes) × (−1)^(|S|/2) = +1`.
+- The eight inputs are the eight terms of the Mermin operator, so a round is won with probability `(1 + M/8)/2` for a state with Mermin value M. **No classical strategy wins more than 75%** (`classical_bound` proves it by brute force over all 4⁴ strategies); a perfect GHZ state wins every round. At the defaults M = 6.57, so the prediction is 91.1%, and 400 rounds gave **367 won (91.8%)**, 7.7 σ above the classical bound. Dephased depth cannot exceed 75% (tested).
+- The lamp is read along A or A′, a rotated axis: this is the lamp read in X. Its outcome then *chooses the light side by feed-forward*, so the facets keep no record of the lamp and its coherence with the depth survives; each leaf's depth-sphere dot sits on its own setting; every other domain keeps the frame's ordinary observation. The look is the picture those outcomes make; the operator page and the caption show the round (inputs, outcomes, won or lost) and the running tally against 75%. One look is one bit; the win *rate* over many looks is what certifies.
+- **What the game cannot do:** the rate is `(1 + M/8)/2` for THIS state after every dephasing the facets and neighbours cause, and exceeds 75% only if M > 4.
+- **It does not survive the hard seam.** Put the leaves on a seam whose facets sit at the equator and visibility is 0: the predicted win rate falls from 75% (seam_mix 0) to 57% (seam_mix 1), below the classical bound, while leaves away from the seam stay at 91% (`seam_benchmark`).
+
+### Seams: where the entanglement between edges lives
+
+- **One facet per depth qubit** (`--group-size 1`) raises each qubit's own visibility V from about 0.77 to 0.88; with **weak coupling along a boundary and strong across a crease** (`--pol-coupling 0.3`, `--crease-coupling 1.0`, `--seam-coupling 1.0`) every crease is entangled, and the lamp–depth Mermin value rises from 4.3 to 6.6 (strong coupling everywhere lowers it: monogamy again).
+- **Seam regime** (`--seam-mix`): only the facets on a crease move toward the equator. At seam_mix 1 each seam facet is maximally entangled with the rest of the wall (1.00 bits against 0.31 in the relief regime, and 0.28 for other facets), the seam domains have visibility exactly 0 yet keep a GHZ stabilizer of 0.54–0.58, and the classical cost at bond dimension 32 rises about 12× (norm deficit 1.3e-3 → 1.6e-2). The price is that the creases' *polarity* entanglement (negativity 0.26) is destroyed, and the game cannot use those qubits (above).
+- **Honest limit:** the seams of a wall are a thin skeleton of lines, and an MPS handles a thin skeleton. On tiled walls (n × n panels, every shared edge a seam: up to 368 qubits) the norm deficit at bond dimension 32 stays between 8e-3 and 7e-2 and does not grow from 200 to 368 qubits; the equatorial seam costs about 2× the relief seam there. The lattice benchmark in which *every* facet is equatorial and CZ-coupled in 2D (which an MPS cannot do beyond ~75 qubits) is a different object: that is a wall with no visible relief.
+
+### Dynamics: entanglement that grows in time
+
+`--evolve-steps T` (key `E` adds one) runs T kicked-Ising steps on the facet graph after the facet register is prepared and before the polarity attaches: `exp(-iθ_zz ZZ/2)` on every facet coupling and `exp(-iθ_x X/2)` on every facet, per step (`ReliefSpec.floquet`; the exact numpy state, the Qiskit circuit and the MPS agree, tested). Each step entangles further and moves the facets' normals, so the relief evolves. Measured on the bay window at bond dimension 32 (`seam_benchmark`): the mean bond entropy rises from 0.99 bits to 2.4–2.6 within 6–8 steps, and the norm deficit of the best bond-32 classical stand-in grows from 1.3e-3 to 8.7e-2 (θ_zz 0.7, θ_x 0.5) or 1.4e-1 (1.0, 0.9): 70–100×, then saturates (finite size and the cap). A static state never gets harder; this one does. **It costs the game:** the same steps spread the leaf qubits' coherence over the facets, so the Mermin value and the predicted parity-game win rate fall with them (static 6.57 → 91%; 1 step 5.93 → 87%; 2 steps 4.45 → 78%; **4 steps 3.73 → 73%, below the classical 75%**; 8 steps 4.23 → 77%), and the crease entanglement (negativity 0.26) is gone by step 2–4. Entanglement that grows in time and the lamp–depth Bell test pull against each other in this design: a performance can have the game early or the dynamics late, not both at once, unless the leaves are decoupled from the evolved facets (not built). The echo engine (`otoc-echo-v1`) is the same kicked-Ising family; its payload and the echo-tap-to-tilt mapping remain in `domain_moth.py`, **not run on Moth and not wired into the show**.
+
+### Things that were wrong and are fixed (read before trusting older numbers)
+- Control B on the matrix-product backend kept one hidden depth for a whole frame, where the exact engine redraws it per photon (frame-to-frame spread 0.14 against 0.06). Fixed, with a frame-level regression test.
+- `spec_from_domains(order="loop")` was silently ignored (a local variable shadowed it), so every earlier number used the x-sweep order. Measured now: sweep 1.5e-3 against loop 5.2e-3 norm deficit at bond dimension 32, so the sweep is the better order and the default; the docstring that promised loop order would win was wrong.
+- The lamp read in X (`I`, the exact engine's experiment) makes the lamp *control the light coherently*, so the facets record the light side and dephase the lamp–depth coherence. The Mermin numbers above are for the *feed-forward* lamp (read first, then it picks the light), which is what the parity game and every Z-read frame do. The two semantics are separate in the code (`lamp_mode` against `game_axis`). The lamp read in X now also runs on the matrix-product backend (tested against the exact engine).
 
 Advanced preparations (`src/quantum/ground_state.py`, `domain_moth.py`): the polarity register's state can be the ground state of the geometry-set Ising model on the domain graph (a QAOA-style fit, 4 to 6 angles, as a circuit), or a circuit returned by a Moth engine for the target moments (`spec.pol_circuit`); a *patch* of the wall (≤ 20 qubits, boundary couplings cut) can be sent to `tomography-api-v2`; echo taps from `otoc-echo-v1` modulate each facet's tilt frame by frame (`dynamic_specs`, **not wired into the live show**).
 
@@ -261,7 +295,9 @@ The first build (still present, selectable with `--source oracle|mock|circuit|co
 | `relief_state.py` | **the quantum core**: `ReliefSpec`, `facet_state`, `lift_polarity`, `ReliefState.draw`, light rig, Qiskit `reference_circuit` and `full_circuit` |
 | `relief_witness.py` | visibility, stabilizer, fidelity witness, CHSH scan, sampled witness run, scaling law |
 | `domain_state.py` | **domain relief**: `spec_from_domains`, the exact and matrix-product backends (`make_state`), `leaf_domains` |
-| `mps.py` | matrix-product states on Aer: exact conditional sampling, reduced density matrices (with operator insertions), bond dimensions and entropies |
+| `mps.py` | matrix-product states on Aer: exact conditional sampling, reduced density matrices (with operator insertions, and between two different states), superposition of states (bond dimensions add), single-site gates, bond dimensions and entropies |
+| `parity_game.py` | the Mermin parity game: frames of the state, rounds as frames, win rate against the classical 75%, brute-force classical bound |
+| `seam_benchmark.py` | seams, the game and Floquet time against the classical cost; tiled walls; `runs/seams/seams.png` |
 | `domain_witness.py` | domain certificate: visibility, entangled edges (negativity, CHSH) incl. creases, lamp–depth CHSH and Mermin, frustration, controls |
 | `ground_state.py` | ground state of the geometry-set transverse Ising model as a fitted circuit; classical ground-state degeneracy |
 | `domain_moth.py` | payloads: polarity register via QDrive targets, patch tomography, echo-driven dynamic relief |
@@ -333,6 +369,8 @@ Keys on the operator page (press `?` for the live table). In the relief family t
 | `M` | **control B**: dephased depth |
 | `I` | experiment: read the lamp register in X (light directions interfere) |
 | `W` | **witness run**: measures the certificate on this state, with provenance |
+| `G` | **parity game** (domain engine): some looks become rounds of a Mermin game; the tally must beat 75% |
+| `E` | **evolve** (domain engine): one more kicked-Ising step on the facet graph; the entanglement grows |
 | `B`, `T`, `S`, `O`, `D`, `V` | blackout, test patterns, snapshot, overlay, demo, re-solve |
 
 The science section also shows, per panel, a **depth-sphere dot** (where the observation landed: top = decided raised, bottom = decided sunk, middle = undecided/flat), the tilt budget and per-panel visibility, and the last witness certificate. The header chip always says what the frames come from: `local reference circuit`, `Moth QDrive circuit`, or `classical rehearsal`.
@@ -376,7 +414,7 @@ python superposed_relief_refsim.py          # the handoff's reference numbers
 
 | Module | Covers |
 |---|---|
-| `test_domains` (38) | domain geometry (creases touch, per-domain budget, balanced vs frustrated graph), circuits (Qiskit = numpy, Aer sampling = exact with the lamp lock), the MPS tools against the statevector, exact vs MPS frames, certificates (exact = MPS, operator insertion = a real lamp qubit, monogamy), ground state, Moth payloads, baselines, the session |
+| `test_domains` (56) | domain geometry (creases touch, per-domain budget, balanced vs frustrated graph), circuits (Qiskit = numpy, Aer sampling = exact with the lamp lock), the MPS tools against the statevector, exact vs MPS frames (both controls, lamp in X), the parity game (classical bound, exact joint distribution, win rate), seams and Floquet dynamics, certificates (exact = MPS, operator insertion = a real lamp qubit, monogamy), ground state, Moth payloads, baselines, the session |
 | `test_relief` (36) | refsim table, Lambert = Born, conventions, Qiskit circuit = numpy state, **Aer sampling of the full circuit = exact distribution**, facets, couplings, visibility law, which-depth/visibility, controls, witnesses, no toggles in performance mode, honest provenance |
 | `test_moth_engines` (12) | payloads valid and priced, QASM2 round-trip, parsers and scoring, the 201-target payload refused, echo tap mapping |
 | `test_ui`, `test_studio` | key table, captions, session actions, demo, calibration, spend gate, the HTTP servers |
@@ -399,21 +437,22 @@ Offline demo of the classical solve/compare flow without Moth: `python -m tests.
 
 ## Status and limits
 
-**Done and tested:** the relief engine, its circuits and witnesses; the show, controls, demo and studio; the classical pipeline; the Moth client and engine builders; offline.
+**Done and tested:** the relief engines (per-panel and domain), their circuits and witnesses; the parity game, the seam regime and the kicked-Ising dynamics; the show, controls, demo and studio; the classical pipeline; the Moth client and engine builders; offline. The whole suite (`tests/`, 12 modules) and the mock-port check pass.
 
 **Not verified (needs you or credits):**
 - Any real Moth result for the relief design (either engine). Tomography, echo and QDrive result shapes are mostly "not documented yet", so parsers are defensive and raw results are saved first. The domain payloads (`domain_moth`) are built, validated locally and **not sent**; the qubit cap of `tomography-api-v2` is undocumented, which is why only patches of ≤ 20 qubits are offered.
 - The domain relief on a projector: the frames are simulated and rendered, the glass-black checks pass, but the look on a real wall (six or so times as many facets, each with its own bevel strip) has not been judged by eye.
-- Echo-driven dynamic relief is a module and a test, not a live mode.
+- The parity game's win rate is the *simulated* state's prediction, confirmed by sampling the simulation (367 of 400 rounds against a predicted 91.1%). It has not been measured on a device.
+- The kicked-Ising evolution is wired into the show (`E`, `--evolve-steps`), but the echo engine's own taps (`otoc-echo-v1`, `domain_moth.dynamic_specs`) are a module and a test, not a live mode, and not run on Moth. Evolution and the parity game conflict: the game falls below 75% by step 4.
 - QDrive has never returned a circuit. Chaining uses an `input_files` asset id, and the docs list only PNG/JPEG as accepted assets; mixed Pauli words have a 2-qubit probe built but unsent.
 - `local_echo` is *our reading* of the echo engine's description, not its definition.
 - A real projector, a real window, real photos. The glass-check thresholds were reasoned, not calibrated.
 - The studio's Solve and Perform steps are still the classical QDrive flow.
 
 **What is and is not quantum** (an audit of the code, with the numbers):
-- The facet register, the polarity superposition and the controlled operations between them are quantum content, simulated exactly or as a matrix-product state. The lamp and observation registers are uniform draws, equivalent to coin flips, except where the lamp is locked to a polarity qubit (`--lock`) or read in X (exact backend only).
+- The facet register, the polarity superposition and the controlled operations between them are quantum content, simulated exactly or as a matrix-product state. The lamp and observation registers are uniform draws, equivalent to coin flips, except where the lamp is locked to a polarity qubit (`--lock`) or read in X (both backends).
 - Per-panel engine: 72% of the variance of per-frame expected brightness is the lamp world (a classical draw); the polarity outcome (a near-fair coin) carries the rest. What the wall shows, the interference included, is reproduced by a classical sampler: a *two-branch sampler* draws exact frames of the uncoupled product relief at N = 5000 in 0.04 s, and the scaling law that keeps V constant (τ = κ/√N) keeps the state at ~0.25 excitations per panel, so excitation truncation (k = 2) is also exact to 0.99.
-- Domain engine: capping the matrix-product bond dimension at 32 (what the show does) leaves a norm deficit of 1.5e-3 at 69 qubits (1.3e-2 at 8, 6e-3 at 16, 7.6e-4 at 64: the Schmidt tail is long, so an *exact* state needs more than 128), so the show's state is *approximately* classically simulable to a fraction of a percent and not cheaply to machine precision. The MPS benchmark shows where even the approximation stops: a lattice of domains in the relief regime passes bond dimension 128 at ~100 qubits, and in the graph-state regime (facets at the equator, CZ-like couplings) at ~75, with a 7% norm deficit. That is the regime where hardness is plausible, and it is **not** the regime the show runs in (it needs V → 0). No quantum advantage is claimed anywhere.
+- Domain engine: capping the matrix-product bond dimension at 32 (what the show does) leaves a norm deficit of 1.3e-3 at the default 92 qubits (at the earlier 69-qubit configuration: 1.3e-2 at bond 8, 6e-3 at 16, 7.6e-4 at 64: the Schmidt tail is long, so an *exact* state needs more than 128), so the show's state is *approximately* classically simulable to a fraction of a percent and not cheaply to machine precision. Making the seams equatorial raises the classical cost about 12× but destroys what the game needs; the kicked-Ising evolution raises it 70–100× over 6–8 steps, also at the game's expense; tiled walls of up to 368 qubits show no growth in the seam-only regime. The MPS benchmark shows where even the approximation stops: a lattice of domains in the relief regime passes bond dimension 128 at ~100 qubits, and in the graph-state regime (facets at the equator, CZ-like couplings) at ~75, with a 7% norm deficit. That is the regime where hardness is plausible, and it is **not** the regime the show runs in (it needs V → 0). No quantum advantage is claimed anywhere.
 
 ---
 
@@ -421,9 +460,10 @@ Offline demo of the classical solve/compare flow without Moth: `python -m tests.
 
 | File | Contents |
 |---|---|
-| [`standing-light-v3-domain-relief-handoff.md`](standing-light-v3-domain-relief-handoff.md) | the audit of v2 (what was and was not quantum, with numbers), the domain relief, the classical baselines, results, decisions for you (wins over v2 for polarity and entanglement design) |
-| [`standing-light-v2-superposed-relief-handoff.md`](standing-light-v2-superposed-relief-handoff.md) | the v2 design: concepts, formulas, acceptance tests, scaling law (wins over the first handoff for the quantum design) |
-| [`standing-light-runbook.md`](standing-light-runbook.md) | projection, calibration, performance mode, the glass check; §7 Superposed Relief with the findings that corrected the handoff; §8 Moth engines |
-| [`standing-light-handoff.md`](standing-light-handoff.md), [`standing-light-project-spec.md`](standing-light-project-spec.md) | the original handoff and spec (classical family, targets, A/B protocol) |
+| [`docs/standing-light-v3-domain-relief-handoff.md`](docs/standing-light-v3-domain-relief-handoff.md) | the audit of v2 (what was and was not quantum, with numbers) and the first domain relief. **Its defaults and numbers are superseded by the README's Domain Relief section** (parity game, seams, dynamics, corrections) |
+| [`docs/standing-light-v2-superposed-relief-handoff.md`](docs/standing-light-v2-superposed-relief-handoff.md) | the v2 design: concepts, formulas, acceptance tests, scaling law (wins over the first handoff for the quantum design) |
+| [`docs/standing-light-runbook.md`](docs/standing-light-runbook.md) | projection, calibration, performance mode, the glass check; §7 Superposed Relief with the findings that corrected the handoff; §8 Moth engines |
+| [`docs/standing-light-handoff.md`](docs/standing-light-handoff.md), [`docs/standing-light-project-spec.md`](docs/standing-light-project-spec.md) | the original handoff and spec (classical family, targets, A/B protocol) |
 | [`superposed_relief_refsim.py`](superposed_relief_refsim.py) | runnable numpy reference simulation |
+| `mock/` | the original classical look test (`standing_light_mock.py`, its figures); `tests/check_port_matches_mock.py` checks the `src/` port against it |
 | [`docs.mothquantum.com/docs/engines`](https://docs.mothquantum.com/docs/engines) | Moth engine documentation |

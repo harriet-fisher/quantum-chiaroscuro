@@ -83,6 +83,10 @@ class ReliefSpec:
     lamp_lock: object = 0.0                           # coupling theta_d of lamp qubit L1 to polarity qubit d: exp(-i theta_d Z_L1 Z_Bd / 2); scalar = all
     site_order: list = None                           # logical qubits in matrix-product-state site order (a locality hint for the MPS backend only)
     pol_circuit: object = None                        # a Qiskit circuit on the P polarity qubits that REPLACES the H + layers preparation (e.g. one QDrive returned)
+    floquet: dict = None                              # dict(steps, theta_zz, theta_x): kicked-Ising steps on the facet register after its preparation, before the polarity attaches
+    pol_kinds: list = None                            # "coplanar" | "crease" for every edge of pol_graph (geometry labels, used by the witnesses)
+    seam_pairs: list = None                           # facet pairs (i, j) that touch across a crease
+    seam_facets: list = None                          # facets on a crease
 
     def __post_init__(self):
         self.tau = np.asarray(self.tau, float)
@@ -143,6 +147,7 @@ class ReliefSpec:
                                                          None if l.get("rx") is None else tuple(np.round(l["rx"], 9))) for l in self.pol_layers),
                 None if lk is None else tuple(np.round(lk, 9)),
                 None if self.facet_panel is None else self.facet_panel.tobytes(),
+                None if not self.floquet else tuple(sorted(self.floquet.items())),
                 None if self.pol_circuit is None else hash(str(self.pol_circuit.qasm() if hasattr(self.pol_circuit, "qasm") else repr(self.pol_circuit.data))))
 
 
@@ -235,6 +240,16 @@ def facet_state(spec):
         z = 1 - 2 * bits
         phase = sum(-th / 2 * z[:, i] * z[:, j] for i, j, th in zz)
         vec = vec * np.exp(1j * phase)
+    fl = spec.floquet
+    if fl and fl.get("steps"):
+        idx = np.arange(2 ** F)
+        z = 1 - 2 * ((idx[:, None] >> np.arange(F)[None, :]) & 1)
+        phase = sum(-np.sign(th) * fl["theta_zz"] / 2 * z[:, i] * z[:, j] for i, j, kind, th in spec.edges if kind == "zz")
+        kick = _RX(fl["theta_x"])
+        for _ in range(int(fl["steps"])):
+            vec = vec * np.exp(1j * phase) if not np.isscalar(phase) else vec
+            for q in range(F):
+                vec = sl.apply_1q(vec, kick, q, F)
     return vec
 
 
@@ -526,6 +541,14 @@ def reference_circuit(spec, measure=False):
     for i, j, kind, th in spec.edges:
         if kind == "zz":
             qc.rzz(float(th), i, j)
+    fl = spec.floquet
+    if fl and fl.get("steps"):                                      # kicked-Ising dynamics on the facet graph: entanglement grows with every step
+        for _ in range(int(fl["steps"])):
+            for i, j, kind, th in spec.edges:
+                if kind == "zz":
+                    qc.rzz(float(np.sign(th) * fl["theta_zz"]), i, j)
+            for i in range(F):
+                qc.rx(float(fl["theta_x"]), i)
     for i in range(F):
         qc.cz(F + int(spec.panel_of[i]), i)
     if measure:

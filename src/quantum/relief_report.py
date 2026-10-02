@@ -152,25 +152,36 @@ def contrast_vs_visibility(out, kappa=1.0, K=48, light_x=0.65):
                 domain=[dict(tau=float(t), m=int(m), V=float(v), signal_over_noise=float(s_)) for v, s_, t, m in pts])
 
 
-def domain_report(scene, out, seg_len=150.0, group_size=2, lock=float(np.pi / 2), pol_coupling=0.5, entangle=0.8):
-    """Frames, the certificate and the budget of the domain relief on `scene` (a matrix-product state beyond 20 qubits)."""
+def domain_report(scene, out, rounds=400, **overrides):
+    """Frames, the certificate, the parity game and the budget of the domain relief on `scene` (a matrix-product state beyond 20 qubits), at the show's own defaults
+    (ui.session.DOMAIN_DEFAULTS) unless overridden."""
     from src.geometry.domains import build_domains, frustration
     from src.quantum import domain_witness as dw
     from src.quantum.domain_state import MPSReliefState, make_state, spec_from_domains
+    from src.quantum.parity_game import ParityGame
     from src.texture.relief_compose import make_composer
-    ds = build_domains(scene, seg_len=seg_len, group_size=group_size)
-    spec = spec_from_domains(ds, scene, entangle=entangle, pol_coupling=pol_coupling, lock=lock)
-    state = make_state(spec)
-    if isinstance(state, MPSReliefState):
-        state.warm()
+    from src.ui.session import DOMAIN_DEFAULTS
+    dp = dict(DOMAIN_DEFAULTS, **overrides)
+    ds = build_domains(scene, seg_len=dp["seg_len"], group_size=dp["group_size"], tau=dp["tau"], crease_sign=dp["crease_sign"])
+    spec = spec_from_domains(ds, scene, entangle=dp.get("entangle", 0.8), pol_coupling=dp["pol_coupling"], lock=dp["lock"], tau_mix=dp["tau_mix"], pol_field=dp["pol_field"],
+                             crease_coupling=dp["crease_coupling"], seam_coupling=dp["seam_coupling"], seam_mix=dp["seam_mix"], leaf_tau=dp["leaf_tau"],
+                             leaf_prefer=dp["leaf_prefer"], floquet=(dp["floquet_steps"], dp["floquet_zz"], dp["floquet_x"]))
+    state = make_state(spec, backend="mps")
+    state.warm()
     contact_sheet(scene, state, make_composer(scene, ds.facets), os.path.join(out, "domain_frames.png"))
     cert = dw.domain_certificate(state)
     cert["lines"] = dw.describe_domain_certificate(cert, ds, spec)
-    return dict(seg_len=seg_len, group_size=group_size, lock=lock, pol_coupling=pol_coupling, entangle=entangle, facets=spec.F, domains=spec.P,
-                simulated_qubits=spec.n_sim, circuit_qubits=spec.n_full, backend=getattr(state, "backend", "exact"),
-                accuracy=state.accuracy() if isinstance(state, MPSReliefState) else None, domain_edges=len(ds.edges),
-                creases=sum(1 for e in ds.edges if e[2] == "crease"), frustration=dict(without_lamp=frustration(ds),
-                with_lamp=frustration(ds, lock=True, locked=[d for d in range(spec.P) if spec.lock_array()[d]])), certificate=cert)
+    game = None
+    if spec.lock_array() is not None:
+        g = ParityGame(state, restarts=12)
+        rng = np.random.default_rng(0)
+        for _ in range(rounds):
+            g.play(rng, K=2)
+        game = dict(g.stats.summary(), mermin=g.M, parties=g.parties, text=g.describe())
+    return dict(params=dp, facets=spec.F, domains=spec.P, simulated_qubits=spec.n_sim, circuit_qubits=spec.n_full, backend="mps", accuracy=state.accuracy(),
+                domain_edges=len(ds.edges), creases=sum(1 for e in ds.edges if e[2] == "crease"),
+                frustration=dict(without_lamp=frustration(ds), with_lamp=frustration(ds, lock=True, locked=[d for d in range(spec.P) if spec.lock_array() is not None and spec.lock_array()[d]])),
+                certificate=cert, game=game)
 
 
 def main(argv=None):
@@ -181,7 +192,7 @@ def main(argv=None):
     ap.add_argument("--kappa", type=float, default=1.0)
     ap.add_argument("--domain", action="store_true", help="also report the domain relief (matrix-product state beyond 20 qubits): frames, certificate, budget")
     ap.add_argument("--seg-len", type=float, default=150.0)
-    ap.add_argument("--group-size", type=int, default=2)
+    ap.add_argument("--group-size", type=int, default=1)
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
     labels = load_labels(a.labels) if a.labels else validate(fill_defaults(bay_window_labels()))
@@ -208,6 +219,8 @@ def main(argv=None):
         d = report["domain"]
         print(f"\ndomain relief: {d['facets']} facets + {d['domains']} domain qubits = {d['simulated_qubits']} simulated ({d['backend']}), {d['domain_edges']} edges ({d['creases']} creases)")
         print("\n".join(d["certificate"]["lines"]))
+        if d["game"]:
+            print(d["game"]["text"])
     print(f"wrote {a.out}/relief_frames.png, relief_complementarity.png, relief_scaling.png, relief_contrast_vs_visibility.png, report.json" + (", domain_frames.png" if a.domain else ""))
 
 

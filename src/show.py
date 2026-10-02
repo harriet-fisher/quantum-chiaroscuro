@@ -47,10 +47,19 @@ def main(argv=None):
                     help="relief engine: panel (one polarity qubit per panel, exact, 12 facet qubits) or domain (one per depth domain, coupled along the geometry graph; "
                          "dozens of qubits as a matrix-product state; --source relief only)")
     ap.add_argument("--seg-len", type=float, default=150.0, help="domain engine: facet length along a polygon edge, px (smaller: more qubits)")
-    ap.add_argument("--group-size", type=int, default=2, help="domain engine: facets sharing one polarity qubit (tilt budget per domain; 2 keeps V ~ 0.77)")
+    ap.add_argument("--group-size", type=int, default=1, help="domain engine: facets sharing one polarity qubit (tilt budget per domain; 1 keeps V = cos(tau), the most coherent)")
     ap.add_argument("--tau", type=float, default=0.5, help="domain engine: tilt of each facet, radians (V per domain = cos(tau)^group-size)")
-    ap.add_argument("--pol-coupling", type=float, default=0.5, help="domain engine: Ising angle between neighbouring domains' polarity qubits (+ coplanar, crease sign across)")
-    ap.add_argument("--lock", type=float, default=1.2, help="domain engine: coupling of lamp L1 to the polarity qubits with the crater-gauge signs (0: the lamp is a plain coin)")
+    ap.add_argument("--pol-coupling", type=float, default=0.3, help="domain engine: Ising angle between neighbouring domains' polarity qubits along a boundary (weak: the entanglement lives on the seams)")
+    ap.add_argument("--crease-coupling", type=float, default=1.0, help="domain engine: the same Ising angle across a crease between panels (strong)")
+    ap.add_argument("--seam-coupling", type=float, default=1.0, help="domain engine: ZZ angle between facets that touch across a crease and among seam facets (pi/2: CZ up to local phases)")
+    ap.add_argument("--seam-mix", type=float, default=0.0, help="domain engine: 0..1 moves ONLY the seam facets toward the equator (graph-state regime on the seams, visible relief elsewhere)")
+    ap.add_argument("--leaf-tau", type=float, default=0.3, help="domain engine: tilt of the facets of the game's leaf domains (smaller: more visibility, more rounds won)")
+    ap.add_argument("--leaf-prefer", choices=["visible", "seam"], default="visible", help="domain engine: leaves of the parity game and of the lamp lock: the most visible domains, or those ON the seam")
+    ap.add_argument("--evolve-steps", type=int, default=0, help="domain engine: kicked-Ising steps on the facet graph before the polarity attaches (entanglement grows with each)")
+    ap.add_argument("--evolve-zz", type=float, default=0.7), ap.add_argument("--evolve-x", type=float, default=0.5)
+    ap.add_argument("--game", action="store_true", help="domain engine: start with the parity game on (some looks are rounds of a Mermin game; the win rate must beat 75%%)")
+    ap.add_argument("--game-fraction", type=float, default=0.5, help="the fraction of looks that are rounds")
+    ap.add_argument("--lock", type=float, default=1.5708, help="domain engine: coupling of lamp L1 to the polarity qubits with the crater-gauge signs (0: the lamp is a plain coin)")
     ap.add_argument("--tau-mix", type=float, default=0.0, help="domain engine: 0..1 moves the facets toward the equator (graph-state regime; visibility falls)")
     ap.add_argument("--pol-field", type=float, default=0.0, help="domain engine: transverse-field angle on the polarity qubits (0 keeps the circuit IQP-shaped)")
     ap.add_argument("--crease-sign", type=float, default=-1.0, help="domain engine: sign of the polarity coupling across a crease (-1: depths differ across a shared edge)")
@@ -88,8 +97,11 @@ def main(argv=None):
                           run_dir=a.run, out_dir=out, projector_size=parse_size(a.projector_size) if a.projector_size else None, seed=a.seed,
                           pool_size=a.pool, allow_spend=a.allow_spend, log=lambda m: print("  " + m),
                           kappa=a.kappa, n_dirs=a.n_dirs, entangle=a.entangle, contrast=a.contrast, engine=a.engine,
+                          game=a.game, game_fraction=a.game_fraction,
                           domain=dict(seg_len=a.seg_len, group_size=a.group_size, tau=a.tau, pol_coupling=a.pol_coupling, lock=a.lock, tau_mix=a.tau_mix,
-                                      pol_field=a.pol_field, crease_sign=a.crease_sign, backend=a.backend))
+                                      pol_field=a.pol_field, crease_sign=a.crease_sign, backend=a.backend, crease_coupling=a.crease_coupling,
+                                      seam_coupling=a.seam_coupling, seam_mix=a.seam_mix, leaf_tau=a.leaf_tau, leaf_prefer=a.leaf_prefer,
+                                      floquet_steps=a.evolve_steps, floquet_zz=a.evolve_zz, floquet_x=a.evolve_x))
     except (ValueError, FileNotFoundError) as e:
         raise SystemExit(f"cannot start: {e}")
     server, token, base = make_server(session, port=a.port, lan=a.lan)

@@ -631,19 +631,19 @@
    "polarity-facet": {
     "a": 10,
     "b": 14,
-    "S_max": 1.6350180700833687,
+    "S_max": 1.635018070083372,
     "violates": false
    },
    "facet-facet": {
     "a": 8,
     "b": 9,
-    "S_max": 1.6002938853367932,
+    "S_max": 1.60029388533679,
     "violates": false
    },
    "polarity-polarity": {
     "a": 12,
     "b": 13,
-    "S_max": 0.7036033722991907,
+    "S_max": 0.7036033722991922,
     "violates": false
    }
   },
@@ -660,355 +660,752 @@
   ]
  },
  "domain": {
-  "seg_len": 150.0,
-  "group_size": 2,
-  "lock": 1.5707963267948966,
-  "pol_coupling": 0.5,
-  "entangle": 0.8,
+  "params": {
+   "seg_len": 150.0,
+   "group_size": 1,
+   "tau": 0.5,
+   "pol_coupling": 0.3,
+   "crease_coupling": 1.0,
+   "seam_coupling": 1.0,
+   "seam_mix": 0.0,
+   "leaf_tau": 0.3,
+   "lock": 1.5708,
+   "tau_mix": 0.0,
+   "pol_field": 0.0,
+   "crease_sign": -1.0,
+   "backend": "auto",
+   "floquet_steps": 0,
+   "floquet_zz": 0.7,
+   "floquet_x": 0.5,
+   "leaf_prefer": "visible",
+   "entangle": 0.8
+  },
   "facets": 46,
-  "domains": 23,
-  "simulated_qubits": 69,
-  "circuit_qubits": 73,
+  "domains": 46,
+  "simulated_qubits": 92,
+  "circuit_qubits": 96,
   "backend": "mps",
   "accuracy": {
    "max_bond": 32,
-   "norm_deficit": 0.0014981987622879611
+   "norm_deficit": 0.0013071718742112548
   },
-  "domain_edges": 25,
-  "creases": 5,
+  "domain_edges": 52,
+  "creases": 6,
   "frustration": {
    "without_lamp": {
-    "nodes": 23,
-    "edges": 25,
-    "cycle_basis": 6,
+    "nodes": 46,
+    "edges": 52,
+    "cycle_basis": 10,
     "frustrated_cycles": 0
    },
    "with_lamp": {
-    "nodes": 24,
-    "edges": 28,
-    "cycle_basis": 8,
-    "frustrated_cycles": 3
+    "nodes": 47,
+    "edges": 55,
+    "cycle_basis": 10,
+    "frustrated_cycles": 0
    }
   },
   "certificate": {
    "provenance": "local reference circuit",
    "backend": "mps",
-   "n_qubits": 69,
+   "n_qubits": 92,
    "facets": 46,
-   "domains": 23,
+   "domains": 46,
    "visibility": [
     {
      "domain": 0,
-     "visibility": 0.6147556562436087,
-     "isolated": 0.770151151499314
+     "visibility": 0.8021411390538159,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 1,
-     "visibility": 0.57706628849748,
-     "isolated": 0.7701510946400877
+     "visibility": 0.803077407245149,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 2,
-     "visibility": 0.5458867038205226,
-     "isolated": 0.7701509013569587
+     "visibility": 0.4396727465608058,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 3,
-     "visibility": 0.5950518733876726,
-     "isolated": 0.7701509533025663
+     "visibility": 0.4429148447279112,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 4,
-     "visibility": 0.5931339955423538,
-     "isolated": 0.7701511529340699
+     "visibility": 0.4418244117466711,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 5,
-     "visibility": 0.6758735062644864,
+     "visibility": 0.8226397782731009,
      "isolated": 0.8775825618903728
     },
     {
      "domain": 6,
-     "visibility": 0.670981273932847,
-     "isolated": 0.6758223496010826
+     "visibility": 0.8113186188924295,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 7,
-     "visibility": 0.7408133468796043,
-     "isolated": 0.7701511529331128
+     "visibility": 0.8009721115267168,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 8,
-     "visibility": 0.6417225128788748,
-     "isolated": 0.7701510523224748
+     "visibility": 0.800941399763542,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 9,
-     "visibility": 0.5019710590989837,
-     "isolated": 0.7701511417677059
+     "visibility": 0.8009413910418917,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 10,
-     "visibility": 0.5624369836944357,
-     "isolated": 0.770151132633877
+     "visibility": 0.8009435089175594,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 11,
-     "visibility": 0.5446655821060309,
-     "isolated": 0.7701511342113516
+     "visibility": 0.8089016042947133,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 12,
-     "visibility": 0.5738756031135224,
-     "isolated": 0.770151057311426
+     "visibility": 0.8187035595713177,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 13,
-     "visibility": 0.6959618752791598,
-     "isolated": 0.7701243270362085
+     "visibility": 0.8090112729651491,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 14,
-     "visibility": 0.6976435287123087,
-     "isolated": 0.7701304277479425
+     "visibility": 0.8724635480153038,
+     "isolated": 0.955336489125606
     },
     {
      "domain": 15,
-     "visibility": 0.6235932024067272,
-     "isolated": 0.7701511431120338
+     "visibility": 0.8013156640692678,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 16,
-     "visibility": 0.5934864969107361,
-     "isolated": 0.7701510825428672
+     "visibility": 0.820235297046845,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 17,
-     "visibility": 0.6143458094134575,
-     "isolated": 0.7701510825428672
+     "visibility": 0.8141108230921121,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 18,
-     "visibility": 0.6714461059510851,
-     "isolated": 0.7701511418239028
+     "visibility": 0.43999084827884816,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 19,
-     "visibility": 0.5045196913391359,
-     "isolated": 0.7701508866283888
+     "visibility": 0.4434978978865915,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 20,
-     "visibility": 0.6519925277117256,
+     "visibility": 0.4429214680359709,
      "isolated": 0.8775825618903728
     },
     {
      "domain": 21,
-     "visibility": 0.5934282315295661,
-     "isolated": 0.6757723363989295
+     "visibility": 0.8269669010590043,
+     "isolated": 0.8775825618903728
     },
     {
      "domain": 22,
-     "visibility": 0.6762932425257893,
-     "isolated": 0.7701398945569109
+     "visibility": 0.8212339724554707,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 23,
+     "visibility": 0.4425303786892618,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 24,
+     "visibility": 0.44177401134781424,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 25,
+     "visibility": 0.44024910444310017,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 26,
+     "visibility": 0.808656273439575,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 27,
+     "visibility": 0.8188579646766188,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 28,
+     "visibility": 0.8085424563217357,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 29,
+     "visibility": 0.8725250590446063,
+     "isolated": 0.955336489125606
+    },
+    {
+     "domain": 30,
+     "visibility": 0.8195398780348249,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 31,
+     "visibility": 0.8126885013880115,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 32,
+     "visibility": 0.8017102770036869,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 33,
+     "visibility": 0.8022994933911696,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 34,
+     "visibility": 0.8022012334386515,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 35,
+     "visibility": 0.8017370932371275,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 36,
+     "visibility": 0.8075581308124244,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 37,
+     "visibility": 0.814085630237959,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 38,
+     "visibility": 0.4434217335885777,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 39,
+     "visibility": 0.44232315257702315,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 40,
+     "visibility": 0.44029739994280276,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 41,
+     "visibility": 0.8025216153314233,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 42,
+     "visibility": 0.8732524955321392,
+     "isolated": 0.955336489125606
+    },
+    {
+     "domain": 43,
+     "visibility": 0.802808072071769,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 44,
+     "visibility": 0.8028385163510969,
+     "isolated": 0.8775825618903728
+    },
+    {
+     "domain": 45,
+     "visibility": 0.8013508115430322,
+     "isolated": 0.8775825618903728
     }
    ],
    "edges": [
     {
      "a": 0,
      "b": 1,
-     "negativity": -0.0,
-     "chsh": 1.0547705808738514,
+     "negativity": 0.049646483630695376,
+     "chsh": 1.4941512167218014,
      "negativity_dephased": -0.0
     },
     {
      "a": 0,
-     "b": 5,
-     "negativity": 0.06180151865389556,
-     "chsh": 1.3074969380110584,
+     "b": 10,
+     "negativity": 0.04995186267555716,
+     "chsh": 1.4927799743348655,
      "negativity_dephased": -0.0
     },
     {
      "a": 1,
      "b": 2,
      "negativity": -0.0,
-     "chsh": 0.9415491740657241,
-     "negativity_dephased": -0.0
-    },
-    {
-     "a": 1,
-     "b": 12,
-     "negativity": -0.0,
-     "chsh": 1.0111125206967413,
+     "chsh": 0.9189410159982572,
      "negativity_dephased": -0.0
     },
     {
      "a": 2,
      "b": 3,
-     "negativity": 0.011459750710279657,
-     "chsh": 1.0632143887307495,
+     "negativity": -0.0,
+     "chsh": 0.4931524247478903,
      "negativity_dephased": -0.0
     },
     {
      "a": 2,
-     "b": 11,
-     "negativity": -0.0,
-     "chsh": 0.9699385016228218,
+     "b": 25,
+     "negativity": 0.25558668801592865,
+     "chsh": 1.9318256103308602,
      "negativity_dephased": -0.0
     },
     {
      "a": 3,
      "b": 4,
-     "negativity": 0.02684818597031419,
-     "chsh": 1.123738164944476,
+     "negativity": -0.0,
+     "chsh": 0.48587799170766444,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 3,
+     "b": 24,
+     "negativity": 0.25769078405670987,
+     "chsh": 1.9367048722534659,
      "negativity_dephased": -0.0
     },
     {
      "a": 4,
      "b": 5,
-     "negativity": 0.054676629088227784,
-     "chsh": 1.276366293924384,
+     "negativity": -0.0,
+     "chsh": 0.914453518788587,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 4,
+     "b": 23,
+     "negativity": 0.25808748426867967,
+     "chsh": 1.938149892867393,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 5,
+     "b": 6,
+     "negativity": 0.04106687170737097,
+     "chsh": 1.5042116031723016,
      "negativity_dephased": -0.0
     },
     {
      "a": 6,
      "b": 7,
-     "negativity": 0.06233801016642419,
-     "chsh": 1.3846649836834692,
+     "negativity": 0.0525926602985846,
+     "chsh": 1.5096558961110902,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 7,
+     "b": 8,
+     "negativity": 0.04961223253101812,
+     "chsh": 1.490617473090649,
      "negativity_dephased": -0.0
     },
     {
      "a": 8,
      "b": 9,
-     "negativity": 0.006945354465238595,
-     "chsh": 1.0571563155650834,
-     "negativity_dephased": -0.0
-    },
-    {
-     "a": 8,
-     "b": 12,
-     "negativity": -0.0,
-     "chsh": 1.0180676108272722,
+     "negativity": 0.049603250435375154,
+     "chsh": 1.4905607416590532,
      "negativity_dephased": -0.0
     },
     {
      "a": 9,
      "b": 10,
-     "negativity": -0.0,
-     "chsh": 0.8800623888205463,
-     "negativity_dephased": -0.0
-    },
-    {
-     "a": 9,
-     "b": 19,
-     "negativity": -0.0,
-     "chsh": 0.9578315744356203,
-     "negativity_dephased": -0.0
-    },
-    {
-     "a": 9,
-     "b": 20,
-     "negativity": 0.009890340230594338,
-     "chsh": 1.1096050015238825,
-     "negativity_dephased": -0.0
-    },
-    {
-     "a": 10,
-     "b": 11,
-     "negativity": -0.0,
-     "chsh": 0.9943848993684994,
-     "negativity_dephased": -0.0
-    },
-    {
-     "a": 10,
-     "b": 19,
-     "negativity": -0.0,
-     "chsh": 0.9907877694155032,
+     "negativity": 0.04960378957801344,
+     "chsh": 1.4905643864653817,
      "negativity_dephased": -0.0
     },
     {
      "a": 11,
      "b": 12,
-     "negativity": 0.0023382661083146093,
-     "chsh": 1.0173250563704141,
+     "negativity": 0.04325804178870531,
+     "chsh": 1.5044486173878637,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 11,
+     "b": 15,
+     "negativity": 0.05153102487985278,
+     "chsh": 1.5046718220338795,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 12,
+     "b": 13,
+     "negativity": 0.04323160088449817,
+     "chsh": 1.504720623347027,
      "negativity_dephased": -0.0
     },
     {
      "a": 13,
      "b": 14,
-     "negativity": 0.0833577883556396,
-     "chsh": 1.4347741633703328,
+     "negativity": 0.07355439521723005,
+     "chsh": 1.6364629741132004,
      "negativity_dephased": -0.0
     },
     {
-     "a": 15,
-     "b": 16,
-     "negativity": 0.03608242943384783,
-     "chsh": 1.1774291872562506,
-     "negativity_dephased": -0.0
-    },
-    {
-     "a": 15,
-     "b": 20,
-     "negativity": 0.000866357620474252,
-     "chsh": 1.1015676551552263,
+     "a": 14,
+     "b": 15,
+     "negativity": 0.07208022886308282,
+     "chsh": 1.6237409305374018,
      "negativity_dephased": -0.0
     },
     {
      "a": 16,
      "b": 17,
-     "negativity": 0.033382308160787945,
-     "chsh": 1.1605347993703266,
+     "negativity": 0.038564760198908296,
+     "chsh": 1.5015282129554726,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 16,
+     "b": 25,
+     "negativity": -0.0,
+     "chsh": 0.9170585245313216,
      "negativity_dephased": -0.0
     },
     {
      "a": 17,
      "b": 18,
-     "negativity": 0.015922493373927874,
-     "chsh": 1.1568743550376834,
+     "negativity": -0.0,
+     "chsh": 0.9314414416143578,
      "negativity_dephased": -0.0
     },
     {
      "a": 18,
      "b": 19,
      "negativity": -0.0,
-     "chsh": 1.0304757382204666,
+     "chsh": 0.4940840643196542,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 18,
+     "b": 40,
+     "negativity": 0.25615225045407053,
+     "chsh": 1.9338357880994999,
      "negativity_dephased": -0.0
     },
     {
      "a": 19,
      "b": 20,
-     "negativity": 0.012470064236294836,
-     "chsh": 1.1199863378278898,
+     "negativity": -0.0,
+     "chsh": 0.4870081254483005,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 19,
+     "b": 39,
+     "negativity": 0.25794646503985746,
+     "chsh": 1.9370341399787445,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 20,
+     "b": 21,
+     "negativity": -0.0,
+     "chsh": 0.9204915581032963,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 20,
+     "b": 38,
+     "negativity": 0.25888156137947615,
+     "chsh": 1.9399276816973376,
      "negativity_dephased": -0.0
     },
     {
      "a": 21,
      "b": 22,
-     "negativity": 0.05527005689890851,
-     "chsh": 1.278950003857837,
+     "negativity": 0.04072278690795039,
+     "chsh": 1.518450467858312,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 22,
+     "b": 23,
+     "negativity": -0.0,
+     "chsh": 0.9236636294589157,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 23,
+     "b": 24,
+     "negativity": -0.0,
+     "chsh": 0.48983359186646475,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 24,
+     "b": 25,
+     "negativity": -0.0,
+     "chsh": 0.5030815183693884,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 26,
+     "b": 27,
+     "negativity": 0.043465510534355045,
+     "chsh": 1.5044498296886626,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 26,
+     "b": 29,
+     "negativity": 0.07349427087021555,
+     "chsh": 1.635161758797395,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 27,
+     "b": 28,
+     "negativity": 0.04326869659512416,
+     "chsh": 1.5039222748740733,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 28,
+     "b": 29,
+     "negativity": 0.07369058727265733,
+     "chsh": 1.6354313599813706,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 30,
+     "b": 31,
+     "negativity": 0.03810755139642298,
+     "chsh": 1.498204698772316,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 30,
+     "b": 40,
+     "negativity": -0.0,
+     "chsh": 0.9171637589454259,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 31,
+     "b": 32,
+     "negativity": 0.053042887351472674,
+     "chsh": 1.5131171733960007,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 32,
+     "b": 33,
+     "negativity": 0.04968336603592039,
+     "chsh": 1.4929238522220531,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 33,
+     "b": 34,
+     "negativity": 0.04948378265353714,
+     "chsh": 1.493118813281963,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 34,
+     "b": 35,
+     "negativity": 0.04966502159877085,
+     "chsh": 1.492761363381716,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 35,
+     "b": 36,
+     "negativity": 0.05102132953160526,
+     "chsh": 1.502363332454498,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 36,
+     "b": 37,
+     "negativity": 0.04622614362885554,
+     "chsh": 1.5037011584209157,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 37,
+     "b": 38,
+     "negativity": -0.0,
+     "chsh": 0.9163332490802683,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 38,
+     "b": 39,
+     "negativity": -0.0,
+     "chsh": 0.4903551533169647,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 39,
+     "b": 40,
+     "negativity": -0.0,
+     "chsh": 0.5030843175267264,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 41,
+     "b": 42,
+     "negativity": 0.06998934780318249,
+     "chsh": 1.621504541788089,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 41,
+     "b": 45,
+     "negativity": 0.04993695938332454,
+     "chsh": 1.4935233662173955,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 42,
+     "b": 43,
+     "negativity": 0.07258919732021628,
+     "chsh": 1.626804645891229,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 43,
+     "b": 44,
+     "negativity": 0.047564352178169116,
+     "chsh": 1.490587080432014,
+     "negativity_dephased": -0.0
+    },
+    {
+     "a": 44,
+     "b": 45,
+     "negativity": 0.05021296535711384,
+     "chsh": 1.4942437676006317,
      "negativity_dephased": -0.0
     }
    ],
+   "creases": {
+    "edges": 6,
+    "entangled": 6,
+    "max_negativity": 0.25888156137947615,
+    "mean_negativity": 0.25739087220245377
+   },
+   "seams": {
+    "seam_facets": 12,
+    "seam_pairs": 6,
+    "seam_facet_entropy": 0.3098224118729256,
+    "other_facet_entropy": 0.3090119428324393,
+    "seam_pair_entropy": 0.619352978873094,
+    "seam_tilt_mean": 0.5,
+    "domain_stabilizers": [
+     {
+      "domain": 2,
+      "visibility": 0.4396727465608058,
+      "stabilizer": 0.4960720625125859
+     },
+     {
+      "domain": 3,
+      "visibility": 0.4429148447279112,
+      "stabilizer": 0.5001163829390651
+     },
+     {
+      "domain": 4,
+      "visibility": 0.4418244117466711,
+      "stabilizer": 0.49972806828190663
+     },
+     {
+      "domain": 18,
+      "visibility": 0.43999084827884816,
+      "stabilizer": 0.4960849980702968
+     },
+     {
+      "domain": 19,
+      "visibility": 0.4434978978865915,
+      "stabilizer": 0.5004954878496897
+     },
+     {
+      "domain": 20,
+      "visibility": 0.4429214680359709,
+      "stabilizer": 0.5002201712513561
+     },
+     {
+      "domain": 23,
+      "visibility": 0.4425303786892618,
+      "stabilizer": 0.49939210944517864
+     },
+     {
+      "domain": 24,
+      "visibility": 0.44177401134781424,
+      "stabilizer": 0.4985355450434418
+     },
+     {
+      "domain": 25,
+      "visibility": 0.44024910444310017,
+      "stabilizer": 0.4962587849144985
+     },
+     {
+      "domain": 38,
+      "visibility": 0.4434217335885777,
+      "stabilizer": 0.49980896858101986
+     },
+     {
+      "domain": 39,
+      "visibility": 0.44232315257702315,
+      "stabilizer": 0.4988856291193664
+     },
+     {
+      "domain": 40,
+      "visibility": 0.44029739994280276,
+      "stabilizer": 0.4963368914804074
+     }
+    ]
+   },
    "summary": {
-    "edges": 25,
-    "entangled_edges": 15,
-    "max_negativity": 0.0833577883556396,
-    "max_chsh": 1.4347741633703328,
+    "edges": 52,
+    "entangled_edges": 36,
+    "max_negativity": 0.25888156137947615,
+    "max_chsh": 1.9399276816973376,
     "dephased_entangled_edges": 0
    },
    "bonds": {
     "max_bond": 32,
-    "max_entropy_bits": 1.4973185424196058,
+    "max_entropy_bits": 2.585859487310702,
     "bond_dims": [
      2,
      4,
      8,
      16,
-     22,
-     28,
      30,
-     26,
+     16,
+     9,
+     4,
+     8,
+     16,
      30,
      32,
      32,
@@ -1018,6 +1415,8 @@
      32,
      32,
      32,
+     24,
+     24,
      32,
      32,
      32,
@@ -1034,6 +1433,18 @@
      32,
      32,
      32,
+     29,
+     32,
+     32,
+     32,
+     32,
+     32,
+     30,
+     32,
+     32,
+     32,
+     29,
+     29,
      32,
      32,
      32,
@@ -1050,6 +1461,13 @@
      32,
      32,
      32,
+     29,
+     32,
+     32,
+     32,
+     32,
+     32,
+     27,
      32,
      32,
      32,
@@ -1061,12 +1479,12 @@
      32,
      32,
      32,
+     31,
+     32,
+     32,
+     25,
      16,
      8,
-     4,
-     4,
-     8,
-     4,
      4,
      2
     ]
@@ -1074,50 +1492,106 @@
    "lamp": {
     "pairs": [
      {
-      "domain": 5,
-      "chsh": 1.3517473549323733,
-      "chsh_dephased": 0.0009621255977104352,
+      "domain": 14,
+      "chsh": 1.7449270960188352,
+      "chsh_dephased": 2.6984870348778725e-11,
       "negativity": -0.0
      },
      {
-      "domain": 12,
-      "chsh": 1.1477512062270447,
-      "chsh_dephased": 6.63999575836614e-10,
+      "domain": 29,
+      "chsh": 1.74505011807744,
+      "chsh_dephased": 2.698487147335005e-11,
       "negativity": -0.0
      },
      {
-      "domain": 20,
-      "chsh": 1.3039850554234511,
-      "chsh_dephased": 5.995670650791986e-09,
+      "domain": 42,
+      "chsh": 1.7465049910524957,
+      "chsh_dephased": 2.698487147605184e-11,
       "negativity": -0.0
      }
     ],
-    "best_chsh": 1.3517473549323733,
+    "best_chsh": 1.7465049910524957,
     "local_bound": 2.0,
     "violating_pairs": 0,
     "mermin": {
      "parties": 4,
      "leaves": [
-      5,
-      12,
-      20
+      14,
+      29,
+      42
      ],
-     "value": 4.340693637941476,
-     "value_dephased": 1.0,
+     "value": 6.568063909627677,
+     "value_dephased": 0.9999999999797611,
      "local_bound": 4,
      "quantum_max": 8,
      "violated": true
     }
    },
    "lines": [
-    "state: local reference circuit (69 qubits: 46 facets + 23 domain polarity qubits, mps backend)",
-    "domain visibility <X_B>: 0.502 to 0.741 (isolated value 0.771; neighbours lower it)",
-    "15 of 25 edges of the domain graph carry entanglement between their two domains (largest negativity 0.083, best CHSH 1.435); control B (dephased depth): 0 entangled edges, as it must be for a classical mixture",
-    "matrix-product state: largest bond dimension 32, largest bond entropy 1.50 bits",
-    "lamp - depth: 0 of 3 locked domains violate CHSH with the lamp (best 1.352, local bound 2); dephased depth: 0.001",
-    "Mermin test, lamp + 3 domains from different panels: 4.341 against a local bound 4 (quantum maximum 8): VIOLATED; dephased depth 1.000",
-    "frustration: 0 frustrated cycles among the domains alone, 3 once the lamp is joined to them"
+    "state: local reference circuit (92 qubits: 46 facets + 46 domain polarity qubits, mps backend)",
+    "domain visibility <X_B>: 0.440 to 0.873 (isolated value 0.883; neighbours lower it)",
+    "36 of 52 edges of the domain graph carry entanglement between their two domains (largest negativity 0.259, best CHSH 1.940); control B (dephased depth): 0 entangled edges, as it must be for a classical mixture",
+    "creases (edges between panels): 6 of 6 carry entanglement between their two domains, largest negativity 0.259",
+    "seam facets (12, mean tilt 0.50 rad): entropy of one seam facet against the rest 0.31 bits (other facets 0.31), of a pair across a crease 0.62 bits; seam domains' stabilizer <X_B Z^F> 0.50 to 0.50 while their visibility is 0.44 to 0.44",
+    "matrix-product state: largest bond dimension 32, largest bond entropy 2.59 bits",
+    "lamp - depth: 0 of 3 locked domains violate CHSH with the lamp (best 1.747, local bound 2); dephased depth: 0.000",
+    "Mermin test, lamp + 3 domains from different panels: 6.568 against a local bound 4 (quantum maximum 8): VIOLATED; dephased depth 1.000",
+    "frustration: 0 frustrated cycles among the domains alone, 0 once the lamp is joined to them"
    ]
+  },
+  "game": {
+   "rounds": 400,
+   "wins": 367,
+   "rate": 0.9175,
+   "classical_bound": 0.75,
+   "predicted": 0.9105039943517298,
+   "sigma_above_classical": 7.736493607140984,
+   "interval95": [
+    0.8864024616066086,
+    0.940654483492658
+   ],
+   "by_input": {
+    "0000": {
+     "rounds": 48,
+     "wins": 46
+    },
+    "0011": {
+     "rounds": 53,
+     "wins": 46
+    },
+    "0101": {
+     "rounds": 52,
+     "wins": 47
+    },
+    "0110": {
+     "rounds": 45,
+     "wins": 42
+    },
+    "1001": {
+     "rounds": 57,
+     "wins": 51
+    },
+    "1010": {
+     "rounds": 49,
+     "wins": 43
+    },
+    "1100": {
+     "rounds": 49,
+     "wins": 49
+    },
+    "1111": {
+     "rounds": 47,
+     "wins": 43
+    }
+   },
+   "mermin": 6.568063909627677,
+   "parties": [
+    "lamp",
+    "domain 14",
+    "domain 29",
+    "domain 42"
+   ],
+   "text": "parity game: 367 of 400 rounds won (91.8%), classical maximum 75%, this state's prediction 91.1% (Mermin value 6.57); +7.7 sigma from the classical bound"
   }
  }
 }

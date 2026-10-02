@@ -73,6 +73,15 @@ class Geometry(unittest.TestCase):
         self.assertEqual(frustration(DS)["frustrated_cycles"], 0)
         self.assertGreater(frustration(DS, lock=True)["frustrated_cycles"], 0)
 
+    def test_the_site_order_argument_is_honoured_and_is_a_permutation(self):
+        """A local variable once shadowed it, so 'loop' silently gave the sweep order."""
+        a = spec_from_domains(DS, SCENE, order="sweep")
+        b = spec_from_domains(DS, SCENE, order="loop")
+        self.assertNotEqual(a.site_order, b.site_order)
+        self.assertEqual(sorted(a.site_order), list(range(a.n_sim)))
+        self.assertEqual(sorted(b.site_order), list(range(b.n_sim)))
+        self.assertEqual(a.site_order, SPEC.site_order)                     # the default is the sweep
+
     def test_one_leaf_domain_per_panel_with_a_nonzero_lock_sign(self):
         leaves = leaf_domains(DS)
         self.assertEqual(len(leaves), SCENE.n_panels)
@@ -214,6 +223,20 @@ class ExactAndMpsAgree(unittest.TestCase):
             pe = ex.cell(g, control=control)[w].sum(axis=1)
             self.assertLess(0.5 * np.abs(cnt / N - pe / pe.sum()).sum(), 0.05, control)
 
+    def test_frame_level_statistics_agree_for_both_controls_not_only_the_polarity_distribution(self):
+        """A defect the first tests missed: control B kept ONE hidden polarity branch for all K photons of a frame, so its frames showed a full bevel that the
+        observation had not decided (spread of the lit fractions across frames 0.14 against 0.06 at K=64). The exact engine redraws the hidden branch per photon."""
+        sp = toy(rx=None)
+        ex, mp = ReliefState(sp), MPSReliefState(sp, truncation=1e-13, max_bond=None)
+        rng = np.random.default_rng(0)
+        N, K = 1500, 64
+        for control in ("coherent", "dephased"):
+            Le = np.array([ex.draw(K, rng, g=2, world=1, control=control).lit[:sp.F] for _ in range(N)])
+            Lm = np.array([mp.draw(K, rng, g=2, world=1, control=control).lit[:sp.F] for _ in range(N)])
+            self.assertLess(float(np.abs(Le.std(0) - Lm.std(0)).max()), 0.01, control)
+            self.assertLess(float(np.abs(Le.mean(0) - Lm.mean(0)).max()), 0.01, control)
+            self.assertLess(float(np.abs(np.corrcoef(Le.T) - np.corrcoef(Lm.T)).max()), 0.12, control)
+
     def test_conditional_facet_marginals_agree(self):
         sp = toy()
         ex, mp = ReliefState(sp), MPSReliefState(sp, truncation=1e-13, max_bond=None)
@@ -225,10 +248,31 @@ class ExactAndMpsAgree(unittest.TestCase):
         o, r = max(rows.items(), key=lambda kv: len(kv[1]))
         np.testing.assert_allclose(np.mean(r, axis=0), ex.marginals(1, w=2, o=o), atol=0.02)
 
-    def test_lamp_read_in_x_is_exact_only(self):
-        mp = MPSReliefState(toy())
-        with self.assertRaises(ValueError):
-            mp.draw(8, np.random.default_rng(0), lamp_mode="x")
+    def test_the_lamp_read_in_x_or_y_on_the_mps_backend_matches_the_exact_engine(self):
+        """Both lamp qubits read in a rotated basis: the light directions interfere. The MPS backend superposes the four world states (bond dimensions add)."""
+        sp = toy(rx=[0.3, 0.3, 0.3])
+        ex, mp = ReliefState(sp), MPSReliefState(sp, truncation=1e-13, max_bond=None)
+        rng = np.random.default_rng(1)
+        for mode in ("x", "y"):
+            for g in (0, 3):
+                pj = ex.cell(g, mode).sum(axis=2)
+                N = 2500
+                cnt = np.zeros_like(pj)
+                for _ in range(N):
+                    d = mp.draw(8, rng, g=g, lamp_mode=mode)
+                    cnt[d.world, sum((1 if p < 0 else 0) << k for k, p in enumerate(d.pol))] += 1
+                self.assertLess(0.5 * np.abs(cnt / N - pj / pj.sum()).sum(), 0.07, (mode, g))
+        rows = {}
+        for _ in range(2000):
+            d = mp.draw(64, rng, g=3, lamp_mode="x")
+            rows.setdefault((d.world, sum((1 if p < 0 else 0) << k for k, p in enumerate(d.pol))), []).append(d.lit[:sp.F])
+        (w, o), r = max(rows.items(), key=lambda kv: len(kv[1]))
+        np.testing.assert_allclose(np.mean(r, axis=0), ex.marginals(3, w=w, o=o, lamp_mode="x"), atol=0.02)
+
+    def test_one_aer_build_serves_every_world_and_observation(self):
+        mp = MPSReliefState(toy(), truncation=1e-13, max_bond=None)
+        mp.mps(0, 0), mp.mps(3, 2), mp.base(1), mp.lockstate(1)
+        self.assertEqual(len(mp.bond_log), 1)
 
     def test_a_scene_sized_wall_draws_frames_through_the_composer_with_glass_black(self):
         from src.texture.relief_compose import make_composer
@@ -243,6 +287,175 @@ class ExactAndMpsAgree(unittest.TestCase):
             img = comp_.compose(d.lit)
             self.assertTrue(np.all(img[SCENE.impenetrable] == 0))
             self.assertGreater(img[SCENE.frame].min(), 0)
+
+
+class ParityGameTests(unittest.TestCase):
+    def test_no_classical_strategy_wins_more_than_three_quarters_of_the_rounds(self):
+        from src.quantum.parity_game import classical_bound
+        self.assertEqual(classical_bound(3), 0.75)
+        self.assertEqual(classical_bound(4), 0.75)
+
+    def _game(self, **kw):
+        from src.quantum.parity_game import ParityGame
+        sp = toy(m=1, lock=(1.5708, 1.5708, 1.5708), J=kw.get("J", (0.0, 0.0, 0.0)))
+        return sp, ParityGame(MPSReliefState(sp, truncation=1e-13, max_bond=None), restarts=12)
+
+    def test_the_measured_win_rate_matches_the_prediction_from_the_mermin_value_and_beats_the_classical_bound(self):
+        sp, game = self._game()
+        rng = np.random.default_rng(0)
+        for _ in range(1200):
+            game.play(rng, K=2)
+        s = game.stats.summary()
+        self.assertGreater(game.predicted, 0.8)
+        self.assertAlmostEqual(s["rate"], game.predicted, delta=4 * np.sqrt(game.predicted * (1 - game.predicted) / s["rounds"]))
+        self.assertGreater(s["sigma_above_classical"], 5)
+        self.assertEqual(len(game.parties), 4)
+
+    def test_the_rounds_sample_the_exact_joint_distribution_of_lamp_outcome_and_depth_outcomes(self):
+        """Exact reference: the statevector of prepared register + lamp qubit coupled by the lock, the lamp rotated to its axis and the polarity qubits to
+        theirs, facets traced out. The MPS round (lamp read first, outcome feeding forward) must give the same P(m, o)."""
+        from qiskit import QuantumCircuit
+        from qiskit.quantum_info import Statevector
+        from src.quantum import sampler_local as sl
+        sp, game = self._game(J=(0.5, -0.5, 0.4))
+        n = sp.n_sim
+        qc = QuantumCircuit(n + 1)
+        qc.compose(reference_circuit(sp), qubits=list(range(n)), inplace=True)
+        qc.h(n)
+        for d in range(sp.P):
+            qc.rzz(float(sp.lock_array()[d]), n, sp.F + d)
+        psi = np.asarray(Statevector(qc).data, complex)
+        x = (0, 1, 0, 1)
+        lamp_axis, obs = game.settings(x)
+        psi = sl.apply_1q(psi, sl.bloch_unitary(lamp_axis), n, n + 1)
+        for dom, (gm, ch) in obs.items():
+            psi = sl.apply_1q(psi, sl.bloch_unitary(game.state._axis(gm, ch)), sp.F + dom, n + 1)
+        p = (np.abs(psi) ** 2).reshape((2,) * (n + 1))                      # axis a is qubit n - a
+        axes_keep = [0] + [n - (sp.F + dom) for dom in game.leaves]        # lamp, then the leaves
+        drop = tuple(a for a in range(n + 1) if a not in axes_keep)
+        marg = p.sum(axis=drop)                                              # (lamp, leaf0, leaf1, leaf2) bit outcomes
+        rng = np.random.default_rng(3)
+        N = 8000
+        cnt = np.zeros_like(marg)
+        for _ in range(N):
+            d, rnd = game.play(rng, K=1, x=x)
+            cnt[(d.lamp_outcome[0],) + tuple(0 if d.pol[dom] > 0 else 1 for dom in game.leaves)] += 1
+        self.assertLess(0.5 * np.abs(cnt / N - marg).sum(), 0.05)
+
+    def test_dephased_depth_cannot_beat_the_classical_bound(self):
+        sp, game = self._game()
+        ls = dw.lamp_state(game.state)
+        n = sp.n_sim
+        rho = ls.rdm([n] + [sp.F + d for d in game.leaves])
+        dep = dw.dephase(rho, [1, 2, 3], 4)
+        val, _ = dw.max_mermin(dep, 4, restarts=8)
+        self.assertLessEqual(0.5 * (1 + val / 8), 0.75 + 1e-6)
+
+    def test_the_lamp_outcome_feeds_forward_to_a_definite_light_and_the_lamp_has_no_record_in_the_facets(self):
+        sp, game = self._game()
+        rng = np.random.default_rng(1)
+        seen = set()
+        for _ in range(60):
+            d, rnd = game.play(rng, K=2)
+            self.assertEqual(d.lamp_mode, "z")
+            self.assertEqual(d.lamp[0], 1 - 2 * d.lamp_outcome[0])           # the lamp's outcome IS the light side
+            seen.add(d.lamp[0])
+        self.assertEqual(seen, {1, -1})
+
+    def test_the_game_needs_the_lock_and_the_matrix_product_backend(self):
+        from src.quantum.parity_game import ParityGame
+        with self.assertRaises(ValueError):
+            ParityGame(ReliefState(toy(m=1)))
+        with self.assertRaises(ValueError):
+            ParityGame(MPSReliefState(toy(m=1, lock=(0, 0, 0))))
+
+    def test_a_leaf_holding_an_equatorial_seam_facet_loses_the_game(self):
+        """Item 3's test: the regime that is hard to simulate kills the leaf's visibility, so the game on the seam fails."""
+        from src.quantum.parity_game import game_frames
+        kw = dict(lock=1.5708, pol_coupling=0.3, crease_coupling=1.0, seam_coupling=1.0, leaf_tau=0.3)
+        ds1 = build_domains(SCENE, seg_len=150, group_size=1)
+        away = MPSReliefState(spec_from_domains(ds1, SCENE, seam_mix=1.0, leaf_prefer="visible", **kw))
+        on = MPSReliefState(spec_from_domains(ds1, SCENE, seam_mix=1.0, leaf_prefer="seam", **kw))
+        m_away, _, _ = game_frames(away, restarts=6)
+        m_on, _, _ = game_frames(on, restarts=6)
+        self.assertGreater(0.5 * (1 + m_away / 8), 0.85)
+        self.assertLess(0.5 * (1 + m_on / 8), 0.75)
+
+
+class SeamsAndDynamics(unittest.TestCase):
+    KW = dict(lock=1.5708, pol_coupling=0.3, crease_coupling=1.0, seam_coupling=1.0, leaf_tau=0.3)
+
+    def test_each_seam_parameter_changes_only_what_it_names(self):
+        ds1 = build_domains(SCENE, seg_len=150, group_size=1)
+        base = spec_from_domains(ds1, SCENE, lock=1.5708, pol_coupling=0.3)
+        seam = set(base.seam_facets)
+        self.assertGreater(len(seam), 0)
+        cc = spec_from_domains(ds1, SCENE, lock=1.5708, pol_coupling=0.3, crease_coupling=1.2)
+        for k, (a, b) in zip(base.pol_kinds, zip(base.pol_layers[0]["zz"], cc.pol_layers[0]["zz"])):
+            self.assertAlmostEqual(abs(b), 1.2 if k == "crease" else 0.3) if k == "crease" else self.assertAlmostEqual(a, b)
+        sc_ = spec_from_domains(ds1, SCENE, lock=1.5708, pol_coupling=0.3, seam_coupling=1.5)
+        for (i, j, _, t0), (_, _, _, t1) in zip(base.edges, sc_.edges):
+            on_seam = i in seam and j in seam
+            self.assertAlmostEqual(abs(t1), 1.5 if on_seam else abs(t0))
+        mix = spec_from_domains(ds1, SCENE, lock=1.5708, pol_coupling=0.3, seam_mix=1.0)
+        for i in range(base.F):
+            if i in seam:
+                self.assertAlmostEqual(mix.tau[i], np.pi / 2)
+            else:
+                self.assertAlmostEqual(mix.tau[i], base.tau[i])
+        lt = spec_from_domains(ds1, SCENE, lock=1.5708, pol_coupling=0.3, leaf_tau=0.3)
+        leaves = set(i for d in leaf_domains(ds1) for i in ds1.facets_of(d))
+        for i in range(base.F):
+            self.assertAlmostEqual(lt.tau[i], 0.3 if i in leaves else base.tau[i], places=6)
+
+    def test_one_facet_per_depth_qubit_with_weak_boundaries_and_strong_seams_entangles_every_crease(self):
+        ds1 = build_domains(SCENE, seg_len=150, group_size=1)
+        sp = spec_from_domains(ds1, SCENE, **self.KW)
+        c = dw.domain_certificate(make_state(sp), mermin=False, lamp=False)
+        self.assertEqual(c["creases"]["entangled"], c["creases"]["edges"])
+        self.assertGreater(c["creases"]["max_negativity"], 0.15)                  # was 0.01 on one crease of five at the old defaults
+        self.assertEqual(c["summary"]["dephased_entangled_edges"], 0)
+
+    def test_the_equatorial_seam_is_ghz_like_maximal_entropy_with_no_visibility_and_costs_a_classical_simulator_more(self):
+        ds1 = build_domains(SCENE, seg_len=150, group_size=1)
+        relief = MPSReliefState(spec_from_domains(ds1, SCENE, **self.KW))
+        equator = MPSReliefState(spec_from_domains(ds1, SCENE, seam_mix=1.0, **self.KW))
+        cr, ce = dw.domain_certificate(relief, mermin=False, lamp=False), dw.domain_certificate(equator, mermin=False, lamp=False)
+        self.assertAlmostEqual(ce["seams"]["seam_facet_entropy"], 1.0, places=2)      # maximally entangled with the rest
+        self.assertLess(cr["seams"]["seam_facet_entropy"], 0.5)
+        self.assertLess(max(abs(r["visibility"]) for r in ce["seams"]["domain_stabilizers"]), 5e-3)     # no interference (to the MPS truncation noise)...
+        self.assertGreater(min(r["stabilizer"] for r in ce["seams"]["domain_stabilizers"]), 0.3)        # ...yet the GHZ stabilizer is intact
+        self.assertGreater(abs(1 - equator.prep().norm2()), 2 * abs(1 - relief.prep().norm2()))        # same chi 32: the classical stand-in is worse
+
+    def test_floquet_circuit_equals_the_numpy_state_and_the_mps_equals_the_exact_probabilities(self):
+        sp = toy(rx=None)
+        sp.floquet = dict(steps=3, theta_zz=0.7, theta_x=0.5)
+        self.assertTrue(equal_up_to_phase(statevector_of(reference_circuit(sp)), full_state(sp), tol=1e-9))
+        ex, mp = ReliefState(sp), MPSReliefState(sp, truncation=1e-13, max_bond=None)
+        for g, w in ((0, 0), (3, 2)):
+            pe = ex.cell(g)[w].reshape(-1)
+            np.testing.assert_allclose(np.abs(mp.mps(g, w).to_statevector()) ** 2, pe / pe.sum(), atol=1e-9)
+
+    def test_the_dynamics_that_grow_the_entanglement_cost_the_parity_game(self):
+        """The two goals pull against each other: after a few kicked-Ising steps the leaves' coherence is spread over the facets and the game's predicted win rate
+        falls from well above the classical 75% to below it."""
+        from src.quantum.parity_game import game_frames
+        ds1 = build_domains(SCENE, seg_len=150, group_size=1)
+        wins = []
+        for T in (0, 4):
+            M, _, _ = game_frames(MPSReliefState(spec_from_domains(ds1, SCENE, floquet=(T, 0.7, 0.5), **self.KW)), restarts=6)
+            wins.append(0.5 * (1 + M / 8))
+        self.assertGreater(wins[0], 0.88)
+        self.assertLess(wins[1], 0.76)
+
+    def test_entanglement_grows_with_the_kicked_ising_steps_and_so_does_the_classical_error(self):
+        ds1 = build_domains(SCENE, seg_len=150, group_size=1)
+        out = []
+        for T in (0, 4, 8):
+            m = MPSReliefState(spec_from_domains(ds1, SCENE, floquet=(T, 0.7, 0.5), **self.KW)).prep()
+            out.append((float(np.mean(m.entropies())), abs(1 - m.norm2())))
+        self.assertGreater(out[2][0], out[0][0] + 0.5)
+        self.assertGreater(out[2][1], 10 * out[0][1])
 
 
 class Witnesses(unittest.TestCase):
@@ -434,11 +647,12 @@ class SessionDomainEngine(unittest.TestCase):
         im = s.overlay_image()
         self.assertEqual(im.size, (SCENE.W, SCENE.H))
 
-    def test_lamp_in_x_falls_back_with_a_message_and_the_witness_run_certifies_domain_edges(self):
+    def test_the_lamp_in_x_experiment_runs_on_the_domain_engine_and_the_witness_run_certifies_domain_edges(self):
         s = self.s
         s.light_interference_set(True)
-        self.assertFalse(s.knobs.light_interference)
-        self.assertTrue(any("exact backend" in m["msg"] for m in s.messages))
+        self.assertTrue(s.knobs.light_interference)
+        self.assertEqual(s.current.draw.lamp_mode, "x")
+        s.light_interference_set(False)
         out = s.witness_run()
         self.assertGreater(out["certificate"]["summary"]["entangled_edges"], 0)
         self.assertTrue(any("domain edges certified entangled" in m["msg"] for m in s.messages))
@@ -455,6 +669,46 @@ class SessionDomainEngine(unittest.TestCase):
         for a in ("hold_world", "hold_pol", "pol_basis_toggle"):
             with self.assertRaises(ValueError):
                 s.dispatch(a)
+
+    def test_the_parity_game_runs_in_the_show_with_its_tally_and_the_panel_engine_refuses_it(self):
+        from src.ui.session import Session
+        s = self.s
+        s.game_set(True, fraction=1.0)
+        self.assertTrue(s.knobs.game)
+        for _ in range(8):
+            s._new_look()
+            self.assertIsNotNone(getattr(s.current.draw, "game", None))
+            self.assertTrue(np.all(s._canvas[SCENE.impenetrable] == 0))
+            self.assertEqual(len(s.current.draw.pol), SCENE.n_panels)           # captions stay at panel level
+        cap = s.live_caption()
+        self.assertIn("round", cap["game"]["round"]["text"] + "round")
+        sc = s.state()["science"]["game"]
+        self.assertGreaterEqual(sc["summary"]["rounds"], 8)
+        self.assertEqual(sc["summary"]["classical_bound"], 0.75)
+        s.game_reset()
+        self.assertEqual(s.state()["science"]["game"]["summary"]["rounds"], 0)
+        s.game_set(False)
+        self.assertFalse(s.knobs.game)
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir="runs/calibration_5x4")
+            for a in ("game_toggle", "evolve_step"):
+                with self.assertRaises(ValueError):
+                    p.dispatch(a)
+
+    def test_evolving_the_relief_steps_the_kicked_ising_dynamics_and_reports_the_entanglement(self):
+        s = self.s
+        s.evolve_set(0)
+        e0 = s.evolution
+        s.evolve_step()
+        s.evolve_step()
+        s.evolve_step()
+        e3 = s.evolution
+        self.assertEqual(e3["steps"], 3)
+        self.assertGreater(e3["mean_entropy"], e0["mean_entropy"])
+        self.assertEqual(s.relief()["spec"].floquet["steps"], 3)
+        self.assertEqual(s.state()["science"]["evolution"]["steps"], 3)
+        s.evolve_set(0)
+        self.assertEqual(s.relief()["spec"].floquet, None)
 
     def test_a_circuit_file_is_refused_by_the_domain_engine(self):
         from src.ui.session import Session

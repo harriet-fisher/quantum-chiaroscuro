@@ -100,6 +100,8 @@
     <div class="dim" id="reliefBudget"></div>
     <h2>Science: controls and experiments (not looks)</h2>
     <div class="row"><button id="ctlA" title="control A">A: independent noise <kbd>N</kbd></button><button id="ctlB" title="control B">B: dephased depth <kbd>M</kbd></button><button id="ctlI">Light read in X <kbd>I</kbd></button></div>
+    <div class="row"><button id="ctlG" title="domain engine">Parity game <kbd>G</kbd></button><button id="gameReset">reset tally</button><button id="ctlE" title="domain engine">Evolve +1 step <kbd>E</kbd></button><button id="evolve0">static</button><span class="dim">domain engine only</span></div>
+    <pre id="gameInfo" hidden></pre>
     <div class="row"><button id="witness" class="primary">Witness run <kbd>W</kbd></button><span class="dim">measures a separate setting on this state</span></div>
     <pre id="cert" hidden></pre>
     <div class="row"><span style="width:70px" class="dim">contrast</span><input type="range" id="contrast" min="0.5" max="3" step="0.05" class="grow"><span id="contrastV" class="dim" style="width:34px"></span></div>
@@ -224,7 +226,7 @@ function render(s) {
   $('blend').value = k.blend; $('blendV').textContent = k.blend; $('gain').value = k.gain; $('gainV').textContent = k.gain; $('fade').value = k.fade_ms; $('fadeV').textContent = k.fade_ms;
   $('source').value = s.source;
   $('srcNote').textContent = p.label + (p.untested ? ' (untested against any Moth circuit)' : '') + '.';
-  $('blackout').classList.toggle('on', k.blackout); $('noise').classList.toggle('on', k.noise); $('ctlA').classList.toggle('on', k.noise); $('ctlB').classList.toggle('on', !!k.dephased); $('ctlI').classList.toggle('on', !!k.light_interference); $('overlayBtn').classList.toggle('on', s.ui.overlay); $('demoBtn').classList.toggle('on', !!s.demo);
+  $('blackout').classList.toggle('on', k.blackout); $('noise').classList.toggle('on', k.noise); $('ctlA').classList.toggle('on', k.noise); $('ctlB').classList.toggle('on', !!k.dephased); $('ctlI').classList.toggle('on', !!k.light_interference); $('ctlG').classList.toggle('on', !!k.game); $('overlayBtn').classList.toggle('on', s.ui.overlay); $('demoBtn').classList.toggle('on', !!s.demo);
   // overlay
   $('overlay').hidden = !s.ui.overlay;
   const gs = $('gaps'); if (gs.options.length !== 1 + s.engine_results.length) { const cur = gs.value; gs.innerHTML = '<option value="source">this source</option>' + s.engine_results.map(e => `<option value="${e}">${e === 'graph_v1' ? 'graph-v1 result' : 'QDrive result'}</option>`).join(''); gs.value = cur || 'source'; }
@@ -260,6 +262,11 @@ function renderScience(s) {
   const sc = s.science; if (!sc) return;
   $('spheres').innerHTML = s.scene.panels.map((n, i) => sphereSvg(n, sc.spheres && sc.spheres[i])).join('');
   $('reliefBudget').textContent = `tilt budget κ=${sc.kappa}: per-panel visibility ${sc.panels.map(p => p.visibility.toFixed(2)).join(', ')} (Σtau² ${sc.panels.map(p => p.sum_tau2.toFixed(2)).join(', ')}) · ${sc.couplings} facet couplings (strength ${sc.entangle})`;
+  const gi = $('gameInfo'), lines = [];
+  if (sc.game) { lines.push(sc.game.text); if (sc.game.round) lines.push('this look: round ' + sc.game.round.text); }
+  if (sc.evolution) lines.push(`evolution: ${sc.evolution.steps} kicked-Ising step(s), bond dimension ${sc.evolution.max_bond}, mean bond entropy ${sc.evolution.mean_entropy.toFixed(2)} bits, norm deficit ${sc.evolution.norm_deficit.toExponential(1)}`);
+  if (sc.engine && sc.engine.text) lines.push(sc.engine.text);
+  gi.hidden = !lines.length; gi.textContent = lines.join('\n');
   const cert = $('cert');
   if (sc.certificate) { cert.hidden = false; cert.textContent = sc.certificate.lines.join('\n'); } else cert.hidden = true;
   $('contrast').value = s.knobs.contrast; $('contrastV').textContent = s.knobs.contrast;
@@ -332,7 +339,7 @@ document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
 });
 $('next').onclick = () => post('next'); $('prev').onclick = () => post('prev'); $('auto').onclick = () => post('auto_toggle');
 $('cycle').oninput = e => post('cycle', { seconds: +e.target.value });
-$('ctlA').onclick = () => post('noise_toggle'); $('ctlB').onclick = () => post('dephased_toggle'); $('ctlI').onclick = () => post('light_interference_toggle');
+$('ctlA').onclick = () => post('noise_toggle'); $('ctlB').onclick = () => post('dephased_toggle'); $('ctlI').onclick = () => post('light_interference_toggle'); $('ctlG').onclick = () => post('game_toggle'); $('gameReset').onclick = () => post('game_reset'); $('ctlE').onclick = () => post('evolve_step'); $('evolve0').onclick = () => post('evolve_set', {steps: 0});
 $('witness').onclick = () => post('witness_run'); $('contrast').oninput = e => post('contrast', { value: +e.target.value });
 document.querySelectorAll('#segL1 button').forEach(b => b.onclick = () => post('hold_lamp', { index: 0, value: b.dataset.v === 'auto' ? null : +b.dataset.v }));
 document.querySelectorAll('#segL2 button').forEach(b => b.onclick = () => post('hold_lamp', { index: 1, value: b.dataset.v === 'auto' ? null : +b.dataset.v }));

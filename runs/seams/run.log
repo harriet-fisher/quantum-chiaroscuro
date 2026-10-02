@@ -1,0 +1,35 @@
+  bay seam_mix 0.00 leaves visible: deficit 1.3e-03, seam-facet entropy 0.31 bits, crease negativity 0.259, Mermin 6.57, predicted win 0.911
+  bay seam_mix 0.00 leaves seam   : deficit 1.2e-03, seam-facet entropy 0.27 bits, crease negativity 0.314, Mermin 4.04, predicted win 0.752
+  bay seam_mix 0.25 leaves visible: deficit 3.4e-03, seam-facet entropy 0.55 bits, crease negativity 0.157, Mermin 6.57, predicted win 0.911
+  bay seam_mix 0.25 leaves seam   : deficit 3.1e-03, seam-facet entropy 0.52 bits, crease negativity 0.218, Mermin 3.46, predicted win 0.716
+  bay seam_mix 0.50 leaves visible: deficit 7.6e-03, seam-facet entropy 0.76 bits, crease negativity 0.031, Mermin 6.57, predicted win 0.911
+  bay seam_mix 0.50 leaves seam   : deficit 7.2e-03, seam-facet entropy 0.74 bits, crease negativity 0.080, Mermin 2.64, predicted win 0.665
+  bay seam_mix 0.75 leaves visible: deficit 1.3e-02, seam-facet entropy 0.93 bits, crease negativity -0.000, Mermin 6.57, predicted win 0.911
+  bay seam_mix 0.75 leaves seam   : deficit 1.3e-02, seam-facet entropy 0.92 bits, crease negativity -0.000, Mermin 1.77, predicted win 0.610
+  bay seam_mix 1.00 leaves visible: deficit 1.6e-02, seam-facet entropy 1.00 bits, crease negativity -0.000, Mermin 6.57, predicted win 0.911
+  bay seam_mix 1.00 leaves seam   : deficit 1.6e-02, seam-facet entropy 1.00 bits, crease negativity -0.000, Mermin 1.06, predicted win 0.566
+  tiled 1x1 seam_mix 0: 8 qubits (0 seam facets), deficit 8.9e-16, mean entropy 0.42, 0.1s
+  tiled 2x2 seam_mix 0: 80 qubits (16 seam facets), deficit 8.3e-03, mean entropy 1.32, 1.3s
+  tiled 3x3 seam_mix 0: 200 qubits (48 seam facets), deficit 3.7e-02, mean entropy 1.57, 10.0s
+  tiled 4x4 seam_mix 0: 368 qubits (96 seam facets), deficit 2.3e-02, mean entropy 1.67, 37.7s
+  tiled 1x1 seam_mix 1: 8 qubits (0 seam facets), deficit 8.9e-16, mean entropy 0.42, 0.1s
+  tiled 2x2 seam_mix 1: 80 qubits (16 seam facets), deficit 4.4e-02, mean entropy 2.20, 1.3s
+  tiled 3x3 seam_mix 1: 200 qubits (48 seam facets), deficit 7.0e-02, mean entropy 2.47, 10.0s
+  tiled 4x4 seam_mix 1: 368 qubits (96 seam facets), deficit 2.6e-02, mean entropy 2.46, 36.7s
+  floquet (0.7, 0.5) steps  0: mean entropy 0.99 bits, deficit 1.3e-03
+  floquet (0.7, 0.5) steps  1: mean entropy 1.12 bits, deficit 2.8e-03
+  floquet (0.7, 0.5) steps  2: mean entropy 1.30 bits, deficit 5.2e-03
+  floquet (0.7, 0.5) steps  3: mean entropy 1.74 bits, deficit 2.1e-02
+  floquet (0.7, 0.5) steps  4: mean entropy 2.07 bits, deficit 3.8e-02
+  floquet (0.7, 0.5) steps  6: mean entropy 2.33 bits, deficit 6.9e-02
+  floquet (0.7, 0.5) steps  8: mean entropy 2.43 bits, deficit 7.2e-02
+  floquet (0.7, 0.5) steps 12: mean entropy 2.40 bits, deficit 8.7e-02
+  floquet (1.0, 0.9) steps  0: mean entropy 0.99 bits, deficit 1.3e-03
+  floquet (1.0, 0.9) steps  1: mean entropy 1.21 bits, deficit 3.5e-03
+  floquet (1.0, 0.9) steps  2: mean entropy 1.83 bits, deficit 2.3e-02
+  floquet (1.0, 0.9) steps  3: mean entropy 2.39 bits, deficit 4.8e-02
+  floquet (1.0, 0.9) steps  4: mean entropy 2.62 bits, deficit 8.3e-02
+  floquet (1.0, 0.9) steps  6: mean entropy 2.63 bits, deficit 1.3e-01
+  floquet (1.0, 0.9) steps  8: mean entropy 2.62 bits, deficit 1.4e-01
+  floquet (1.0, 0.9) steps 12: mean entropy 2.60 bits, deficit 8.5e-02
+wrote runs/seams/seams.json and seams.png

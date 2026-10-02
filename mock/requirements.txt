@@ -1,0 +1,22 @@
+# Standing Light - Python requirements
+# Python 3.9+ recommended (the mock was run on Python 3 with the versions noted below).
+#
+# Install:   python3 -m venv .venv && source .venv/bin/activate
+#            pip install -r requirements.txt
+
+# ---- Core: needed to run standing_light_mock.py (the classical look test) ----
+numpy>=1.26          # tested with 2.5.3
+scipy>=1.11          # tested with 1.18.1  (distance transforms, gaussian filtering)
+Pillow>=10.0         # tested with 12.3.0  (polygon masks)
+matplotlib>=3.8      # tested with 3.11.2  (figure output)
+
+# ---- Moth Atlas API (needed once you call graph-v1 / QDrive) ----
+# Set your key as an environment variable; never put it in a file:
+#   export MOTH_API_KEY="..."
+requests>=2.31
+
+# ---- Optional: sample a QDrive-returned QASM3 circuit locally (many frames, no extra credits) ----
+# Uncomment when you reach that step. Local QASM3 loading is untested in this project.
+# qiskit>=1.0
+# qiskit-aer>=0.14
+# qiskit-qasm3-import>=0.5

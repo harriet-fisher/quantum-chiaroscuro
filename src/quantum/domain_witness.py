@@ -40,6 +40,9 @@ class _Exact:
     def rdm(self, qubits):
         return reduced_set(self.psi, self.n, list(qubits))
 
+    def pauli(self, ops):
+        return comp.pauli_expectation(self.psi, self.n, ops)
+
 
 class _Mps:
     def __init__(self, mps, site_of, label):
@@ -48,13 +51,16 @@ class _Mps:
     def rdm(self, qubits):
         return self.mps.rdm([int(self.site_of[q]) for q in qubits])
 
+    def pauli(self, ops):
+        return self.mps.pauli_expectation({int(self.site_of[q]): c for q, c in ops.items()})
+
 
 def prepared_state(state):
     """The prepared register (facets then polarity), before any lamp or observation rotation, as an object with .rdm(qubits)."""
     sp = state.spec
     if getattr(state, "backend", "exact") == "mps":
         if getattr(state, "_prep", None) is None:
-            m = MPS.from_circuit(permute_circuit(reference_circuit(sp), state.site_of), state.truncation, state.max_bond)
+            m = state.prep()
             state._prep = _Mps(m, state.site_of, "MPS")
             state._prep_mps = m
         return state._prep
@@ -137,6 +143,13 @@ class _LampMps:
 
 
 # ------------------------------------------------------------------ quantities of a reduced state
+def entropy_bits(rho):
+    """Von Neumann entropy (bits) of a density matrix. For the reduced state of a PURE global state this is the entanglement of the kept qubits with the rest."""
+    ev = np.linalg.eigvalsh((rho + rho.conj().T) / 2)
+    ev = ev[ev > 1e-12]
+    return float(-(ev * np.log2(ev)).sum())
+
+
 def negativity(rho):
     """Sum of |negative eigenvalues| of the partial transpose of a two-qubit state (qubit order: first listed = most significant)."""
     r = rho.reshape(2, 2, 2, 2)
@@ -207,6 +220,24 @@ def domain_certificate(state, mermin=True, lamp=True):
         edges.append(dict(a=a, b=b, negativity=negativity(rho), chsh=comp.max_chsh(T),
                           negativity_dephased=negativity(dephase(rho, [0, 1], 2))))
     out["edges"] = edges
+    kinds = sp.pol_kinds or []
+    cre = [e for e, k in zip(edges, kinds) if k == "crease"]
+    out["creases"] = dict(edges=len(cre), entangled=sum(1 for e in cre if e["negativity"] > 1e-4), max_negativity=max([e["negativity"] for e in cre], default=0.0),
+                          mean_negativity=float(np.mean([e["negativity"] for e in cre])) if cre else 0.0)
+    if sp.seam_facets:
+        seam = list(sp.seam_facets)
+        others = [i for i in range(sp.F) if i not in set(seam)]
+        S1 = lambda i: entropy_bits(prep.rdm([i]))
+        dom_seam = sorted({int(sp.panel_of[i]) for i in seam})
+        stab = []
+        for d in dom_seam:
+            ops = {sp.F + d: "x", **{i: "z" for i in range(sp.F) if int(sp.panel_of[i]) == d}}
+            stab.append(dict(domain=d, visibility=vis[d]["visibility"], stabilizer=float(prep.pauli(ops))))
+        out["seams"] = dict(
+            seam_facets=len(seam), seam_pairs=len(sp.seam_pairs or []),
+            seam_facet_entropy=float(np.mean([S1(i) for i in seam])), other_facet_entropy=float(np.mean([S1(i) for i in others[:40]])) if others else 0.0,
+            seam_pair_entropy=float(np.mean([entropy_bits(prep.rdm([i, j])) for i, j in (sp.seam_pairs or [])])) if sp.seam_pairs else 0.0,
+            seam_tilt_mean=float(np.mean(sp.tau[seam])), domain_stabilizers=stab)
     out["summary"] = dict(
         edges=len(edges), entangled_edges=sum(1 for e in edges if e["negativity"] > 1e-6),
         max_negativity=max([e["negativity"] for e in edges], default=0.0), max_chsh=max([e["chsh"] for e in edges], default=0.0),
@@ -271,6 +302,16 @@ def describe_domain_certificate(cert, ds=None, spec=None):
     lines.append(f"domain visibility <X_B>: {min(v):.3f} to {max(v):.3f} (isolated value {np.mean([r['isolated'] for r in cert['visibility']]):.3f}; neighbours lower it)")
     lines.append(f"{s['entangled_edges']} of {s['edges']} edges of the domain graph carry entanglement between their two domains (largest negativity {s['max_negativity']:.3f}, "
                  f"best CHSH {s['max_chsh']:.3f}); control B (dephased depth): {s['dephased_entangled_edges']} entangled edges, as it must be for a classical mixture")
+    if "creases" in cert and cert["creases"]["edges"]:
+        c = cert["creases"]
+        lines.append(f"creases (edges between panels): {c['entangled']} of {c['edges']} carry entanglement between their two domains, largest negativity {c['max_negativity']:.3f}")
+    if "seams" in cert:
+        z = cert["seams"]
+        st = [r["stabilizer"] for r in z["domain_stabilizers"]]
+        lines.append(f"seam facets ({z['seam_facets']}, mean tilt {z['seam_tilt_mean']:.2f} rad): entropy of one seam facet against the rest {z['seam_facet_entropy']:.2f} bits "
+                     f"(other facets {z['other_facet_entropy']:.2f}), of a pair across a crease {z['seam_pair_entropy']:.2f} bits; seam domains' stabilizer <X_B Z^F> "
+                     f"{min(st):.2f} to {max(st):.2f} while their visibility is {min(r['visibility'] for r in z['domain_stabilizers']):.2f} to "
+                     f"{max(r['visibility'] for r in z['domain_stabilizers']):.2f}")
     if "bonds" in cert:
         lines.append(f"matrix-product state: largest bond dimension {cert['bonds']['max_bond']}, largest bond entropy {cert['bonds']['max_entropy_bits']:.2f} bits")
     if "lamp" in cert:

@@ -83,6 +83,52 @@ class MPS:
         tensors.append(np.transpose(rest.reshape(chi, 2, 1), (1, 0, 2)))
         return cls(tensors)
 
+    # ------------------------------------------------------------------ cheap operations on the tensors
+    def apply_1q(self, site, U):
+        """A new MPS with the single-qubit unitary U applied at `site`: only that tensor changes (the other tensors are shared), the bonds do not."""
+        A = list(self.A)
+        A[site] = np.tensordot(np.asarray(U, complex), A[site], axes=([1], [0]))
+        return MPS(A)
+
+    def apply_many(self, unitaries):
+        """{site: U} applied at once."""
+        A = list(self.A)
+        for site, U in unitaries.items():
+            A[site] = np.tensordot(np.asarray(U, complex), A[site], axes=([1], [0]))
+        return MPS(A)
+
+    @staticmethod
+    def combine(states, coeffs):
+        """The (unnormalised) superposition sum_k coeffs[k] |states[k]> as an MPS: the tensors are stacked block-diagonally, so the bond dimension is the SUM
+        of the bond dimensions (no truncation, exact). A lamp qubit read in a rotated basis leaves the rest of the wall in exactly such a superposition of
+        its conditioned states, one per lamp value."""
+        n = states[0].n
+        if any(s.n != n for s in states):
+            raise ValueError("states must have the same number of sites")
+        out = []
+        for k in range(n):
+            ts = [s.A[k] for s in states]
+            if n == 1:
+                out.append(sum(c * t for c, t in zip(coeffs, ts)))
+                continue
+            L = sum(t.shape[1] for t in ts)
+            R = sum(t.shape[2] for t in ts)
+            T = np.zeros((2, L if k else 1, R if k < n - 1 else 1), complex)
+            l0 = r0 = 0
+            for c, t in zip(coeffs, ts):
+                l1, r1 = l0 + t.shape[1], r0 + t.shape[2]
+                if k == 0:
+                    T[:, :, r0:r1] += c * t
+                elif k == n - 1:
+                    T[:, l0:l1, :] += t
+                else:
+                    T[:, l0:l1, r0:r1] = t
+                l0, r0 = (l1, r1) if k else (0, r1)
+                if k == n - 1:
+                    l0 = l1
+            out.append(T)
+        return MPS(out)
+
     # ------------------------------------------------------------------ properties
     def bond_dims(self):
         return [int(self.A[k].shape[2]) for k in range(self.n - 1)]
@@ -128,29 +174,37 @@ class MPS:
         between={site: 2x2 matrix M}: instead of the plain trace over a traced site, contract it as sum_{s,t} M[t, s] ket(s) bra(t)*, that is
         Tr_rest[ A |psi><psi| B^dagger ] with M = B^dagger A on that site. With M = identity this is the ordinary reduced state; with a diagonal M it
         gives the off-diagonal blocks that a lamp qubit coupled by exp(-i theta Z_L Z_B / 2) would have, without putting the lamp in the MPS."""
+        return self._rdm(self, sites, between)
+
+    def cross_rdm(self, other, sites):
+        """Tr_rest[ |self><other| ] on `sites`, (2^m, 2^m), unnormalised: the ket tensors come from self, the bra tensors from other. The off-diagonal block
+        of a reduced state between two branches that differ on the traced sites too (a lamp that picks the facets' light axis coherently)."""
+        return self._rdm(other, sites, None)
+
+    def _rdm(self, bra, sites, between):
         sites = list(sites)
         between = between or {}
         order = sorted(range(len(sites)), key=lambda j: sites[j])
         sorted_sites = [sites[j] for j in order]
-        E = np.ones((1, 1, 1, 1), complex)                          # (chi, chi', d, d')
+        E = np.ones((1, 1, 1, 1), complex)                          # (chi_ket, chi_bra, d, d')
         for k in range(self.n):
-            A = self.A[k]
+            A, B = self.A[k], bra.A[k]
             T = np.tensordot(A, E, axes=([1], [0]))                  # (s, b, e, i, j): the ket tensor absorbed; two matmuls per site, not a 3-way einsum
             if k in sorted_sites:
-                Ec = np.tensordot(T, A.conj(), axes=([2], [1]))      # (s, b, i, j, t, c): s on the ket, t on the bra stay open
+                Ec = np.tensordot(T, B.conj(), axes=([2], [1]))      # (s, b, i, j, t, c): s on the ket, t on the bra stay open
                 d = E.shape[2] * 2
-                E = np.transpose(Ec, (1, 5, 2, 0, 3, 4)).reshape(A.shape[2], A.shape[2], d, d)
+                E = np.transpose(Ec, (1, 5, 2, 0, 3, 4)).reshape(A.shape[2], B.shape[2], d, d)
             else:
                 if k in between:
                     T = np.tensordot(np.asarray(between[k], complex), T, axes=([1], [0]))        # M[t, s] on the ket index: (t, b, e, i, j)
-                Ec = np.tensordot(T, A.conj(), axes=([0, 2], [0, 1]))                          # (b, i, j, c), summed over s (or t) and e
+                Ec = np.tensordot(T, B.conj(), axes=([0, 2], [0, 1]))                          # (b, i, j, c), summed over s (or t) and e
                 E = np.transpose(Ec, (0, 3, 1, 2))
         rho = E[0, 0]                                                # basis index: sorted sites, first = most significant
         m = len(sites)
         rho = rho.reshape((2,) * (2 * m))
         perm = [order.index(j) for j in range(m)]                   # axis for sites[j] in the sorted layout
         rho = np.transpose(rho, perm + [m + p for p in perm]).reshape(2 ** m, 2 ** m)
-        return rho if between else rho / np.trace(rho).real
+        return rho if (between or bra is not self) else rho / np.trace(rho).real
 
     def pauli_expectation(self, ops):
         """<psi|prod sigma_{ops[k]}(site k)|psi> / <psi|psi> for ops = {site: 'x'|'y'|'z'}."""

@@ -33,6 +33,8 @@ BINDINGS = [
     dict(keys=["m"], action="dephased_toggle", args={}, label="control B: dephased depth (classical mixture of bump and hollow)", group="Science (relief)", family="relief"),
     dict(keys=["i"], action="light_interference_toggle", args={}, label="experiment: read the lamp register in X (light directions interfere)", group="Science (relief)", family="relief"),
     dict(keys=["w"], action="witness_run", args={}, label="witness run: measure the certificate on this state", group="Science (relief)", family="relief"),
+    dict(keys=["g"], action="game_toggle", args={}, label="parity game: some looks become rounds of a Mermin game (domain engine; the win rate must beat 75%)", group="Science (relief)", family="relief"),
+    dict(keys=["e"], action="evolve_step", args={}, label="evolve the relief one kicked-Ising step (domain engine; entanglement grows)", group="Science (relief)", family="relief"),
     # ---- hardness and blend
     dict(keys=["["], action="K_step", args=dict(step=-1), label="harder (fewer shots averaged)", group="Hardness and blend"),
     dict(keys=["]"], action="K_step", args=dict(step=1), label="softer (more shots averaged)", group="Hardness and blend"),

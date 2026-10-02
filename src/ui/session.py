@@ -68,12 +68,14 @@ class Knobs:
     dephased: bool = False               # control B (relief only): every polarity qubit replaced by its classical mixture
     light_interference: bool = False     # relief experiment: the lamp register read in X, so light directions interfere
     contrast: float = 1.0                # projection tone (relief): stretch of the lit field about mid-grey, not a scene property
+    game: bool = False                   # relief (domain engine): a fraction of the looks are rounds of the parity game
+    game_fraction: float = 0.5           # how many of them
 
     def snapshot(self, relief=False):
         out = dict(K=self.K, blend=self.blend, gain=self.gain, cycle_s=self.cycle_s, fade_ms=self.fade_ms, auto=self.auto, blackout=self.blackout,
                    noise=self.noise, hardness_sweep=self.hardness_sweep)
         if relief:
-            out.update(dephased=self.dephased, light_interference=self.light_interference, contrast=self.contrast)
+            out.update(dephased=self.dephased, light_interference=self.light_interference, contrast=self.contrast, game=self.game, game_fraction=self.game_fraction)
         else:
             out.update(lamp_hold=list(self.lamp_hold), pol_hold=list(self.pol_hold))
         return out
@@ -97,7 +99,10 @@ def _png(u8):
     return buf.getvalue()
 
 
-DOMAIN_DEFAULTS = dict(seg_len=150.0, group_size=2, tau=0.5, pol_coupling=0.5, lock=1.2, tau_mix=0.0, pol_field=0.0, crease_sign=-1.0, backend="auto")
+# One facet per depth qubit; weak coupling along a boundary, strong across the seams; the lamp locked to one leaf per panel at the maximal angle, the leaves' tilt
+# lowered so their visibility is high. Measured on the bay window (README): crease negativity 0.26, Mermin 6.6, predicted game win 91%.
+DOMAIN_DEFAULTS = dict(seg_len=150.0, group_size=1, tau=0.5, pol_coupling=0.3, crease_coupling=1.0, seam_coupling=1.0, seam_mix=0.0, leaf_tau=0.3, lock=1.5708,
+                       tau_mix=0.0, pol_field=0.0, crease_sign=-1.0, backend="auto", floquet_steps=0, floquet_zz=0.7, floquet_x=0.5, leaf_prefer="visible")
 
 
 def _clean(o):
@@ -115,7 +120,7 @@ class Session:
     def __init__(self, labels=None, calibration=None, *, source="relief", pol_basis=None, circuit=None, coupling="lamp2",
                  calib_dir="runs/calibration_5x4", run_dir="runs/first_run", out_dir="runs/show", projector_size=None, seed=2026,
                  pool_size=60000, hub=None, allow_spend=False, solve_fn=None, log=None, complementary_report="runs/complementary/report.json",
-                 kappa=1.0, n_dirs=4, entangle=0.8, contrast=1.15, engine="panel", domain=None):
+                 kappa=1.0, n_dirs=4, entangle=0.8, contrast=1.15, engine="panel", domain=None, game=False, game_fraction=0.5):
         self.labels = validate(fill_defaults(labels if labels is not None else bay_window_labels()))
         self.scene = build_scene(self.labels)
         g = self.labels["grid"]
@@ -157,7 +162,11 @@ class Session:
         self._rel = None                                                # facets, spec, composer: built on first use of the relief source
         self.rstate = None
         self.knobs.contrast = float(contrast)
+        if game and engine != "domain":
+            raise ValueError("the parity game needs --engine domain")
+        self.knobs.game, self.knobs.game_fraction = bool(game), float(game_fraction)
         self.certificate = None
+        self._game, self._game_for, self.evolution = None, None, None
 
         lw = self.labels["image"]
         self.size = tuple(projector_size) if projector_size else ((lw["width"], lw["height"]) if self.labels.get("source") == "projector" else (1920, 1080))
@@ -222,8 +231,9 @@ class Session:
                 from src.quantum.domain_state import spec_from_domains
                 dp = rp["domain"]
                 ds = build_domains(self.scene, seg_len=dp["seg_len"], group_size=dp["group_size"], tau=dp["tau"], crease_sign=dp["crease_sign"])
-                spec = spec_from_domains(ds, self.scene, entangle=rp["entangle"], pol_coupling=dp["pol_coupling"], lock=dp["lock"],
-                                         tau_mix=dp["tau_mix"], pol_field=dp["pol_field"])
+                spec = spec_from_domains(ds, self.scene, entangle=rp["entangle"], pol_coupling=dp["pol_coupling"], lock=dp["lock"], tau_mix=dp["tau_mix"],
+                                         pol_field=dp["pol_field"], crease_coupling=dp["crease_coupling"], seam_coupling=dp["seam_coupling"], seam_mix=dp["seam_mix"],
+                                         leaf_tau=dp["leaf_tau"], leaf_prefer=dp["leaf_prefer"], floquet=(dp["floquet_steps"], dp["floquet_zz"], dp["floquet_x"]))
                 self._rel = dict(facets=ds.facets, spec=spec, composer=make_composer(self.scene, ds.facets), ds=ds)
             else:
                 from src.geometry.facets import build_facets
@@ -314,7 +324,7 @@ class Session:
             if circuit:
                 raise ValueError("--circuit replaces the facet register of the per-panel engine; the domain engine prepares its own register")
             from src.quantum.domain_state import MPSReliefState, make_state
-            st = make_state(spec, backend=self.relief_params["domain"]["backend"])
+            st = make_state(spec, backend="mps" if self.knobs.game else self.relief_params["domain"]["backend"])
             if isinstance(st, MPSReliefState):
                 secs = st.warm()
                 acc = st.accuracy()
@@ -324,6 +334,8 @@ class Session:
             else:
                 label = f"local reference circuit ({spec.n_sim} qubits, exact statevector simulated here; not a Moth result)"
             st.label = label
+            if hasattr(st, "prep") and self.relief_params["domain"]["floquet_steps"]:
+                self._note_evolution(st, self.relief_params["domain"]["floquet_steps"])
             return st, dict(label=label, quantum_backed=True, from_moth=False, untested=False, synthetic=False)
         if not circuit:
             return ReliefState(spec), dict(label="local reference circuit (exact statevector simulated here; not a Moth result)", quantum_backed=True,
@@ -378,7 +390,7 @@ class Session:
                 raise ValueError(f"unknown source {kind!r}; choose from {SOURCES}")
             if kind == "relief":
                 circuit = circuit if circuit is not None else (self.circuit if self.source_kind in (None, "relief") else None)
-                key = ("relief", circuit)
+                key = ("relief", circuit, self.relief_params["domain"]["floquet_steps"], bool(self.knobs.game))
                 if key not in self._pools:
                     t0 = time.time()
                     state, prov = self._build_relief(circuit)
@@ -436,12 +448,16 @@ class Session:
         if k.hardness_sweep:
             k.K = LADDER[(LADDER.index(k.K) + 1) % len(LADDER)] if k.K in LADDER else LADDER[0]
         if self.family == "relief":
-            try:
-                d = self.rstate.draw(k.K, self.rng, control=self._control(), lamp_mode="x" if k.light_interference else "z")
-            except ValueError as e:                                       # e.g. the lamp read in X needs the exact backend
-                k.light_interference = False
-                self.say(str(e))
-                d = self.rstate.draw(k.K, self.rng, control=self._control())
+            game = self._game_obj() if (k.game and self._control() == "coherent" and not k.light_interference) else None
+            if game is not None and self.rng.random() < k.game_fraction:
+                d, _ = game.play(self.rng, k.K)                           # one round of the parity game, and the frame its outcomes make
+            else:
+                try:
+                    d = self.rstate.draw(k.K, self.rng, control=self._control(), lamp_mode="x" if k.light_interference else "z")
+                except ValueError as e:
+                    k.light_interference = False
+                    self.say(str(e))
+                    d = self.rstate.draw(k.K, self.rng, control=self._control())
             self._panel_view(d)
             self.error = None
         else:
@@ -815,6 +831,77 @@ class Session:
     def dephased_toggle(self):
         self.dephased_set(not self.knobs.dephased)
 
+    # ------------------------------------------------------------------ the parity game and the Floquet dynamics (domain engine)
+    def _require_domain(self, name):
+        if self.family != "relief" or self.relief_params["engine"] != "domain":
+            raise ValueError(f"unknown action {name!r}")
+
+    def _game_obj(self):
+        """The ParityGame on this state (built once: it optimises the Mermin frames, about a second). It needs the lock and the matrix-product backend."""
+        if getattr(self, "_game", None) is None or self._game_for is not self.rstate:
+            from src.quantum.parity_game import ParityGame
+            if getattr(self.rstate, "backend", "exact") != "mps":
+                raise ValueError("the parity game needs the matrix-product backend: restart with --backend mps")
+            if self.relief()["spec"].lock_array() is None:
+                raise ValueError("the parity game needs the lamp locked to the depth qubits (--lock > 0)")
+            self._game = ParityGame(self.rstate, restarts=8)
+            self._game_for = self.rstate
+            self.say(f"parity game ready: Mermin value {self._game.M:.2f}, predicted win rate {100 * self._game.predicted:.1f}% against a classical maximum of 75%")
+        return self._game
+
+    def game_set(self, on, fraction=None):
+        """Turn the parity game on or off; `fraction` of the looks are then rounds (the others are ordinary frames)."""
+        self._require_domain("game_set")
+        with self.lock:
+            if on and self.rstate is not None and getattr(self.rstate, "backend", "exact") != "mps":
+                self.knobs.game = True
+                self.set_source("relief", announce=False)                  # rebuild as a matrix-product state
+            if fraction is not None:
+                self.knobs.game_fraction = float(np.clip(fraction, 0.0, 1.0))
+            self.knobs.game = bool(on)
+            if on:
+                self._game_obj()
+            self._new_look()
+            self._notify()
+
+    def game_toggle(self):
+        self.game_set(not self.knobs.game)
+
+    def game_reset(self):
+        self._require_domain("game_reset")
+        with self.lock:
+            if getattr(self, "_game", None) is not None:
+                from src.quantum.parity_game import GameStats
+                self._game.stats = GameStats(self._game.predicted)
+            self._notify()
+
+    def evolve_set(self, steps):
+        """Run the facet register for `steps` kicked-Ising steps before the polarity attaches (0: static). Rebuilds the state (a second or two)."""
+        self._require_domain("evolve_set")
+        with self.lock:
+            steps = int(max(0, min(steps, 40)))
+            self.relief_params["domain"]["floquet_steps"] = steps
+            self._rel, self._game = None, None
+            self.say(f"evolving the relief: {steps} kicked-Ising step(s) on the facet graph")
+            self.set_source("relief", announce=False)
+            if hasattr(self.rstate, "prep"):
+                self._note_evolution(self.rstate, steps)
+            else:
+                self.evolution = None
+            self.certificate = None
+            self._new_look()
+            self._notify()
+
+    def _note_evolution(self, state, steps):
+        m = state.prep()
+        en = m.entropies()
+        self.evolution = dict(steps=steps, max_bond=m.max_bond(), mean_entropy=float(np.mean(en)), max_entropy=float(max(en)), norm_deficit=float(abs(1 - m.norm2())))
+        self.say(f"step {steps}: bond dimension {m.max_bond()}, mean bond entropy {self.evolution['mean_entropy']:.2f} bits, norm deficit {self.evolution['norm_deficit']:.1e}")
+
+    def evolve_step(self):
+        self._require_domain("evolve_step")
+        self.evolve_set(self.relief_params["domain"]["floquet_steps"] + 1)
+
     def light_interference_set(self, on):
         """Relief experiment: read the lamp register in X, so the light directions interfere instead of being a coin flip between them."""
         if self.family != "relief":
@@ -1041,8 +1128,22 @@ class Session:
             return None
         prov = self.prov if not self.knobs.noise else dict(self.prov, quantum_backed=False)
         if look.source == "relief":
-            return caption_mod.describe_relief(look.draw, self.panel_names, look.draw.K, prov, control=look.control)
+            cap = caption_mod.describe_relief(look.draw, self.panel_names, look.draw.K, prov, control=look.control)
+            if getattr(look.draw, "game", None) is not None and getattr(self, "_game", None) is not None:
+                cap["game"] = self._game_view(look.draw.game)
+            return cap
         return caption_mod.describe(look.draw, self.panel_names, look.draw.K, prov, noise=look.noise)
+
+    def _game_view(self, rnd=None):
+        g = getattr(self, "_game", None)
+        if g is None:
+            return None
+        s = g.stats.summary()
+        out = dict(summary=s, text=g.describe(), predicted=g.predicted, mermin=g.M, parties=g.parties)
+        if rnd is not None:
+            out["round"] = dict(inputs=list(rnd["inputs"]), outcomes=list(rnd["outcomes"]), win=rnd["win"],
+                                text=("won" if rnd["win"] else "lost") + f" (inputs {''.join(map(str, rnd['inputs']))}, outcomes {' '.join('+' if v > 0 else '-' for v in rnd['outcomes'])})")
+        return out
 
     def audience(self):
         dv = self.demo_view()
@@ -1163,6 +1264,7 @@ class Session:
                                                 for k in sorted(pb)], engine=self._engine_info(),
                     spheres=sph, controls=dict(noise=self.knobs.noise, dephased=self.knobs.dephased, light_interference=self.knobs.light_interference),
                     certificate=None if self.certificate is None else dict(provenance=self.certificate["provenance"], lines=self.certificate["lines"]),
+                    game=self._game_view(getattr(look.draw, "game", None) if look is not None else None), evolution=getattr(self, "evolution", None),
                     couplings=len(rel["spec"].edges), entangle=self.relief_params["entangle"])
 
     def state(self):
@@ -1199,7 +1301,7 @@ class Session:
                "blackout_set", "blackout_toggle", "noise_set", "noise_toggle", "overlay_toggle", "help_toggle", "resolve_open", "resolve_close",
                "demo_toggle", "demo_next", "demo_prev", "snapshot", "pattern", "pattern_cycle", "set_source", "align_start", "align_move",
                "align_nudge", "align_apply", "align_cancel", "align_reset", "set_margin", "dephased_set", "dephased_toggle", "light_interference_set",
-               "light_interference_toggle", "contrast", "witness_run")
+               "light_interference_toggle", "contrast", "witness_run", "game_set", "game_toggle", "game_reset", "evolve_set", "evolve_step")
 
     def dispatch(self, action, /, **args):
         """Run an operator action by name. `action` is positional-only because some actions take an argument called `name`."""
