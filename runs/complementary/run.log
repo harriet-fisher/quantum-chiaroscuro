@@ -1,0 +1,42 @@
+
+QDrive payload for this design: runs/complementary/payload_qdrive_complementary.json  (204 target entries, 48 edges, 1 credit if sent). NOT SENT. Local check: nothing known to be wrong. Target syntax for mixed Pauli words is unverified.
+UNTESTED: local stand-in state, no Moth circuit has been run through this
+
+Z-only baseline (oracle, polarity chain in Z)
+  provenance: classical sqrt(P) oracle built locally: NOT a Moth result
+  qubit pairs with S_max > 2: 1 of 171; best: patch-patch (4,9) 2.348, polarity-polarity (16,17) 2.000, polarity-polarity (17,18) 2.000
+  polarity qubits' Bloch length (0 = maximally entangled): [0.6978, 0.4869, 0.6978]
+  polarity read in Z: agreement +0.717, correlation with lamps (L1, L2) per panel [[0.001, -0.005], [-0.002, -0.004], [-0.001, 0.002]]
+  polarity read in X: agreement +0.700, correlation with lamps (L1, L2) per panel [[0.004, -0.005], [0.004, -0.005], [0.003, 0.002]]
+
+stand-in complementary (coupling=hub, phi=3.14)
+  provenance: UNTESTED: local stand-in state, no Moth circuit has been run through this
+  qubit pairs with S_max > 2: 2 of 171; best: lamp-polarity (15,17) 2.735, patch-patch (4,9) 2.348, lamp-polarity (14,16) 2.000
+  polarity qubits' Bloch length (0 = maximally entangled): [0.0, 0.0, 0.0]
+  polarity read in Z: agreement -0.004, correlation with lamps (L1, L2) per panel [[0.004, -0.003], [-0.007, -0.0], [0.002, 0.003]]
+  polarity read in X: agreement -0.006, correlation with lamps (L1, L2) per panel [[1.0, -0.006], [-0.006, 1.0], [1.0, -0.006]]
+  Mermin, lamp 14 + polarity [16, 18] (3 parties): exact 0.002, sampled -0.002 +- 0.014 (within the classical bound 2: no violation)
+  sampled CHSH, polarity 16 x lamp 14: S = 1.992 +- 0.010 (no violation; exact 2.000)
+  sampled CHSH, polarity 17 x lamp 15: S = 2.726 +- 0.010 (70.3 sigma above 2; exact 2.735)
+  sampled CHSH, polarity 18 x lamp 14: S = 2.018 +- 0.010 (no violation; exact 2.000)
+
+stand-in complementary (coupling=lamp2, phi=3.14)
+  provenance: UNTESTED: local stand-in state, no Moth circuit has been run through this
+  qubit pairs with S_max > 2: 1 of 171; best: patch-patch (4,9) 2.348, polarity-polarity (16,17) 2.000, polarity-polarity (16,18) 2.000
+  polarity qubits' Bloch length (0 = maximally entangled): [0.0, 0.0, 0.0]
+  polarity read in Z: agreement -0.000, correlation with lamps (L1, L2) per panel [[-0.004, -0.005], [0.001, -0.0], [0.0, -0.004]]
+  polarity read in X: agreement +1.000, correlation with lamps (L1, L2) per panel [[-0.001, 1.0], [-0.001, 1.0], [-0.001, 1.0]]
+  Mermin, lamp 15 + polarity [16, 17, 18] (4 parties): exact 7.460, sampled 7.460 +- 0.007 (479 sigma above the classical bound 4; quantum maximum 8)
+  sampled CHSH, polarity 16 x lamp 15: S = 1.998 +- 0.010 (no violation; exact 2.000)
+  sampled CHSH, polarity 17 x lamp 15: S = 1.999 +- 0.010 (no violation; exact 2.000)
+  sampled CHSH, polarity 18 x lamp 15: S = 1.985 +- 0.010 (no violation; exact 2.000)
+
+trade-off, coupling=hub: lamp-to-patch coupling scale -> S_max per polarity-lamp pair, and how coherent the lighting is
+  x0.0   panel 0-L1: 2.000  panel 1-L1: 2.000  panel 2-L1: 2.000   lighting coherence +0.000   lamp2 Mermin 8.00 of 8
+  x0.25  panel 0-L1: 2.000  panel 1-L2: 2.814  panel 2-L1: 2.000   lighting coherence +0.762   lamp2 Mermin 7.92 of 8
+  x0.5   panel 0-L1: 2.000  panel 1-L2: 2.798  panel 2-L1: 2.000   lighting coherence +0.960   lamp2 Mermin 7.82 of 8
+  x1.0   panel 0-L1: 2.000  panel 1-L2: 2.735  panel 2-L1: 2.000   lighting coherence +0.997   lamp2 Mermin 7.46 of 8
+  x1.5   panel 0-L1: 2.000  panel 1-L2: 2.638  panel 2-L1: 2.000   lighting coherence +0.999   lamp2 Mermin 6.88 of 8
+  x2.0   panel 0-L1: 2.000  panel 1-L2: 2.527  panel 2-L1: 2.000   lighting coherence +1.000   lamp2 Mermin 6.18 of 8
+
+wrote runs/complementary/report.json, complementary_frames.png, complementary_witness.png

@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standing Light studio</title>
+<link rel="stylesheet" href="/web/common.css">
+<style>
+  body { overflow:auto; }
+  main { max-width:880px; margin:0 auto; padding:18px 16px 60px; }
+  header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  header h1 { font-size:18px; margin:0; font-weight:600; }
+  .chip { border:1px solid var(--line); border-radius:99px; padding:2px 10px; font-size:12px; color:var(--dim); }
+  .chip.on { border-color:var(--ok); color:var(--ok); }
+  .grow { flex:1; }
+  .stage { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:10px; }
+  .stage.next { border-color:var(--accent); }
+  .stage.blocked { opacity:.6; }
+  .head { display:flex; align-items:center; gap:10px; }
+  .num { width:24px; height:24px; border-radius:50%; border:1px solid var(--line); display:grid; place-items:center; font-size:12px; color:var(--dim); flex:none; }
+  .stage.done .num { background:var(--ok); border-color:var(--ok); color:#111; }
+  .stage.next .num { border-color:var(--accent); color:var(--accent); }
+  .head h2 { font-size:15px; margin:0; font-weight:600; }
+  .status { font-size:12px; border-radius:4px; padding:1px 7px; border:1px solid var(--line); color:var(--dim); }
+  .status.done { color:var(--ok); border-color:var(--ok); } .status.ready, .status.stale { color:var(--accent); border-color:var(--accent); }
+  .status.running { color:var(--blue); border-color:var(--blue); } .status.failed { color:var(--bad); border-color:var(--bad); }
+  .note { margin:8px 0 0 34px; color:var(--dim); }
+  .warn-line { margin:6px 0 0 34px; color:var(--accent); font-size:13px; }
+  .actions { margin:10px 0 0 34px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .actions input[type=text] { width:230px; padding:5px 8px; }
+  .actions label { font-size:12px; color:var(--dim); display:flex; gap:5px; align-items:center; }
+  details { margin:10px 0 0 34px; }
+  summary { cursor:pointer; color:var(--dim); font-size:12px; }
+  pre { background:#101114; border:1px solid var(--line); border-radius:5px; padding:8px 10px; max-height:220px; overflow:auto; font-size:12px; line-height:1.35; margin:6px 0 0; white-space:pre-wrap; word-break:break-word; }
+  .plan { margin:10px 0 0 34px; border:1px solid var(--accent); border-radius:6px; padding:10px 12px; }
+  .plan code { font-size:12px; word-break:break-all; }
+  .plan .cost { font-size:15px; font-weight:600; margin:6px 0; }
+  #msg { position:sticky; top:0; z-index:2; margin-bottom:10px; padding:8px 12px; border-radius:6px; background:#3a1f1d; border:1px solid var(--bad); color:var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Standing Light studio</h1>
+    <span class="chip" id="project"></span>
+    <span class="chip" id="spend"></span>
+    <span class="grow"></span>
+    <button class="primary" id="nextBtn" disabled>Next step</button>
+  </header>
+  <div id="msg" hidden></div>
+  <div id="stages"></div>
+  <p class="dim">Each step runs the same module you would run by hand, with the paths filled in. Changing the drawing marks everything after it out of date. Closing this page does not stop the tools it started; Ctrl+C in the terminal does.</p>
+</main>
+<script>
+const TOKEN = "__TOKEN__";
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); kids.forEach(k => e.append(k)); return e; };
+const $ = id => document.getElementById(id);
+let S = null, plan = null, planEngine = "qdrive", busy = false;
+const inputs = { photo: "", nx: "", ny: "", sweeps: "" };
+
+async function post(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "X-Token": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  const j = await r.json().catch(() => ({ ok: false, error: "bad response" }));
+  if (!r.ok || j.ok === false) throw new Error(j.error || r.statusText);
+  return j;
+}
+function say(text) { const m = $("msg"); m.hidden = !text; m.textContent = text || ""; }
+async function act(fn) { say(""); try { await fn(); } catch (e) { say(e.message); } await refresh(); }
+
+const start = (stage, opts) => act(() => post("/api/start", { stage, opts }));
+
+const LABELS = {
+  draw: s => s.status === "running" ? null : (s.status === "done" ? "Edit drawing" : "Open pen tool"),
+  targets: s => s.status === "running" ? null : (s.status === "done" ? "Re-run targets" : "Run targets"),
+  preview: s => s.status === "running" ? null : "Open rehearsal",
+  solve: s => s.status === "running" ? null : "Review payload",
+  final: s => s.status === "running" ? null : "Open performance",
+};
+
+function primary(stage) {                       // what the header's Next button does for the stage in focus
+  if (stage.id === "solve") return () => reviewPayload();
+  return () => start(stage.id, optsFor(stage.id));
+}
+function optsFor(id) {
+  if (id === "draw") return inputs.photo.trim() ? { photo: inputs.photo.trim() } : {};
+  if (id === "targets") {
+    const o = {};
+    if (inputs.nx && inputs.ny) o.grid = [Number(inputs.nx), Number(inputs.ny)];
+    if (inputs.sweeps) o.sweeps = Number(inputs.sweeps);
+    return o;
+  }
+  return {};
+}
+
+async function reviewPayload() {
+  say("");
+  try { plan = (await post("/api/solve/plan", { engine: planEngine })).plan; } catch (e) { plan = null; say(e.message); }
+  render();
+}
+
+function build() {                               // static skeleton, built once so inputs keep their focus and values
+  const root = $("stages");
+  ["draw", "targets", "preview", "solve", "final"].forEach((id, i) => {
+    const card = el("section", { className: "stage", id: "st-" + id });
+    card.append(
+      el("div", { className: "head" }, el("span", { className: "num", textContent: i + 1 }), el("h2", { id: id + "-title" }), el("span", { className: "status", id: id + "-status" })),
+      el("div", { className: "note", id: id + "-note" }),
+      el("div", { className: "warn-line", id: id + "-warn" }),
+      el("div", { className: "actions", id: id + "-actions" }),
+      el("details", { id: id + "-logbox" }, el("summary", { textContent: "Log" }), el("pre", { id: id + "-log" })));
+    root.append(card);
+  });
+  const field = (key, ph, w) => { const i = el("input", { type: "text", placeholder: ph, value: inputs[key] }); i.style.width = w; i.oninput = () => inputs[key] = i.value; return i; };
+  $("draw-actions").append(el("span", { id: "draw-btns" }), field("photo", "optional: photo to trace over (path)", "250px"), el("button", { id: "demoBtn", textContent: "Use the built-in demo scene", onclick: () => act(() => post("/api/demo-scene")) }));
+  $("targets-actions").append(el("span", { id: "targets-btns" }),
+    el("label", {}, "grid", field("nx", "nx", "46px"), "x", field("ny", "ny", "46px"), el("span", { className: "dim", textContent: "(blank = from the drawing)" })),
+    el("label", {}, "sweeps", field("sweeps", "200000", "80px")));
+  $("preview-actions").append(el("span", { id: "preview-btns" }));
+  const eng = el("select", { id: "engine" }, el("option", { value: "qdrive", textContent: "QDrive (1 credit)" }), el("option", { value: "graph-v1", textContent: "graph-v1 (5 credits)" }));
+  eng.onchange = () => { planEngine = eng.value; plan = null; render(); };
+  $("solve-actions").append(eng, el("span", { id: "solve-btns" }));
+  $("solve-actions").after(el("div", { id: "plan", className: "plan", hidden: true }));
+  $("final-actions").append(el("span", { id: "final-btns" }));
+}
+
+const sigs = {};
+function buttons(host, stage) {                  // rebuilt only when something about them changed, so a click is never lost to a refresh
+  const h = $(host);
+  const label = LABELS[stage.id](stage);
+  const blocked = stage.status === "blocked" || (S.busy && ["targets", "solve"].includes(stage.id));
+  const job0 = stage.job, sig = JSON.stringify([label, blocked, S.next === stage.id, job0 && job0.running, job0 && job0.url]);
+  if (sigs[host] === sig) return;
+  sigs[host] = sig;
+  h.replaceChildren();
+  if (label) h.append(el("button", { textContent: label, disabled: blocked, className: S.next === stage.id ? "primary" : "", onclick: primary(stage) }));
+  const job = stage.job;
+  const stopName = { draw: "pen", preview: "show", final: "show", targets: "targets", solve: "solve" }[stage.id];
+  if (job && job.running) {
+    if (job.url) h.append(el("a", { href: job.url, target: "_blank", textContent: "Open " + job.url, style: "margin:0 6px" }));
+    h.append(el("button", { className: "danger", textContent: "Stop", onclick: () => act(() => post("/api/stop", { job: stopName })) }));
+  }
+}
+
+function render() {
+  if (!S) return;
+  $("project").textContent = "project: " + S.project;
+  const sp = $("spend"); sp.textContent = S.allow_spend ? "Moth submit: enabled (asks first)" : "Moth submit: preview only"; sp.className = "chip" + (S.allow_spend ? " on" : "");
+  for (const st of S.stages) {
+    const card = $("st-" + st.id);
+    card.className = "stage " + st.status + (S.next === st.id ? " next" : "");
+    $(st.id + "-title").textContent = st.title;
+    const sb = $(st.id + "-status"); sb.textContent = st.status; sb.className = "status " + st.status;
+    $(st.id + "-note").textContent = st.note || "";
+    $(st.id + "-warn").textContent = st.warn || "";
+    buttons(st.id + "-btns", st);
+    const log = $(st.id + "-log"), box = $(st.id + "-logbox");
+    const lines = st.job ? st.job.log : [];
+    box.hidden = !lines.length;
+    if (lines.length) {
+      const atEnd = log.scrollTop + log.clientHeight >= log.scrollHeight - 8, text = lines.join("\n");
+      if (log.textContent !== text) { log.textContent = text; if (atEnd) log.scrollTop = log.scrollHeight; }
+      if (st.status === "failed" || st.status === "running") box.open = true;
+    }
+  }
+  $("demoBtn").hidden = S.stages[0].status !== "ready";
+  const nx = S.stages.find(s => s.id === S.next), nb = $("nextBtn");
+  nb.disabled = !nx || nx.status === "running" || S.busy;
+  nb.textContent = nx ? "Next: " + nx.title : "All steps done";
+  nb.onclick = nx ? primary(nx) : null;
+  const key = plan ? plan.sha256 + plan.engine + S.busy : "";
+  if (key !== planKey) { planKey = key; renderPlan(); }          // only when it changes, so an opened <details> stays open
+}
+
+let planKey = "";
+function renderPlan() {
+  const box = $("plan");
+  if (!plan) { box.hidden = true; return; }
+  box.hidden = false;
+  box.replaceChildren(
+    el("div", {}, el("strong", { textContent: plan.engine_id }), " payload sha256 ", el("code", { textContent: plan.sha256 })),
+    el("div", { className: "cost " + (plan.credits ? "warn" : "ok"), textContent: plan.credits ? plan.credits + " credit(s) will be spent" : "0 credits: nothing will be sent" }),
+    el("div", { className: "dim", textContent: plan.note }),
+    ...(plan.problems.length ? [el("div", { className: "bad", textContent: "Cannot be sent: " + plan.problems.join("; ") })] : []),
+    ...(plan.orphans.length ? [el("div", { className: "warn", textContent: plan.orphans.length + " earlier job(s) have no saved result: " + plan.orphans.map(o => o.slice(0, 8)).join(", ") })] : []),
+    el("details", {}, el("summary", { textContent: "Show the request" }), el("pre", { textContent: plan.describe })),
+    el("div", { className: "actions", style: "margin-left:0" },
+      el("button", {
+        className: "primary", disabled: !!plan.problems.length || (plan.credits > 0 && !plan.allow_spend) || S.busy,
+        textContent: plan.credits ? "Send to Moth: spend " + plan.credits + " credit(s)" : "Load the saved result",
+        onclick: () => act(async () => { const p = plan; plan = null; await post("/api/solve/confirm", { engine: p.engine, sha256: p.sha256, credits: p.credits }); })
+      }),
+      el("button", { textContent: "Cancel", onclick: () => { plan = null; render(); } })));
+}
+
+async function refresh() {
+  if (busy) return;
+  busy = true;
+  try { S = await (await fetch("/api/state")).json(); render(); } catch (e) { say("lost contact with the studio: " + e.message); } finally { busy = false; }
+}
+build();
+refresh();
+setInterval(refresh, 1200);
+</script>
+</body>
+</html>

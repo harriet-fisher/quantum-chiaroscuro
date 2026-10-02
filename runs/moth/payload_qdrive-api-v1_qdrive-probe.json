@@ -1,0 +1,18 @@
+{
+  "params": {
+    "machine": "aer",
+    "n_qubits": 2,
+    "coupling_map": [[0, 1]],
+    "update_method": "spectral",
+    "shots": 1024,
+    "tomography": 0,
+    "sample": false,
+    "seed": 7,
+    "targets": [
+      {"qubits": [0], "expvals": {"Z": 0.0}},
+      {"qubits": [1], "expvals": {"Z": 0.0}},
+      {"qubits": [0, 1], "expvals": {"XZ": 0.5}},
+      null
+    ]
+  }
+}

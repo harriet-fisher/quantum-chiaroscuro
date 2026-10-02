@@ -1,0 +1,741 @@
+{
+ "summary": {
+  "n_requested": 66,
+  "n_achieved": 66,
+  "missing": [],
+  "rms": 0.6324763303741777,
+  "max_abs": 0.995105,
+  "n_gap_over_0p1": 32,
+  "by_kind": {
+   "lamp-patch": {
+    "n": 28,
+    "rms": 0.6426714115419145,
+    "max_abs": 0.995105
+   },
+   "patch-patch": {
+    "n": 17,
+    "rms": 0.8317186897526512,
+    "max_abs": 0.9921099235042828
+   },
+   "polarity-polarity": {
+    "n": 2,
+    "rms": 0.28170299962904194,
+    "max_abs": 0.28300000000000003
+   },
+   "single": {
+    "n": 19,
+    "rms": 0.39192026236006045,
+    "max_abs": 0.9903
+   }
+  }
+ },
+ "rows": [
+  {
+   "label": "<Z> patch 0 (cell 0,0, panel 0)",
+   "kind": "single",
+   "qubits": [
+    0
+   ],
+   "requested": -0.0005674999999999986,
+   "achieved": 1.4857762336266377e-16,
+   "error": 0.0005675000000001471
+  },
+  {
+   "label": "<Z> patch 1 (cell 4,0, panel 2)",
+   "kind": "single",
+   "qubits": [
+    1
+   ],
+   "requested": -0.00034499999999995645,
+   "achieved": -8.313137130712885e-10,
+   "error": 0.0003449991686862434
+  },
+  {
+   "label": "<Z> patch 2 (cell 0,1, panel 0)",
+   "kind": "single",
+   "qubits": [
+    2
+   ],
+   "requested": 3.499999999997949e-05,
+   "achieved": 2.039998345979215e-15,
+   "error": -3.499999999793949e-05
+  },
+  {
+   "label": "<Z> patch 3 (cell 1,1, panel 0)",
+   "kind": "single",
+   "qubits": [
+    3
+   ],
+   "requested": 5.4999999999999494e-05,
+   "achieved": -1.6955721611322003e-13,
+   "error": -5.500000016955671e-05
+  },
+  {
+   "label": "<Z> patch 4 (cell 2,1, panel 1)",
+   "kind": "single",
+   "qubits": [
+    4
+   ],
+   "requested": 0.0024775000000000075,
+   "achieved": 1.1091832038695814e-06,
+   "error": -0.002476390816796138
+  },
+  {
+   "label": "<Z> patch 5 (cell 3,1, panel 2)",
+   "kind": "single",
+   "qubits": [
+    5
+   ],
+   "requested": -0.0003249999999999642,
+   "achieved": 5.822357646020283e-09,
+   "error": 0.00032500582235761024
+  },
+  {
+   "label": "<Z> patch 6 (cell 4,1, panel 2)",
+   "kind": "single",
+   "qubits": [
+    6
+   ],
+   "requested": 7.499999999999174e-05,
+   "achieved": 2.238289216731563e-12,
+   "error": -7.499999776170253e-05
+  },
+  {
+   "label": "<Z> patch 7 (cell 0,2, panel 0)",
+   "kind": "single",
+   "qubits": [
+    7
+   ],
+   "requested": -4.750000000000587e-05,
+   "achieved": 2.4695865880775466e-15,
+   "error": 4.750000000247546e-05
+  },
+  {
+   "label": "<Z> patch 8 (cell 1,2, panel 0)",
+   "kind": "single",
+   "qubits": [
+    8
+   ],
+   "requested": 0.00019250000000003986,
+   "achieved": 2.274752428561128e-05,
+   "error": -0.00016975247571442858
+  },
+  {
+   "label": "<Z> patch 9 (cell 2,2, panel 1)",
+   "kind": "single",
+   "qubits": [
+    9
+   ],
+   "requested": 0.0023100000000000065,
+   "achieved": 3.174345142688966e-06,
+   "error": -0.0023068256548573174
+  },
+  {
+   "label": "<Z> patch 10 (cell 3,2, panel 2)",
+   "kind": "single",
+   "qubits": [
+    10
+   ],
+   "requested": -7.499999999996398e-05,
+   "achieved": 1.6733953669025077e-09,
+   "error": 7.50016733953309e-05
+  },
+  {
+   "label": "<Z> patch 11 (cell 4,2, panel 2)",
+   "kind": "single",
+   "qubits": [
+    11
+   ],
+   "requested": -7.50000000000195e-05,
+   "achieved": 1.6304016270540092e-16,
+   "error": 7.500000000018253e-05
+  },
+  {
+   "label": "<Z> patch 12 (cell 0,3, panel 0)",
+   "kind": "single",
+   "qubits": [
+    12
+   ],
+   "requested": -0.00024999999999997247,
+   "achieved": -9.299114509458599e-13,
+   "error": 0.000249999999070061
+  },
+  {
+   "label": "<Z> patch 13 (cell 4,3, panel 2)",
+   "kind": "single",
+   "qubits": [
+    13
+   ],
+   "requested": 0.0005325000000000191,
+   "achieved": 6.392851863347567e-14,
+   "error": -0.0005324999999360905
+  },
+  {
+   "label": "<Z> lamp L1",
+   "kind": "single",
+   "qubits": [
+    14
+   ],
+   "requested": 0.0,
+   "achieved": -1.0331124054241694e-11,
+   "error": -1.0331124054241694e-11
+  },
+  {
+   "label": "<Z> lamp L2",
+   "kind": "single",
+   "qubits": [
+    15
+   ],
+   "requested": 0.0,
+   "achieved": -9.119653341723456e-13,
+   "error": -9.119653341723456e-13
+  },
+  {
+   "label": "<Z> polarity panel 0",
+   "kind": "single",
+   "qubits": [
+    16
+   ],
+   "requested": 0.0195,
+   "achieved": 1.0,
+   "error": 0.9805
+  },
+  {
+   "label": "<Z> polarity panel 1",
+   "kind": "single",
+   "qubits": [
+    17
+   ],
+   "requested": 0.0097,
+   "achieved": 1.0,
+   "error": 0.9903
+  },
+  {
+   "label": "<Z> polarity panel 2",
+   "kind": "single",
+   "qubits": [
+    18
+   ],
+   "requested": 0.0119,
+   "achieved": 1.0,
+   "error": 0.9881
+  },
+  {
+   "label": "<ZZ> patch 0 - patch 2",
+   "kind": "patch-patch",
+   "qubits": [
+    0,
+    2
+   ],
+   "requested": 0.9460775,
+   "achieved": 5.740168751199046e-09,
+   "error": -0.9460774942598312
+  },
+  {
+   "label": "<ZZ> patch 1 - patch 6",
+   "kind": "patch-patch",
+   "qubits": [
+    1,
+    6
+   ],
+   "requested": 0.94618,
+   "achieved": -1.8607205196885414e-21,
+   "error": -0.94618
+  },
+  {
+   "label": "<ZZ> patch 2 - patch 3",
+   "kind": "patch-patch",
+   "qubits": [
+    2,
+    3
+   ],
+   "requested": 0.9739199999999999,
+   "achieved": -3.4589644041980917e-28,
+   "error": -0.9739199999999999
+  },
+  {
+   "label": "<ZZ> patch 2 - patch 7",
+   "kind": "patch-patch",
+   "qubits": [
+    2,
+    7
+   ],
+   "requested": 0.9919775000000001,
+   "achieved": 5.037952554930648e-30,
+   "error": -0.9919775000000001
+  },
+  {
+   "label": "<ZZ> patch 3 - patch 4",
+   "kind": "patch-patch",
+   "qubits": [
+    3,
+    4
+   ],
+   "requested": -0.02226249999999999,
+   "achieved": -2.7584026109209797e-09,
+   "error": 0.02226249724159738
+  },
+  {
+   "label": "<ZZ> patch 3 - patch 8",
+   "kind": "patch-patch",
+   "qubits": [
+    3,
+    8
+   ],
+   "requested": 0.9670875,
+   "achieved": 8.09554744550584e-14,
+   "error": -0.967087499999919
+  },
+  {
+   "label": "<ZZ> patch 4 - patch 5",
+   "kind": "patch-patch",
+   "qubits": [
+    4,
+    5
+   ],
+   "requested": -0.021977499999999997,
+   "achieved": 0.0052492299049849405,
+   "error": 0.02722672990498494
+  },
+  {
+   "label": "<ZZ> patch 4 - patch 9",
+   "kind": "patch-patch",
+   "qubits": [
+    4,
+    9
+   ],
+   "requested": 0.7377425,
+   "achieved": 3.5209303155555912e-12,
+   "error": -0.737742499996479
+  },
+  {
+   "label": "<ZZ> patch 5 - patch 6",
+   "kind": "patch-patch",
+   "qubits": [
+    5,
+    6
+   ],
+   "requested": 0.9741049999999999,
+   "achieved": 1.3032120335041764e-20,
+   "error": -0.9741049999999999
+  },
+  {
+   "label": "<ZZ> patch 5 - patch 10",
+   "kind": "patch-patch",
+   "qubits": [
+    5,
+    10
+   ],
+   "requested": 0.9671799999999999,
+   "achieved": 9.743106309299733e-18,
+   "error": -0.9671799999999999
+  },
+  {
+   "label": "<ZZ> patch 6 - patch 11",
+   "kind": "patch-patch",
+   "qubits": [
+    6,
+    11
+   ],
+   "requested": 0.9921099999999999,
+   "achieved": 7.64957171081821e-08,
+   "error": -0.9921099235042828
+  },
+  {
+   "label": "<ZZ> patch 7 - patch 8",
+   "kind": "patch-patch",
+   "qubits": [
+    7,
+    8
+   ],
+   "requested": 0.9742350000000001,
+   "achieved": 5.617698088771394e-20,
+   "error": -0.9742350000000001
+  },
+  {
+   "label": "<ZZ> patch 7 - patch 12",
+   "kind": "patch-patch",
+   "qubits": [
+    7,
+    12
+   ],
+   "requested": 0.9450675,
+   "achieved": -2.2964825836426222e-27,
+   "error": -0.9450675
+  },
+  {
+   "label": "<ZZ> patch 8 - patch 9",
+   "kind": "patch-patch",
+   "qubits": [
+    8,
+    9
+   ],
+   "requested": -0.022172499999999984,
+   "achieved": 7.220849322422951e-11,
+   "error": 0.022172500072208477
+  },
+  {
+   "label": "<ZZ> patch 9 - patch 10",
+   "kind": "patch-patch",
+   "qubits": [
+    9,
+    10
+   ],
+   "requested": -0.02167000000000001,
+   "achieved": 5.3105047884236805e-15,
+   "error": 0.02167000000000532
+  },
+  {
+   "label": "<ZZ> patch 10 - patch 11",
+   "kind": "patch-patch",
+   "qubits": [
+    10,
+    11
+   ],
+   "requested": 0.973905,
+   "achieved": 2.7283065289024894e-25,
+   "error": -0.973905
+  },
+  {
+   "label": "<ZZ> patch 11 - patch 13",
+   "kind": "patch-patch",
+   "qubits": [
+    11,
+    13
+   ],
+   "requested": 0.9465175,
+   "achieved": 1.0385730394007248e-29,
+   "error": -0.9465175
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 0",
+   "kind": "lamp-patch",
+   "qubits": [
+    0,
+    14
+   ],
+   "requested": 0.9461474999999999,
+   "achieved": -1.5349738586440783e-27,
+   "error": -0.9461474999999999
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 1",
+   "kind": "lamp-patch",
+   "qubits": [
+    1,
+    14
+   ],
+   "requested": -0.94623,
+   "achieved": 8.588405097731766e-21,
+   "error": 0.94623
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 2",
+   "kind": "lamp-patch",
+   "qubits": [
+    2,
+    14
+   ],
+   "requested": 0.9949349999999999,
+   "achieved": -2.1075475982759137e-26,
+   "error": -0.9949349999999999
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 3",
+   "kind": "lamp-patch",
+   "qubits": [
+    3,
+    14
+   ],
+   "requested": 0.9748749999999999,
+   "achieved": 2.5692238636097814e-14,
+   "error": -0.9748749999999743
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 4",
+   "kind": "lamp-patch",
+   "qubits": [
+    4,
+    14
+   ],
+   "requested": -0.00014250000000000373,
+   "achieved": -9.314172823930023e-06,
+   "error": 0.00013318582717607372
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 5",
+   "kind": "lamp-patch",
+   "qubits": [
+    5,
+    14
+   ],
+   "requested": -0.9749800000000001,
+   "achieved": -4.889223452757152e-08,
+   "error": 0.9749799511077656
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 6",
+   "kind": "lamp-patch",
+   "qubits": [
+    6,
+    14
+   ],
+   "requested": -0.995105,
+   "achieved": -2.312404356732525e-23,
+   "error": 0.995105
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 7",
+   "kind": "lamp-patch",
+   "qubits": [
+    7,
+    14
+   ],
+   "requested": 0.9950075,
+   "achieved": -2.551360540412061e-26,
+   "error": -0.9950075
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 8",
+   "kind": "lamp-patch",
+   "qubits": [
+    8,
+    14
+   ],
+   "requested": 0.9750325,
+   "achieved": -2.350074953215256e-16,
+   "error": -0.9750325000000002
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 9",
+   "kind": "lamp-patch",
+   "qubits": [
+    9,
+    14
+   ],
+   "requested": -0.00026999999999999247,
+   "achieved": -4.237584542009009e-10,
+   "error": 0.00026999957624153825
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 10",
+   "kind": "lamp-patch",
+   "qubits": [
+    10,
+    14
+   ],
+   "requested": -0.9747950000000001,
+   "achieved": -1.728805452142992e-20,
+   "error": 0.9747950000000001
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 11",
+   "kind": "lamp-patch",
+   "qubits": [
+    11,
+    14
+   ],
+   "requested": -0.99495,
+   "achieved": -1.684388146733247e-27,
+   "error": 0.99495
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 12",
+   "kind": "lamp-patch",
+   "qubits": [
+    12,
+    14
+   ],
+   "requested": 0.944925,
+   "achieved": 9.60703055918157e-24,
+   "error": -0.944925
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 13",
+   "kind": "lamp-patch",
+   "qubits": [
+    13,
+    14
+   ],
+   "requested": -0.9463975,
+   "achieved": -6.604534566063388e-25,
+   "error": 0.9463975
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 0",
+   "kind": "lamp-patch",
+   "qubits": [
+    0,
+    15
+   ],
+   "requested": -0.004282499999999995,
+   "achieved": -1.3549761720663115e-28,
+   "error": 0.004282499999999995
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 1",
+   "kind": "lamp-patch",
+   "qubits": [
+    1,
+    15
+   ],
+   "requested": -0.004420000000000035,
+   "achieved": 7.581292881431111e-22,
+   "error": 0.004420000000000035
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 2",
+   "kind": "lamp-patch",
+   "qubits": [
+    2,
+    15
+   ],
+   "requested": -0.0014749999999999763,
+   "achieved": -1.8604074337018435e-27,
+   "error": 0.0014749999999999763
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 3",
+   "kind": "lamp-patch",
+   "qubits": [
+    3,
+    15
+   ],
+   "requested": -0.009979999999999989,
+   "achieved": 1.5463030325402534e-25,
+   "error": 0.009979999999999989
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 4",
+   "kind": "lamp-patch",
+   "qubits": [
+    4,
+    15
+   ],
+   "requested": 0.33416250000000003,
+   "achieved": -1.0115366311752758e-18,
+   "error": -0.33416250000000003
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 5",
+   "kind": "lamp-patch",
+   "qubits": [
+    5,
+    15
+   ],
+   "requested": -0.010135000000000033,
+   "achieved": -5.3097883363238e-21,
+   "error": 0.010135000000000033
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 6",
+   "kind": "lamp-patch",
+   "qubits": [
+    6,
+    15
+   ],
+   "requested": -0.0014300000000000146,
+   "achieved": -0.0004278788800117259,
+   "error": 0.0010021211199882888
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 7",
+   "kind": "lamp-patch",
+   "qubits": [
+    7,
+    15
+   ],
+   "requested": -0.0013574999999999837,
+   "achieved": -0.002707982963320443,
+   "error": -0.001350482963320459
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 8",
+   "kind": "lamp-patch",
+   "qubits": [
+    8,
+    15
+   ],
+   "requested": -0.010162500000000019,
+   "achieved": -2.074495358672104e-17,
+   "error": 0.010162499999999998
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 9",
+   "kind": "lamp-patch",
+   "qubits": [
+    9,
+    15
+   ],
+   "requested": 0.333955,
+   "achieved": -2.894892728830705e-18,
+   "error": -0.333955
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 10",
+   "kind": "lamp-patch",
+   "qubits": [
+    10,
+    15
+   ],
+   "requested": -0.009715000000000001,
+   "achieved": -1.5260785649797005e-21,
+   "error": 0.009715000000000001
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 11",
+   "kind": "lamp-patch",
+   "qubits": [
+    11,
+    15
+   ],
+   "requested": -0.001365000000000005,
+   "achieved": -0.00017877890375445912,
+   "error": 0.001186221096245546
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 12",
+   "kind": "lamp-patch",
+   "qubits": [
+    12,
+    15
+   ],
+   "requested": -0.004294999999999993,
+   "achieved": 8.48047007368776e-25,
+   "error": 0.004294999999999993
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 13",
+   "kind": "lamp-patch",
+   "qubits": [
+    13,
+    15
+   ],
+   "requested": -0.004027499999999962,
+   "achieved": -5.830058221649006e-26,
+   "error": 0.004027499999999962
+  },
+  {
+   "label": "<ZZ> polarity 0 - polarity 1",
+   "kind": "polarity-polarity",
+   "qubits": [
+    16,
+    17
+   ],
+   "requested": 0.7196,
+   "achieved": 1.0,
+   "error": 0.2804
+  },
+  {
+   "label": "<ZZ> polarity 1 - polarity 2",
+   "kind": "polarity-polarity",
+   "qubits": [
+    17,
+    18
+   ],
+   "requested": 0.717,
+   "achieved": 1.0,
+   "error": 0.28300000000000003
+  }
+ ]
+}

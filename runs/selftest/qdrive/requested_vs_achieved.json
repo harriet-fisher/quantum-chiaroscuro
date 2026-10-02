@@ -1,0 +1,741 @@
+{
+ "summary": {
+  "n_requested": 66,
+  "n_achieved": 66,
+  "missing": [],
+  "rms": 0.5579668928412542,
+  "max_abs": 1.4076076942717757,
+  "n_gap_over_0p1": 47,
+  "by_kind": {
+   "lamp-patch": {
+    "n": 28,
+    "rms": 0.638358700675674,
+    "max_abs": 1.4076076942717757
+   },
+   "patch-patch": {
+    "n": 17,
+    "rms": 0.4420483776711205,
+    "max_abs": 0.718917015300694
+   },
+   "polarity-polarity": {
+    "n": 2,
+    "rms": 0.2817029996290428,
+    "max_abs": 0.2830000000000009
+   },
+   "single": {
+    "n": 19,
+    "rms": 0.5456481443700549,
+    "max_abs": 0.932418682810666
+   }
+  }
+ },
+ "rows": [
+  {
+   "label": "<Z> patch 0 (cell 0,0, panel 0)",
+   "kind": "single",
+   "qubits": [
+    0
+   ],
+   "requested": -0.0005674999999999986,
+   "achieved": 0.6084714895283677,
+   "error": 0.6090389895283677
+  },
+  {
+   "label": "<Z> patch 1 (cell 4,0, panel 2)",
+   "kind": "single",
+   "qubits": [
+    1
+   ],
+   "requested": -0.00034499999999995645,
+   "achieved": 0.5837659728103045,
+   "error": 0.5841109728103044
+  },
+  {
+   "label": "<Z> patch 2 (cell 0,1, panel 0)",
+   "kind": "single",
+   "qubits": [
+    2
+   ],
+   "requested": 3.499999999997949e-05,
+   "achieved": 0.4720422325534348,
+   "error": 0.4720072325534348
+  },
+  {
+   "label": "<Z> patch 3 (cell 1,1, panel 0)",
+   "kind": "single",
+   "qubits": [
+    3
+   ],
+   "requested": 5.4999999999999494e-05,
+   "achieved": 0.42448399857207675,
+   "error": 0.4244289985720767
+  },
+  {
+   "label": "<Z> patch 4 (cell 2,1, panel 1)",
+   "kind": "single",
+   "qubits": [
+    4
+   ],
+   "requested": 0.0024775000000000075,
+   "achieved": 0.934896182810666,
+   "error": 0.932418682810666
+  },
+  {
+   "label": "<Z> patch 5 (cell 3,1, panel 2)",
+   "kind": "single",
+   "qubits": [
+    5
+   ],
+   "requested": -0.0003249999999999642,
+   "achieved": 0.5635499386345242,
+   "error": 0.5638749386345241
+  },
+  {
+   "label": "<Z> patch 6 (cell 4,1, panel 2)",
+   "kind": "single",
+   "qubits": [
+    6
+   ],
+   "requested": 7.499999999999174e-05,
+   "achieved": 0.8073629029818893,
+   "error": 0.8072879029818893
+  },
+  {
+   "label": "<Z> patch 7 (cell 0,2, panel 0)",
+   "kind": "single",
+   "qubits": [
+    7
+   ],
+   "requested": -4.750000000000587e-05,
+   "achieved": 0.4244839985720771,
+   "error": 0.42453149857207706
+  },
+  {
+   "label": "<Z> patch 8 (cell 1,2, panel 0)",
+   "kind": "single",
+   "qubits": [
+    8
+   ],
+   "requested": 0.00019250000000003986,
+   "achieved": 0.2504756900421654,
+   "error": 0.25028319004216537
+  },
+  {
+   "label": "<Z> patch 9 (cell 2,2, panel 1)",
+   "kind": "single",
+   "qubits": [
+    9
+   ],
+   "requested": 0.0023100000000000065,
+   "achieved": 0.9228581468115672,
+   "error": 0.9205481468115672
+  },
+  {
+   "label": "<Z> patch 10 (cell 3,2, panel 2)",
+   "kind": "single",
+   "qubits": [
+    10
+   ],
+   "requested": -7.499999999996398e-05,
+   "achieved": 0.6930767443431933,
+   "error": 0.6931517443431933
+  },
+  {
+   "label": "<Z> patch 11 (cell 4,2, panel 2)",
+   "kind": "single",
+   "qubits": [
+    11
+   ],
+   "requested": -7.50000000000195e-05,
+   "achieved": 0.7199315549439953,
+   "error": 0.7200065549439953
+  },
+  {
+   "label": "<Z> patch 12 (cell 0,3, panel 0)",
+   "kind": "single",
+   "qubits": [
+    12
+   ],
+   "requested": -0.00024999999999997247,
+   "achieved": 0.4079033557155365,
+   "error": 0.40815335571553646
+  },
+  {
+   "label": "<Z> patch 13 (cell 4,3, panel 2)",
+   "kind": "single",
+   "qubits": [
+    13
+   ],
+   "requested": 0.0005325000000000191,
+   "achieved": 0.6686914439640268,
+   "error": 0.6681589439640268
+  },
+  {
+   "label": "<Z> lamp L1",
+   "kind": "single",
+   "qubits": [
+    14
+   ],
+   "requested": 0.0,
+   "achieved": -1.459943277382081e-14,
+   "error": -1.459943277382081e-14
+  },
+  {
+   "label": "<Z> lamp L2",
+   "kind": "single",
+   "qubits": [
+    15
+   ],
+   "requested": 0.0,
+   "achieved": 2.269885668315652e-15,
+   "error": 2.269885668315652e-15
+  },
+  {
+   "label": "<Z> polarity panel 0",
+   "kind": "single",
+   "qubits": [
+    16
+   ],
+   "requested": 0.0195,
+   "achieved": 2.3467386616859293e-16,
+   "error": -0.019499999999999764
+  },
+  {
+   "label": "<Z> polarity panel 1",
+   "kind": "single",
+   "qubits": [
+    17
+   ],
+   "requested": 0.0097,
+   "achieved": 2.3467386616859293e-16,
+   "error": -0.009699999999999766
+  },
+  {
+   "label": "<Z> polarity panel 2",
+   "kind": "single",
+   "qubits": [
+    18
+   ],
+   "requested": 0.0119,
+   "achieved": 2.3467386616859293e-16,
+   "error": -0.011899999999999767
+  },
+  {
+   "label": "<ZZ> patch 0 - patch 2",
+   "kind": "patch-patch",
+   "qubits": [
+    0,
+    2
+   ],
+   "requested": 0.9460775,
+   "achieved": 0.6597673981599066,
+   "error": -0.2863101018400934
+  },
+  {
+   "label": "<ZZ> patch 1 - patch 6",
+   "kind": "patch-patch",
+   "qubits": [
+    1,
+    6
+   ],
+   "requested": 0.94618,
+   "achieved": 0.4440719311528152,
+   "error": -0.5021080688471848
+  },
+  {
+   "label": "<ZZ> patch 2 - patch 3",
+   "kind": "patch-patch",
+   "qubits": [
+    2,
+    3
+   ],
+   "requested": 0.9739199999999999,
+   "achieved": 0.6777085226813784,
+   "error": -0.2962114773186215
+  },
+  {
+   "label": "<ZZ> patch 2 - patch 7",
+   "kind": "patch-patch",
+   "qubits": [
+    2,
+    7
+   ],
+   "requested": 0.9919775000000001,
+   "achieved": 0.6777085226813767,
+   "error": -0.31426897731862335
+  },
+  {
+   "label": "<ZZ> patch 3 - patch 4",
+   "kind": "patch-patch",
+   "qubits": [
+    3,
+    4
+   ],
+   "requested": -0.02226249999999999,
+   "achieved": 0.4569131876377669,
+   "error": 0.47917568763776686
+  },
+  {
+   "label": "<ZZ> patch 3 - patch 8",
+   "kind": "patch-patch",
+   "qubits": [
+    3,
+    8
+   ],
+   "requested": 0.9670875,
+   "achieved": 0.6922286218640015,
+   "error": -0.2748588781359985
+  },
+  {
+   "label": "<ZZ> patch 4 - patch 5",
+   "kind": "patch-patch",
+   "qubits": [
+    4,
+    5
+   ],
+   "requested": -0.021977499999999997,
+   "achieved": 0.5831232318619377,
+   "error": 0.6051007318619377
+  },
+  {
+   "label": "<ZZ> patch 4 - patch 9",
+   "kind": "patch-patch",
+   "qubits": [
+    4,
+    9
+   ],
+   "requested": 0.7377425,
+   "achieved": 0.8665471461384949,
+   "error": 0.12880464613849496
+  },
+  {
+   "label": "<ZZ> patch 5 - patch 6",
+   "kind": "patch-patch",
+   "qubits": [
+    5,
+    6
+   ],
+   "requested": 0.9741049999999999,
+   "achieved": 0.42825768368205447,
+   "error": -0.5458473163179454
+  },
+  {
+   "label": "<ZZ> patch 5 - patch 10",
+   "kind": "patch-patch",
+   "qubits": [
+    5,
+    10
+   ],
+   "requested": 0.9671799999999999,
+   "achieved": 0.37039168001192335,
+   "error": -0.5967883199880766
+  },
+  {
+   "label": "<ZZ> patch 6 - patch 11",
+   "kind": "patch-patch",
+   "qubits": [
+    6,
+    11
+   ],
+   "requested": 0.9921099999999999,
+   "achieved": 0.5536409861810911,
+   "error": -0.4384690138189088
+  },
+  {
+   "label": "<ZZ> patch 7 - patch 8",
+   "kind": "patch-patch",
+   "qubits": [
+    7,
+    8
+   ],
+   "requested": 0.9742350000000001,
+   "achieved": 0.6922286218640027,
+   "error": -0.2820063781359974
+  },
+  {
+   "label": "<ZZ> patch 7 - patch 12",
+   "kind": "patch-patch",
+   "qubits": [
+    7,
+    12
+   ],
+   "requested": 0.9450675,
+   "achieved": 0.6839671154317812,
+   "error": -0.2611003845682187
+  },
+  {
+   "label": "<ZZ> patch 8 - patch 9",
+   "kind": "patch-patch",
+   "qubits": [
+    8,
+    9
+   ],
+   "requested": -0.022172499999999984,
+   "achieved": 0.291350446295632,
+   "error": 0.313522946295632
+  },
+  {
+   "label": "<ZZ> patch 9 - patch 10",
+   "kind": "patch-patch",
+   "qubits": [
+    9,
+    10
+   ],
+   "requested": -0.02167000000000001,
+   "achieved": 0.697247015300694,
+   "error": 0.718917015300694
+  },
+  {
+   "label": "<ZZ> patch 10 - patch 11",
+   "kind": "patch-patch",
+   "qubits": [
+    10,
+    11
+   ],
+   "requested": 0.973905,
+   "achieved": 0.46486529923080233,
+   "error": -0.5090397007691977
+  },
+  {
+   "label": "<ZZ> patch 11 - patch 13",
+   "kind": "patch-patch",
+   "qubits": [
+    11,
+    13
+   ],
+   "requested": 0.9465175,
+   "achieved": 0.4514345148217253,
+   "error": -0.4950829851782747
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 0",
+   "kind": "lamp-patch",
+   "qubits": [
+    0,
+    14
+   ],
+   "requested": 0.9461474999999999,
+   "achieved": 0.39089413190384426,
+   "error": -0.5552533680961557
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 1",
+   "kind": "lamp-patch",
+   "qubits": [
+    1,
+    14
+   ],
+   "requested": -0.94623,
+   "achieved": 0.4155996486219367,
+   "error": 1.3618296486219368
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 2",
+   "kind": "lamp-patch",
+   "qubits": [
+    2,
+    14
+   ],
+   "requested": 0.9949349999999999,
+   "achieved": 0.5272552965122171,
+   "error": -0.46767970348778276
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 3",
+   "kind": "lamp-patch",
+   "qubits": [
+    3,
+    14
+   ],
+   "requested": 0.9748749999999999,
+   "achieved": 0.5748062216552604,
+   "error": -0.40006877834473953
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 4",
+   "kind": "lamp-patch",
+   "qubits": [
+    4,
+    14
+   ],
+   "requested": -0.00014250000000000373,
+   "achieved": 0.042420329488621816,
+   "error": 0.04256282948862182
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 5",
+   "kind": "lamp-patch",
+   "qubits": [
+    5,
+    14
+   ],
+   "requested": -0.9749800000000001,
+   "achieved": 0.43262769427177566,
+   "error": 1.4076076942717757
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 6",
+   "kind": "lamp-patch",
+   "qubits": [
+    6,
+    14
+   ],
+   "requested": -0.995105,
+   "achieved": 0.19152387235197274,
+   "error": 1.1866288723519727
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 7",
+   "kind": "lamp-patch",
+   "qubits": [
+    7,
+    14
+   ],
+   "requested": 0.9950075,
+   "achieved": 0.57480622165526,
+   "error": -0.4202012783447401
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 8",
+   "kind": "lamp-patch",
+   "qubits": [
+    8,
+    14
+   ],
+   "requested": 0.9750325,
+   "achieved": 0.7487358880781095,
+   "error": -0.22629661192189043
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 9",
+   "kind": "lamp-patch",
+   "qubits": [
+    9,
+    14
+   ],
+   "requested": -0.00026999999999999247,
+   "achieved": 0.049547739203745444,
+   "error": 0.04981773920374544
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 10",
+   "kind": "lamp-patch",
+   "qubits": [
+    10,
+    14
+   ],
+   "requested": -0.9747950000000001,
+   "achieved": 0.30219374146892886,
+   "error": 1.276988741468929
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 11",
+   "kind": "lamp-patch",
+   "qubits": [
+    11,
+    14
+   ],
+   "requested": -0.99495,
+   "achieved": 0.27879939707521884,
+   "error": 1.273749397075219
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 12",
+   "kind": "lamp-patch",
+   "qubits": [
+    12,
+    14
+   ],
+   "requested": 0.944925,
+   "achieved": 0.5913860800021646,
+   "error": -0.3535389199978354
+  },
+  {
+   "label": "<ZZ> lamp L1 - patch 13",
+   "kind": "lamp-patch",
+   "qubits": [
+    13,
+    14
+   ],
+   "requested": -0.9463975,
+   "achieved": 0.3305379615165621,
+   "error": 1.2769354615165622
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 0",
+   "kind": "lamp-patch",
+   "qubits": [
+    0,
+    15
+   ],
+   "requested": -0.004282499999999995,
+   "achieved": -0.011974353360120388,
+   "error": -0.007691853360120394
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 1",
+   "kind": "lamp-patch",
+   "qubits": [
+    1,
+    15
+   ],
+   "requested": -0.004420000000000035,
+   "achieved": 0.012731163357972277,
+   "error": 0.017151163357972312
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 2",
+   "kind": "lamp-patch",
+   "qubits": [
+    2,
+    15
+   ],
+   "requested": -0.0014749999999999763,
+   "achieved": -0.01573979298796541,
+   "error": -0.014264792987965434
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 3",
+   "kind": "lamp-patch",
+   "qubits": [
+    3,
+    15
+   ],
+   "requested": -0.009979999999999989,
+   "achieved": -0.016891381705019054,
+   "error": -0.006911381705019065
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 4",
+   "kind": "lamp-patch",
+   "qubits": [
+    4,
+    15
+   ],
+   "requested": 0.33416250000000003,
+   "achieved": -0.008412242064766127,
+   "error": -0.3425747420647662
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 5",
+   "kind": "lamp-patch",
+   "qubits": [
+    5,
+    15
+   ],
+   "requested": -0.010135000000000033,
+   "achieved": 0.007404475173125615,
+   "error": 0.017539475173125648
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 6",
+   "kind": "lamp-patch",
+   "qubits": [
+    6,
+    15
+   ],
+   "requested": -0.0014300000000000146,
+   "achieved": 0.004485229513747677,
+   "error": 0.005915229513747691
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 7",
+   "kind": "lamp-patch",
+   "qubits": [
+    7,
+    15
+   ],
+   "requested": -0.0013574999999999837,
+   "achieved": -0.01689138170501915,
+   "error": -0.015533881705019167
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 8",
+   "kind": "lamp-patch",
+   "qubits": [
+    8,
+    15
+   ],
+   "requested": -0.010162500000000019,
+   "achieved": -0.01818840505885244,
+   "error": -0.008025905058852423
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 9",
+   "kind": "lamp-patch",
+   "qubits": [
+    9,
+    15
+   ],
+   "requested": 0.333955,
+   "achieved": -0.010935536074832837,
+   "error": -0.34489053607483283
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 10",
+   "kind": "lamp-patch",
+   "qubits": [
+    10,
+    15
+   ],
+   "requested": -0.009715000000000001,
+   "achieved": 0.0030548716468602574,
+   "error": 0.012769871646860258
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 11",
+   "kind": "lamp-patch",
+   "qubits": [
+    11,
+    15
+   ],
+   "requested": -0.001365000000000005,
+   "achieved": 0.009459556835543304,
+   "error": 0.010824556835543309
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 12",
+   "kind": "lamp-patch",
+   "qubits": [
+    12,
+    15
+   ],
+   "requested": -0.004294999999999993,
+   "achieved": -0.017234680230041044,
+   "error": -0.01293968023004105
+  },
+  {
+   "label": "<ZZ> lamp L2 - patch 13",
+   "kind": "lamp-patch",
+   "qubits": [
+    13,
+    15
+   ],
+   "requested": -0.004027499999999962,
+   "achieved": 0.008864973253962231,
+   "error": 0.012892473253962193
+  },
+  {
+   "label": "<ZZ> polarity 0 - polarity 1",
+   "kind": "polarity-polarity",
+   "qubits": [
+    16,
+    17
+   ],
+   "requested": 0.7196,
+   "achieved": 1.0000000000000009,
+   "error": 0.28040000000000087
+  },
+  {
+   "label": "<ZZ> polarity 1 - polarity 2",
+   "kind": "polarity-polarity",
+   "qubits": [
+    17,
+    18
+   ],
+   "requested": 0.717,
+   "achieved": 1.0000000000000009,
+   "error": 0.2830000000000009
+  }
+ ]
+}

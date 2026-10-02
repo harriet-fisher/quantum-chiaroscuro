@@ -1,0 +1,100 @@
+{
+ "synthetic": true,
+ "engines": {
+  "graph-v1": {
+   "n_requested": 66,
+   "n_achieved": 66,
+   "missing": [],
+   "rms": 0.06580563721563401,
+   "max_abs": 0.1444403952562735,
+   "n_gap_over_0p1": 9,
+   "by_kind": {
+    "lamp-patch": {
+     "n": 28,
+     "rms": 0.06329695191000832,
+     "max_abs": 0.12410085058123588
+    },
+    "patch-patch": {
+     "n": 17,
+     "rms": 0.09248493022093966,
+     "max_abs": 0.1444403952562735
+    },
+    "polarity-polarity": {
+     "n": 2,
+     "rms": 0.08320369940309626,
+     "max_abs": 0.08856883786758774
+    },
+    "single": {
+     "n": 19,
+     "rms": 0.027499778671342453,
+     "max_abs": 0.053142112471701454
+    }
+   }
+  },
+  "QDrive (circuit, local sim)": {
+   "n_requested": 66,
+   "n_achieved": 66,
+   "missing": [],
+   "rms": 0.5579668928412542,
+   "max_abs": 1.4076076942717757,
+   "n_gap_over_0p1": 47,
+   "by_kind": {
+    "lamp-patch": {
+     "n": 28,
+     "rms": 0.638358700675674,
+     "max_abs": 1.4076076942717757
+    },
+    "patch-patch": {
+     "n": 17,
+     "rms": 0.4420483776711205,
+     "max_abs": 0.718917015300694
+    },
+    "polarity-polarity": {
+     "n": 2,
+     "rms": 0.2817029996290428,
+     "max_abs": 0.2830000000000009
+    },
+    "single": {
+     "n": 19,
+     "rms": 0.5456481443700549,
+     "max_abs": 0.932418682810666
+    }
+   }
+  }
+ },
+ "coherence": {
+  "mock (classical)": {
+   "coplanar_agreement": 0.9485205128205128,
+   "crease_agreement": -0.0221,
+   "light_left_right": 0.9968320490258687,
+   "light_frontal_grazing": 0.3612623608841127,
+   "polarity_agreement": 0.7166166666666667
+  },
+  "graph-v1 (top-20 only)": {
+   "coplanar_agreement": 1.0,
+   "crease_agreement": 0.0,
+   "light_left_right": 1.0,
+   "light_frontal_grazing": 0.4167620393460242,
+   "polarity_agreement": 0.9449333333333334
+  },
+  "QDrive circuit (local sim)": {
+   "coplanar_agreement": 0.5893717948717948,
+   "crease_agreement": 0.5068,
+   "light_left_right": 0.4739528983690564,
+   "light_frontal_grazing": -0.006008783566653393,
+   "polarity_agreement": 1.0
+  },
+  "independent noise": {
+   "coplanar_agreement": 0.0009794871794871795,
+   "crease_agreement": -0.0015083333333333333,
+   "light_left_right": 0.0023622097968938227,
+   "light_frontal_grazing": -0.002004368416082493,
+   "polarity_agreement": -0.0002166666666666667
+  }
+ },
+ "notes": [],
+ "credits": {
+  "graph_v1": 5,
+  "qdrive": 1
+ }
+}

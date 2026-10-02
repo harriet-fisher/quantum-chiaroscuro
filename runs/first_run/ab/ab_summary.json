@@ -1,0 +1,65 @@
+{
+ "synthetic": false,
+ "engines": {
+  "graph-v1": {
+   "n_requested": 66,
+   "n_achieved": 66,
+   "missing": [],
+   "rms": 0.6324763303741777,
+   "max_abs": 0.995105,
+   "n_gap_over_0p1": 32,
+   "by_kind": {
+    "lamp-patch": {
+     "n": 28,
+     "rms": 0.6426714115419145,
+     "max_abs": 0.995105
+    },
+    "patch-patch": {
+     "n": 17,
+     "rms": 0.8317186897526512,
+     "max_abs": 0.9921099235042828
+    },
+    "polarity-polarity": {
+     "n": 2,
+     "rms": 0.28170299962904194,
+     "max_abs": 0.28300000000000003
+    },
+    "single": {
+     "n": 19,
+     "rms": 0.39192026236006045,
+     "max_abs": 0.9903
+    }
+   }
+  }
+ },
+ "coherence": {
+  "mock (classical)": {
+   "coplanar_agreement": 0.9485205128205128,
+   "crease_agreement": -0.0221,
+   "light_left_right": 0.9968320490258687,
+   "light_frontal_grazing": 0.3612623608841127,
+   "polarity_agreement": 0.7166166666666667
+  },
+  "graph-v1 (top-20 only)": {
+   "coplanar_agreement": -0.06284871794871795,
+   "crease_agreement": -0.12307499999999999,
+   "light_left_right": -0.07989484904162594,
+   "light_frontal_grazing": 0.07746218460537732,
+   "polarity_agreement": 1.0
+  },
+  "independent noise": {
+   "coplanar_agreement": 0.001017948717948718,
+   "crease_agreement": -0.0030916666666666666,
+   "light_left_right": -0.0011972361065940565,
+   "light_frontal_grazing": 0.004593222132554579,
+   "polarity_agreement": -0.002683333333333333
+  }
+ },
+ "notes": [
+  "QDrive result not found"
+ ],
+ "credits": {
+  "graph_v1": 5,
+  "qdrive": 0
+ }
+}

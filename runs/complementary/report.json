@@ -1,0 +1,615 @@
+{
+ "status": "UNTESTED: local stand-in state, no Moth circuit has been run through this",
+ "created": "2026-10-01T19:41:50+0100",
+ "n_qubits": 19,
+ "qubit_map": {
+  "patches": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "lamps": [
+   14,
+   15
+  ],
+  "polarity": [
+   16,
+   17,
+   18
+  ],
+  "n_qubits": 19
+ },
+ "couplings": [
+  "hub",
+  "lamp2"
+ ],
+ "phi": 3.141592653589793,
+ "partners": {
+  "hub": [
+   [
+    14
+   ],
+   [
+    15
+   ],
+   [
+    14
+   ]
+  ],
+  "lamp2": [
+   [
+    15
+   ],
+   [
+    15
+   ],
+   [
+    15
+   ]
+  ]
+ },
+ "seed": 2026,
+ "states": {
+  "Z-only baseline (oracle, polarity chain in Z)": {
+   "provenance": "classical sqrt(P) oracle built locally: NOT a Moth result",
+   "pairs_violating_chsh": 1,
+   "best_pairs": [
+    {
+     "a": 4,
+     "b": 9,
+     "kind": "patch-patch",
+     "S_max": 2.3476601162567197,
+     "violates": true
+    },
+    {
+     "a": 16,
+     "b": 17,
+     "kind": "polarity-polarity",
+     "S_max": 1.999999999999798,
+     "violates": false
+    },
+    {
+     "a": 17,
+     "b": 18,
+     "kind": "polarity-polarity",
+     "S_max": 1.999999999999798,
+     "violates": false
+    },
+    {
+     "a": 2,
+     "b": 14,
+     "kind": "patch-lamp",
+     "S_max": 1.9902659380751675,
+     "violates": false
+    },
+    {
+     "a": 6,
+     "b": 14,
+     "kind": "patch-lamp",
+     "S_max": 1.9902659380751675,
+     "violates": false
+    },
+    {
+     "a": 7,
+     "b": 14,
+     "kind": "patch-lamp",
+     "S_max": 1.9902659380751644,
+     "violates": false
+    }
+   ],
+   "polarity_bloch_length": [
+    0.6978,
+    0.4869,
+    0.6978
+   ],
+   "polarity_read_in_z": {
+    "coplanar_agreement": 0.949774358974359,
+    "crease_agreement": -0.021775,
+    "light_left_right": 0.9969413372545339,
+    "light_frontal_grazing": 0.35131858012870254,
+    "polarity_agreement": 0.7168833333333333,
+    "polarity_lamp_correlation": [
+     [
+      0.001,
+      -0.005
+     ],
+     [
+      -0.002,
+      -0.004
+     ],
+     [
+      -0.001,
+      0.002
+     ]
+    ]
+   },
+   "polarity_read_in_x": {
+    "coplanar_agreement": 0.949171794871795,
+    "crease_agreement": -0.021941666666666665,
+    "light_left_right": 0.9968992659175434,
+    "light_frontal_grazing": 0.3551267184977004,
+    "polarity_agreement": 0.7000333333333333,
+    "polarity_lamp_correlation": [
+     [
+      0.004,
+      -0.005
+     ],
+     [
+      0.004,
+      -0.005
+     ],
+     [
+      0.003,
+      0.002
+     ]
+    ]
+   }
+  },
+  "stand-in complementary (coupling=hub, phi=3.14)": {
+   "provenance": "UNTESTED: local stand-in state, no Moth circuit has been run through this",
+   "pairs_violating_chsh": 2,
+   "best_pairs": [
+    {
+     "a": 15,
+     "b": 17,
+     "kind": "lamp-polarity",
+     "S_max": 2.7346342722042287,
+     "violates": true
+    },
+    {
+     "a": 4,
+     "b": 9,
+     "kind": "patch-patch",
+     "S_max": 2.3476601162566024,
+     "violates": true
+    },
+    {
+     "a": 14,
+     "b": 16,
+     "kind": "lamp-polarity",
+     "S_max": 1.9999999999996843,
+     "violates": false
+    },
+    {
+     "a": 14,
+     "b": 18,
+     "kind": "lamp-polarity",
+     "S_max": 1.9999999999996843,
+     "violates": false
+    },
+    {
+     "a": 16,
+     "b": 18,
+     "kind": "polarity-polarity",
+     "S_max": 1.9999999999996843,
+     "violates": false
+    },
+    {
+     "a": 2,
+     "b": 14,
+     "kind": "patch-lamp",
+     "S_max": 1.9902659095169317,
+     "violates": false
+    }
+   ],
+   "polarity_bloch_length": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "polarity_read_in_z": {
+    "coplanar_agreement": 0.9481692307692307,
+    "crease_agreement": -0.022366666666666667,
+    "light_left_right": 0.9968803843617533,
+    "light_frontal_grazing": 0.36164368889862675,
+    "polarity_agreement": -0.0042833333333333334,
+    "polarity_lamp_correlation": [
+     [
+      0.004,
+      -0.003
+     ],
+     [
+      -0.007,
+      -0.0
+     ],
+     [
+      0.002,
+      0.003
+     ]
+    ]
+   },
+   "polarity_read_in_x": {
+    "coplanar_agreement": 0.9493564102564102,
+    "crease_agreement": -0.02200833333333333,
+    "light_left_right": 0.9969265292792235,
+    "light_frontal_grazing": 0.36055405190300877,
+    "polarity_agreement": -0.005566666666666667,
+    "polarity_lamp_correlation": [
+     [
+      1.0,
+      -0.006
+     ],
+     [
+      -0.006,
+      1.0
+     ],
+     [
+      1.0,
+      -0.006
+     ]
+    ]
+   },
+   "sampled_chsh": [
+    {
+     "polarity_qubit": 16,
+     "lamp_qubit": 14,
+     "S": 1.9916,
+     "se": 0.009999846998834532,
+     "sigmas_above_2": -0.8400128522945373,
+     "exact": 1.9999999999996843,
+     "shots_per_setting": 20000
+    },
+    {
+     "polarity_qubit": 17,
+     "lamp_qubit": 15,
+     "S": 2.7262,
+     "se": 0.010322692962594597,
+     "sigmas_above_2": 70.3498595406707,
+     "exact": 2.7346342722042287,
+     "shots_per_setting": 20000
+    },
+    {
+     "polarity_qubit": 18,
+     "lamp_qubit": 14,
+     "S": 2.0175,
+     "se": 0.009999402657164078,
+     "sigmas_above_2": 1.7501045412409897,
+     "exact": 1.9999999999996838,
+     "shots_per_setting": 20000
+    }
+   ],
+   "mermin": [
+    {
+     "lamp_qubit": 14,
+     "polarity_qubits": [
+      16,
+      18
+     ],
+     "parties": 3,
+     "exact": 0.0018357322874903085,
+     "local_bound": 2,
+     "quantum_max": 4,
+     "sampled": {
+      "value": -0.0023999999999999994,
+      "se": 0.014141555253931584,
+      "local_bound": 2,
+      "quantum_max": 4,
+      "sigmas_above_bound": -141.59687276569528
+     }
+    }
+   ]
+  },
+  "stand-in complementary (coupling=lamp2, phi=3.14)": {
+   "provenance": "UNTESTED: local stand-in state, no Moth circuit has been run through this",
+   "pairs_violating_chsh": 1,
+   "best_pairs": [
+    {
+     "a": 4,
+     "b": 9,
+     "kind": "patch-patch",
+     "S_max": 2.3476601162566024,
+     "violates": true
+    },
+    {
+     "a": 16,
+     "b": 17,
+     "kind": "polarity-polarity",
+     "S_max": 1.9999999999996843,
+     "violates": false
+    },
+    {
+     "a": 16,
+     "b": 18,
+     "kind": "polarity-polarity",
+     "S_max": 1.9999999999996843,
+     "violates": false
+    },
+    {
+     "a": 17,
+     "b": 18,
+     "kind": "polarity-polarity",
+     "S_max": 1.9999999999996843,
+     "violates": false
+    },
+    {
+     "a": 15,
+     "b": 16,
+     "kind": "lamp-polarity",
+     "S_max": 1.9999999999996838,
+     "violates": false
+    },
+    {
+     "a": 15,
+     "b": 17,
+     "kind": "lamp-polarity",
+     "S_max": 1.9999999999996838,
+     "violates": false
+    }
+   ],
+   "polarity_bloch_length": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "polarity_read_in_z": {
+    "coplanar_agreement": 0.949025641025641,
+    "crease_agreement": -0.020658333333333334,
+    "light_left_right": 0.9969572485399777,
+    "light_frontal_grazing": 0.3592044354184451,
+    "polarity_agreement": -0.0003166666666666667,
+    "polarity_lamp_correlation": [
+     [
+      -0.004,
+      -0.005
+     ],
+     [
+      0.001,
+      -0.0
+     ],
+     [
+      0.0,
+      -0.004
+     ]
+    ]
+   },
+   "polarity_read_in_x": {
+    "coplanar_agreement": 0.9484641025641025,
+    "crease_agreement": -0.022350000000000002,
+    "light_left_right": 0.9969312135551193,
+    "light_frontal_grazing": 0.3553162701321845,
+    "polarity_agreement": 1.0,
+    "polarity_lamp_correlation": [
+     [
+      -0.001,
+      1.0
+     ],
+     [
+      -0.001,
+      1.0
+     ],
+     [
+      -0.001,
+      1.0
+     ]
+    ]
+   },
+   "sampled_chsh": [
+    {
+     "polarity_qubit": 16,
+     "lamp_qubit": 15,
+     "S": 1.9976,
+     "se": 0.009999927999745799,
+     "sigmas_above_2": -0.2400017280185384,
+     "exact": 1.9999999999996838,
+     "shots_per_setting": 20000
+    },
+    {
+     "polarity_qubit": 17,
+     "lamp_qubit": 15,
+     "S": 1.9994000000000003,
+     "se": 0.009999997750004746,
+     "sigmas_above_2": -0.06000001349994575,
+     "exact": 1.9999999999996838,
+     "shots_per_setting": 20000
+    },
+    {
+     "polarity_qubit": 18,
+     "lamp_qubit": 15,
+     "S": 1.9852999999999998,
+     "se": 0.009999292749994872,
+     "sigmas_above_2": -1.4701039731042675,
+     "exact": 1.9999999999996838,
+     "shots_per_setting": 20000
+    }
+   ],
+   "mermin": [
+    {
+     "lamp_qubit": 15,
+     "polarity_qubits": [
+      16,
+      17,
+      18
+     ],
+     "parties": 4,
+     "exact": 7.459999573957676,
+     "local_bound": 4,
+     "quantum_max": 8,
+     "sampled": {
+      "value": 7.460399999999999,
+      "se": 0.0072207625636078075,
+      "local_bound": 4,
+      "quantum_max": 8,
+      "sigmas_above_bound": 479.2291630582342
+     }
+    }
+   ]
+  }
+ },
+ "tradeoff": [
+  {
+   "scale": 0.0,
+   "pairs": [
+    {
+     "panel": 0,
+     "polarity_qubit": 16,
+     "lamp_qubit": 14,
+     "S_max": 2.0000000000003726
+    },
+    {
+     "panel": 1,
+     "polarity_qubit": 17,
+     "lamp_qubit": 14,
+     "S_max": 2.0000000000003726
+    },
+    {
+     "panel": 2,
+     "polarity_qubit": 18,
+     "lamp_qubit": 14,
+     "S_max": 2.0000000000003726
+    }
+   ],
+   "lighting_coherence": 0.0,
+   "mermin_lamp2": 7.99999999999916,
+   "mermin_lamp2_max": 8
+  },
+  {
+   "scale": 0.25,
+   "pairs": [
+    {
+     "panel": 0,
+     "polarity_qubit": 16,
+     "lamp_qubit": 14,
+     "S_max": 2.0000000000000497
+    },
+    {
+     "panel": 1,
+     "polarity_qubit": 17,
+     "lamp_qubit": 15,
+     "S_max": 2.8144245552766085
+    },
+    {
+     "panel": 2,
+     "polarity_qubit": 18,
+     "lamp_qubit": 14,
+     "S_max": 2.0000000000000497
+    }
+   ],
+   "lighting_coherence": 0.7620032375519111,
+   "mermin_lamp2": 7.9205914701813995,
+   "mermin_lamp2_max": 8
+  },
+  {
+   "scale": 0.5,
+   "pairs": [
+    {
+     "panel": 0,
+     "polarity_qubit": 16,
+     "lamp_qubit": 14,
+     "S_max": 1.9999999999999567
+    },
+    {
+     "panel": 1,
+     "polarity_qubit": 17,
+     "lamp_qubit": 15,
+     "S_max": 2.79760273614524
+    },
+    {
+     "panel": 2,
+     "polarity_qubit": 18,
+     "lamp_qubit": 14,
+     "S_max": 1.9999999999999565
+    }
+   ],
+   "lighting_coherence": 0.9600405133822072,
+   "mermin_lamp2": 7.824659552249003,
+   "mermin_lamp2_max": 8
+  },
+  {
+   "scale": 1.0,
+   "pairs": [
+    {
+     "panel": 0,
+     "polarity_qubit": 16,
+     "lamp_qubit": 14,
+     "S_max": 1.9999999999996843
+    },
+    {
+     "panel": 1,
+     "polarity_qubit": 17,
+     "lamp_qubit": 15,
+     "S_max": 2.7346342722042287
+    },
+    {
+     "panel": 2,
+     "polarity_qubit": 18,
+     "lamp_qubit": 14,
+     "S_max": 1.9999999999996838
+    }
+   ],
+   "lighting_coherence": 0.9970652695672378,
+   "mermin_lamp2": 7.459999573957676,
+   "mermin_lamp2_max": 8
+  },
+  {
+   "scale": 1.5,
+   "pairs": [
+    {
+     "panel": 0,
+     "polarity_qubit": 16,
+     "lamp_qubit": 14,
+     "S_max": 1.9999999999999962
+    },
+    {
+     "panel": 1,
+     "polarity_qubit": 17,
+     "lamp_qubit": 15,
+     "S_max": 2.637885826483158
+    },
+    {
+     "panel": 2,
+     "polarity_qubit": 18,
+     "lamp_qubit": 14,
+     "S_max": 1.999999999999996
+    }
+   ],
+   "lighting_coherence": 0.999126175318944,
+   "mermin_lamp2": 6.880048410945319,
+   "mermin_lamp2_max": 8
+  },
+  {
+   "scale": 2.0,
+   "pairs": [
+    {
+     "panel": 0,
+     "polarity_qubit": 16,
+     "lamp_qubit": 14,
+     "S_max": 1.9999999999996008
+    },
+    {
+     "panel": 1,
+     "polarity_qubit": 17,
+     "lamp_qubit": 15,
+     "S_max": 2.5269121967835857
+    },
+    {
+     "panel": 2,
+     "polarity_qubit": 18,
+     "lamp_qubit": 14,
+     "S_max": 1.9999999999996005
+    }
+   ],
+   "lighting_coherence": 0.9996480569435519,
+   "mermin_lamp2": 6.177747486267749,
+   "mermin_lamp2_max": 8
+  }
+ ],
+ "payload": {
+  "file": "runs/complementary/payload_qdrive_complementary.json",
+  "coupling": "hub",
+  "sha256": "26ffc62884290e0c8107a4ae9d8cf214034678af2c03cedb8b9042812a520197",
+  "credits_if_sent": 1,
+  "local_problems": [],
+  "sent": false
+ }
+}

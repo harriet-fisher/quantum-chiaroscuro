@@ -1,0 +1,11 @@
+{
+  "params": {
+    "reflectance": 0.2,
+    "absorption": 0.95,
+    "layers": 2,
+    "incoming_rays": 8,
+    "interaction": 1.0,
+    "resolution": 60,
+    "style": "peaked"
+  }
+}

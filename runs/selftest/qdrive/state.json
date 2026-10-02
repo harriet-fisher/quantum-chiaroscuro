@@ -1,0 +1,66 @@
+{
+ "engine": "qdrive-api-v1",
+ "credits": 1,
+ "job_id": null,
+ "circuit": "circuit.qasm",
+ "n_qubits": 19,
+ "qubit_map": {
+  "patches": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "lamps": [
+   14,
+   15
+  ],
+  "polarity": [
+   16,
+   17,
+   18
+  ],
+  "n_qubits": 19
+ },
+ "summary": {
+  "n_requested": 66,
+  "n_achieved": 66,
+  "missing": [],
+  "rms": 0.5579668928412542,
+  "max_abs": 1.4076076942717757,
+  "n_gap_over_0p1": 47,
+  "by_kind": {
+   "lamp-patch": {
+    "n": 28,
+    "rms": 0.638358700675674,
+    "max_abs": 1.4076076942717757
+   },
+   "patch-patch": {
+    "n": 17,
+    "rms": 0.4420483776711205,
+    "max_abs": 0.718917015300694
+   },
+   "polarity-polarity": {
+    "n": 2,
+    "rms": 0.2817029996290428,
+    "max_abs": 0.2830000000000009
+   },
+   "single": {
+    "n": 19,
+    "rms": 0.5456481443700549,
+    "max_abs": 0.932418682810666
+   }
+  }
+ },
+ "evaluation": "exact Z moments of the returned circuit, simulated locally with Aer (qiskit-qasm3-import)"
+}

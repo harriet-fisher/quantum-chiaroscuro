@@ -1,0 +1,164 @@
+{
+ "created": "2026-10-01T17:48:59+0100",
+ "n": 6,
+ "K": 8,
+ "pool": 100000,
+ "seed": 2026,
+ "grid": [
+  5,
+  4
+ ],
+ "n_qubits": 19,
+ "qubit_map": {
+  "patches": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "lamps": [
+   14,
+   15
+  ],
+  "polarity": [
+   16,
+   17,
+   18
+  ],
+  "n_qubits": 19
+ },
+ "held_lamp": null,
+ "provenance": {
+  "source": "circuit",
+  "polarity_basis": "x",
+  "circuit": "runs/selftest/qdrive/circuit.qasm",
+  "circuit_sha256": "241e30526fb7cc9f3ad64cef73128ffa1551622ac4a4da8ca56f9bfd1a058961",
+  "simulated": "locally with Aer statevector",
+  "quantum_backed": true
+ },
+ "lighting_worlds": {
+  "(-1, -1)": 2,
+  "(1, 1)": 2,
+  "(-1, 1)": 2
+ },
+ "frames": [
+  {
+   "frame": 0,
+   "lamp": [
+    -1,
+    -1
+   ],
+   "polarity": [
+    -1,
+    -1,
+    1
+   ],
+   "K": 8,
+   "shot_ids": [
+    65279,
+    884,
+    16323
+   ]
+  },
+  {
+   "frame": 1,
+   "lamp": [
+    1,
+    1
+   ],
+   "polarity": [
+    1,
+    -1,
+    -1
+   ],
+   "K": 8,
+   "shot_ids": [
+    60707,
+    56479,
+    36607
+   ]
+  },
+  {
+   "frame": 2,
+   "lamp": [
+    -1,
+    -1
+   ],
+   "polarity": [
+    -1,
+    1,
+    -1
+   ],
+   "K": 8,
+   "shot_ids": [
+    89076,
+    42736,
+    39985
+   ]
+  },
+  {
+   "frame": 3,
+   "lamp": [
+    -1,
+    1
+   ],
+   "polarity": [
+    -1,
+    -1,
+    1
+   ],
+   "K": 8,
+   "shot_ids": [
+    29201,
+    78767,
+    47238
+   ]
+  },
+  {
+   "frame": 4,
+   "lamp": [
+    -1,
+    1
+   ],
+   "polarity": [
+    1,
+    1,
+    1
+   ],
+   "K": 8,
+   "shot_ids": [
+    14457,
+    78080,
+    44943
+   ]
+  },
+  {
+   "frame": 5,
+   "lamp": [
+    1,
+    1
+   ],
+   "polarity": [
+    1,
+    1,
+    1
+   ],
+   "K": 8,
+   "shot_ids": [
+    42246,
+    58921,
+    84449
+   ]
+  }
+ ]
+}

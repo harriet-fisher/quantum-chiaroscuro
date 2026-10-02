@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standing Light operator</title>
+<link rel="stylesheet" href="/web/common.css">
+<style>
+  body { display:flex; height:100vh; overflow:hidden; }
+  #main { flex:1; min-width:0; display:flex; flex-direction:column; padding:10px 12px; gap:8px; overflow:auto; }
+  #side { width:380px; flex:none; background:var(--panel); border-left:1px solid var(--line); overflow:auto; display:flex; flex-direction:column; }
+  header { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  header h1 { font-size:15px; margin:0 8px 0 0; }
+  .chip { border:1px solid var(--line); border-radius:999px; padding:2px 10px; font-size:12px; color:var(--dim); white-space:nowrap; }
+  .chip.good { color:var(--ok); border-color:#2f6b4a; } .chip.warn { color:var(--accent); border-color:#7a6a10; } .chip.bad { color:var(--bad); border-color:#8a3a33; }
+  #stage { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+  #previewWrap { position:relative; max-width:100%; line-height:0; }
+  #preview, #overlay { max-width:100%; max-height:calc(100vh - var(--reserve, 200px)); border-radius:4px; background:#000; border:1px solid var(--line); display:block; }
+  #overlay { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; border:none; }
+  #handles { position:absolute; left:0; top:0; }
+  #handles circle { fill:rgba(255,214,10,.25); stroke:var(--accent); stroke-width:2; cursor:grab; }
+  #handles circle.sel { fill:rgba(255,214,10,.55); }
+  #handles text { fill:var(--accent); font:bold 15px system-ui; pointer-events:none; }
+  #look { font-size:17px; font-weight:600; min-height:24px; }
+  #look .sub { font-weight:400; color:var(--dim); font-size:13px; }
+  #demoBar { border:1px solid var(--accent); border-radius:8px; padding:8px 12px; }
+  #demoBar .title { font-weight:600; color:var(--accent); }
+  #steps { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 0; }
+  #steps span { font-size:11px; padding:1px 8px; border-radius:999px; border:1px solid var(--line); color:var(--dim); }
+  #steps span.cur { color:#111; background:var(--accent); border-color:var(--accent); }
+  .tabs { display:flex; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--panel); z-index:2; }
+  .tabs button { flex:1; border:none; border-radius:0; background:none; padding:10px 4px; border-bottom:2px solid transparent; color:var(--dim); }
+  .tabs button.on { color:var(--accent); border-bottom-color:var(--accent); }
+  .pane { padding:12px 14px 30px; }
+  h2 { font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--dim); margin:16px 0 6px; }
+  h2:first-child { margin-top:0; }
+  .row { display:flex; align-items:center; gap:6px; margin:5px 0; flex-wrap:wrap; }
+  .seg { display:inline-flex; } .seg button { border-radius:0; margin-left:-1px; padding:5px 9px; } .seg button:first-child { border-radius:5px 0 0 5px; margin-left:0; } .seg button:last-child { border-radius:0 5px 5px 0; }
+  .grow { flex:1; }
+  .box { border:1px solid var(--line); border-radius:6px; padding:8px; margin:6px 0; }
+  #log div { font-size:12px; color:var(--dim); margin:2px 0; } #log b { color:var(--text); font-weight:500; }
+  #modal { position:fixed; inset:0; background:rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; z-index:10; }
+  #modal .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px 22px; max-width:640px; max-height:86vh; overflow:auto; }
+  #modal h3 { margin:0 0 10px; } #modal table { border-collapse:collapse; } #modal td { padding:2px 10px 2px 0; font-size:13px; vertical-align:top; } #modal td:first-child { white-space:nowrap; }
+  code { background:#2a2d34; padding:1px 5px; border-radius:3px; font-size:12px; }
+  pre { background:#111214; border:1px solid var(--line); border-radius:6px; padding:8px; overflow:auto; font-size:12px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<div id="main">
+  <header>
+    <h1>Standing Light</h1>
+    <span class="chip" id="cOut">output: not connected</span>
+    <span class="chip" id="cSrc">source</span>
+    <span class="chip" id="cGlass">glass: -</span>
+    <span class="chip" id="cAuto">auto: off</span>
+    <span class="grow"></span>
+    <button id="openOut" title="open the projector window in a new browser window">Open projector window</button>
+    <button id="openAud" title="open the audience screen">Open audience screen</button>
+    <button id="helpBtn">Keys <kbd>?</kbd></button>
+  </header>
+  <div id="stage">
+    <div id="previewWrap">
+      <img id="preview" alt="what the projector shows">
+      <img id="overlay" hidden alt="patch graph overlay">
+      <svg id="handles" hidden></svg>
+    </div>
+  </div>
+  <div id="look"></div>
+  <div id="demoBar" hidden>
+    <div class="title" id="demoTitle"></div><div class="dim" id="demoNotes"></div>
+    <div id="steps"></div>
+    <div class="row"><button id="demoPrev">&larr; Back</button><button class="primary" id="demoNext">Next beat &rarr;</button><button id="demoOff">Leave demo <kbd>D</kbd></button></div>
+  </div>
+</div>
+
+<aside id="side">
+  <div class="tabs"><button data-tab="perform" class="on">Perform</button><button data-tab="calib">Calibrate</button><button data-tab="photo">Photo test</button><button data-tab="log">Log</button></div>
+
+  <div class="pane" id="t-perform">
+    <h2>Look</h2>
+    <div class="row"><button id="prev">&larr; Prev</button><button class="primary grow" id="next">Next look <kbd>Space</kbd></button><button id="auto">Auto <kbd>A</kbd></button></div>
+    <div class="row"><span class="dim">cycle every</span><input type="range" id="cycle" min="1" max="30" step="0.5" class="grow"><span id="cycleV" class="dim"></span></div>
+
+    <div data-family="classical">
+    <h2>Lighting world (lamp qubits)</h2>
+    <div class="row"><span style="width:92px">L1 light from</span><span class="seg" id="segL1"><button data-v="auto">auto</button><button data-v="-1">left</button><button data-v="1">right</button></span></div>
+    <div class="row"><span style="width:92px">L2 light is</span><span class="seg" id="segL2"><button data-v="auto">auto</button><button data-v="-1">grazing</button><button data-v="1">frontal</button></span></div>
+
+    <h2>Relief polarity (one qubit per panel)</h2>
+    <div id="polRows"></div>
+    <div class="row"><button data-polall="-1">all sunk <kbd>5</kbd></button><button data-polall="1">all raised <kbd>6</kbd></button><button data-polall="auto">auto <kbd>7</kbd></button></div>
+    <div class="row"><span class="dim">read polarity in</span><span class="seg" id="segBasis"><button data-v="z">Z</button><button data-v="x">X</button></span><span class="dim" id="basisNote"></span></div>
+    </div>
+
+    <div data-family="relief">
+    <h2>Observation (drawn inside the circuit, not chosen)</h2>
+    <div class="dim">The light, each panel's depth and the observation axis all come out of one run of the circuit. Each dot shows where the observation landed on that panel's depth sphere: top = decided raised, bottom = decided sunk, middle = undecided (flat).</div>
+    <div id="spheres" class="row"></div>
+    <div class="dim" id="reliefBudget"></div>
+    <h2>Science: controls and experiments (not looks)</h2>
+    <div class="row"><button id="ctlA" title="control A">A: independent noise <kbd>N</kbd></button><button id="ctlB" title="control B">B: dephased depth <kbd>M</kbd></button><button id="ctlI">Light read in X <kbd>I</kbd></button></div>
+    <div class="row"><button id="witness" class="primary">Witness run <kbd>W</kbd></button><span class="dim">measures a separate setting on this state</span></div>
+    <pre id="cert" hidden></pre>
+    <div class="row"><span style="width:70px" class="dim">contrast</span><input type="range" id="contrast" min="0.5" max="3" step="0.05" class="grow"><span id="contrastV" class="dim" style="width:34px"></span></div>
+    </div>
+
+    <h2>Hardness (shots averaged)</h2>
+    <div class="row"><input type="range" id="kRange" min="0" max="7" step="1" class="grow"><b id="kV"></b></div>
+    <div class="row"><label><input type="checkbox" id="sweep"> sweep 1 &rarr; 128 each look</label></div>
+    <h2>Blend and brightness</h2>
+    <div class="row"><span style="width:70px" class="dim">blend</span><input type="range" id="blend" min="0.5" max="20" step="0.5" class="grow"><span id="blendV" class="dim" style="width:34px"></span></div>
+    <div class="row"><span style="width:70px" class="dim">brightness</span><input type="range" id="gain" min="0.05" max="1" step="0.05" class="grow"><span id="gainV" class="dim" style="width:34px"></span></div>
+    <div class="row"><span style="width:70px" class="dim">fade</span><input type="range" id="fade" min="0" max="3000" step="100" class="grow"><span id="fadeV" class="dim" style="width:34px"></span></div>
+
+    <h2>Source</h2>
+    <div class="row"><select id="source" class="grow"><option value="relief">Superposed Relief (local reference circuit or a Moth facet circuit)</option><option value="oracle">classical stand-in (oracle)</option><option value="mock">classical Gibbs mock</option><option value="complementary">complementary-polarity stand-in (untested)</option><option value="circuit">circuit file (classical-family frames)</option></select></div>
+    <div class="dim" id="srcNote"></div>
+
+    <h2>Projector</h2>
+    <div class="row"><button id="blackout">Blackout <kbd>B</kbd></button><button id="noise">Independent noise <kbd>N</kbd></button><button id="overlayBtn">Overlay <kbd>O</kbd></button></div>
+    <div class="row"><button id="demoBtn">Demo <kbd>D</kbd></button><button id="resolveBtn">Re-solve&hellip; <kbd>V</kbd></button></div>
+    <div class="row"><span class="dim">overlay gap rings compare against</span><select id="gaps"><option value="source">this source</option></select></div>
+    <div class="dim" id="coh"></div>
+  </div>
+
+  <div class="pane" id="t-calib" hidden>
+    <h2>Calibration</h2>
+    <div class="box" id="calInfo"></div>
+    <div class="dim">Labels drawn on the projector's own screen need no alignment (the shapes already sit where the light lands). After the projector has been bumped, or for a new position, re-align:</div>
+    <div class="row"><button class="primary" id="alignStart">Start corner alignment</button><button id="alignApply" disabled>Apply &amp; save</button><button id="alignCancel" disabled>Cancel</button></div>
+    <div class="dim" id="alignHelp">Four numbered markers are projected at the corners of the drawn shapes. Drag each marker (in the preview, or select it with <kbd>1</kbd>-<kbd>4</kbd> and nudge with the arrow keys, <kbd>Shift</kbd> for 10 px) until it sits on the same physical corner it was drawn on. The outline stretches with them. Apply saves <code>calibration.json</code>.</div>
+    <div class="row"><button id="alignReset">Reset to scale-only</button></div>
+    <h2>Safety margin</h2>
+    <div class="row"><input type="number" id="margin" min="0" max="20"> <span class="dim">projector pixels shaved off every lit region, so a small misalignment cannot light the glass. Every frame is also checked to be exactly 0 in the glass before it is sent.</span></div>
+    <h2>Patterns</h2>
+    <div id="patBtns" class="row"></div>
+    <div class="dim" id="patDoc"></div>
+  </div>
+
+  <div class="pane" id="t-photo" hidden>
+    <h2>Photographed glass-stays-black check</h2>
+    <div class="dim">The software proves the glass pixels it <i>sends</i> are 0. Only a photograph shows whether the real glass stays dark. From a tripod, with the room dimmed and exposure and focus locked, photograph each of these and save into one folder:</div>
+    <div class="box">
+      <div class="row"><button data-pat="black">1. Show black</button><span class="dim">&rarr; <code>black.jpg</code></span></div>
+      <div class="row"><button data-pat="white">2. Show white-in-frame</button><span class="dim">&rarr; <code>white.jpg</code></span></div>
+      <div class="row"><button data-pat="dots">3. Show dots</button><span class="dim">&rarr; <code>dots.jpg</code> (optional)</span></div>
+      <div class="row"><button data-pat="">Back to the show</button><button id="snap">Snapshot current frame <kbd>S</kbd></button></div>
+    </div>
+    <div class="dim">Then trace the real glass and panels on <code>black.jpg</code> with the pen tool (that trace is where the glass physically is, independent of the projector), and run:</div>
+    <pre id="verifyCmd"></pre>
+    <div class="dim">Without the trace the verdict is NOT CHECKED: a check that cannot see misalignment does not get to call the glass safe.</div>
+  </div>
+
+  <div class="pane" id="t-log" hidden>
+    <h2>Events</h2><div id="log"></div>
+    <h2>Scene</h2><div class="dim" id="sceneInfo"></div>
+  </div>
+</aside>
+
+<div id="modal" hidden><div class="card" id="modalCard"></div></div>
+
+<script>
+const TOKEN = '__TOKEN__', INIT = __INIT__;
+const $ = id => document.getElementById(id);
+let S = null, localPat = null;
+
+async function post(name, args) {
+  try {
+    const r = await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Token': TOKEN }, body: JSON.stringify({ name, args: args || {} }) });
+    const j = await r.json();
+    if (!j.ok) toast(j.error || 'failed');
+    return j;
+  } catch (e) { toast('server not reachable'); }
+}
+let toastT = 0;
+function toast(msg) { const l = $('look'); l.dataset.msg = msg; l.querySelector('.sub') && (l.querySelector('.sub').textContent = msg); clearTimeout(toastT); toastT = setTimeout(() => { delete l.dataset.msg; S && renderLook(S); }, 4000); }
+
+// ---------------------------------------------------------------- rendering
+function renderLook(s) {
+  const l = s.look;
+  if (!l) { $('look').textContent = 'no look yet'; return; }
+  const relief = s.family === 'relief';
+  const world = relief && l.lamp_mode !== 'z' ? 'Light in superposition' : `Light from the ${l.lamp[0] > 0 ? 'right' : 'left'}, ${l.lamp[1] > 0 ? 'frontal' : 'grazing'}`;
+  const pol = relief ? s.scene.panels.map((n, i) => `${n} ${l.words[i]}`).join(' · ') : s.scene.panels.map((n, i) => `${n} ${l.pol[i] > 0 ? 'raised' : 'sunk'}`).join(' · ');
+  const ctl = relief && l.control !== 'coherent' ? ` · CONTROL ${l.control === 'noise' ? 'A: INDEPENDENT NOISE' : 'B: DEPHASED DEPTH'}` : (l.noise ? ' · INDEPENDENT NOISE' : '');
+  const obs = relief ? ` · observation ${l.gamma_deg.toFixed(0)}°` : '';
+  const msg = $('look').dataset.msg;
+  $('look').innerHTML = `${world} <span class="sub">· ${pol}${obs} · K=${l.K}${ctl} · look ${l.position}/${l.history}</span>` + (s.error ? `<div class="bad" style="font-size:13px;font-weight:400">${s.error}</div>` : '') + (msg ? `<div class="warn" style="font-size:13px;font-weight:400">${msg}</div>` : '');
+}
+function chip(el, text, cls) { el.textContent = text; el.className = 'chip ' + (cls || ''); }
+function setSeg(id, val) { document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === String(val))); }
+
+function render(s) {
+  S = s;
+  const o = s.output;
+  chip($('cOut'), o.connected ? `output ${o.w}x${o.h}${o.fullscreen ? ' fullscreen' : ' (windowed)'}` : 'output: not connected', o.connected ? (o.fullscreen ? 'good' : 'warn') : 'bad');
+  const p = s.provenance;
+  chip($('cSrc'), s.family === 'relief' ? (p.from_moth ? 'Moth QDrive circuit' : 'local reference circuit' + (p.untested ? ' · UNTESTED' : '')) + (s.knobs.noise ? ' · CONTROL A' : s.knobs.dephased ? ' · CONTROL B' : '')
+    : (p.quantum_backed ? `quantum state, simulated locally${p.from_moth ? ' (Moth circuit)' : ''}${p.untested ? ' · UNTESTED' : ''}` : 'classical rehearsal (no quantum)'), p.quantum_backed && !s.knobs.noise && !s.knobs.dephased ? 'good' : 'warn');
+  chip($('cGlass'), `glass exactly 0 in ${s.glass.frames_checked} frames` + (s.glass.violations ? ` · ${s.glass.violations} REFUSED` : ''), s.glass.violations ? 'bad' : 'good');
+  chip($('cAuto'), s.knobs.auto ? `auto every ${s.knobs.cycle_s}s` : 'auto: off', s.knobs.auto ? 'good' : '');
+  renderLook(s);
+  document.querySelectorAll('[data-family]').forEach(el => el.hidden = el.dataset.family !== s.family);
+  const k = s.knobs;
+  $('auto').classList.toggle('on', k.auto);
+  $('cycle').value = k.cycle_s; $('cycleV').textContent = k.cycle_s + ' s';
+  if (s.family === 'relief') renderScience(s);
+  const pr = $('polRows');
+  if (s.family !== 'relief') setSeg('segL1', k.lamp_hold[0] === null ? 'auto' : k.lamp_hold[0]);
+  if (s.family !== 'relief') setSeg('segL2', k.lamp_hold[1] === null ? 'auto' : k.lamp_hold[1]);
+  if (s.family !== 'relief' && pr.dataset.n !== String(s.scene.panels.length)) {
+    pr.dataset.n = s.scene.panels.length;
+    pr.innerHTML = s.scene.panels.map((n, i) => `<div class="row"><span style="width:92px">${n}</span><span class="seg" data-pol="${i}"><button data-v="auto">auto</button><button data-v="-1">sunk</button><button data-v="1">raised</button></span></div>`).join('');
+    pr.querySelectorAll('.seg').forEach(seg => seg.querySelectorAll('button').forEach(b => b.onclick = () => post('hold_pol', { index: +seg.dataset.pol, value: b.dataset.v === 'auto' ? null : +b.dataset.v })));
+  }
+  if (s.family !== 'relief') {
+    pr.querySelectorAll('.seg').forEach(seg => { const v = k.pol_hold[+seg.dataset.pol]; seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === String(v === null ? 'auto' : v))); });
+    setSeg('segBasis', s.pol_basis);
+    $('basisNote').textContent = s.pol_basis === 'x' ? 'complementary to lit/dark' : '';
+  }
+  const ki = Math.max(0, s.ladder.findIndex(v => v >= k.K)); $('kRange').value = ki; $('kV').textContent = `K = ${k.K}`;
+  $('sweep').checked = k.hardness_sweep;
+  $('blend').value = k.blend; $('blendV').textContent = k.blend; $('gain').value = k.gain; $('gainV').textContent = k.gain; $('fade').value = k.fade_ms; $('fadeV').textContent = k.fade_ms;
+  $('source').value = s.source;
+  $('srcNote').textContent = p.label + (p.untested ? ' (untested against any Moth circuit)' : '') + '.';
+  $('blackout').classList.toggle('on', k.blackout); $('noise').classList.toggle('on', k.noise); $('ctlA').classList.toggle('on', k.noise); $('ctlB').classList.toggle('on', !!k.dephased); $('ctlI').classList.toggle('on', !!k.light_interference); $('overlayBtn').classList.toggle('on', s.ui.overlay); $('demoBtn').classList.toggle('on', !!s.demo);
+  // overlay
+  $('overlay').hidden = !s.ui.overlay;
+  const gs = $('gaps'); if (gs.options.length !== 1 + s.engine_results.length) { const cur = gs.value; gs.innerHTML = '<option value="source">this source</option>' + s.engine_results.map(e => `<option value="${e}">${e === 'graph_v1' ? 'graph-v1 result' : 'QDrive result'}</option>`).join(''); gs.value = cur || 'source'; }
+  if (s.ui.overlay) $('overlay').src = '/api/overlay.png?gaps=' + gs.value + '&t=' + s.seq;
+  // calibration tab
+  const c = s.calibration;
+  $('calInfo').innerHTML = `<b>${c.method}</b> mapping, ${c.projector[0]}x${c.projector[1]}${c.method !== 'scale' ? `, fit error ${c.rms_px.toFixed(2)} px` : ''}<br><span class="dim">${c.saved ? 'saved: ' + c.path : 'not saved (scale-only needs no file)'}${c.notes.length ? '<br>' + c.notes.join('<br>') : ''}</span>`;
+  $('margin').value = c.margin_px;
+  const aligning = !!s.align; $('alignApply').disabled = !aligning; $('alignCancel').disabled = !aligning; $('alignStart').disabled = aligning;
+  drawHandles(s);
+  $('patDoc').textContent = s.pattern ? 'showing: ' + s.pattern : 'showing the scene';
+  document.querySelectorAll('#patBtns button').forEach(b => b.classList.toggle('on', b.dataset.pat === s.pattern));
+  // demo
+  const d = s.demo; $('demoBar').hidden = !d; document.body.style.setProperty('--reserve', d ? '390px' : '200px');
+  if (d) {
+    $('demoTitle').textContent = `${d.step}  (beat ${d.beat}/${d.beats}, ${d.index + 1}/${d.total})`; $('demoNotes').textContent = d.notes;
+    $('steps').innerHTML = d.steps.map((t, i) => `<span class="${i === d.step_index ? 'cur' : ''}">${t}</span>`).join('');
+  }
+  $('log').innerHTML = s.messages.slice().reverse().map(m => `<div><b>${m.t}</b> ${m.msg}</div>`).join('');
+  $('sceneInfo').textContent = `${s.scene.panels.join(', ')} · ${s.scene.budget}`;
+  $('verifyCmd').textContent = `python -m src.projector.verify --photos PHOTOS_DIR --truth TRUTH_labels.json \\\n    --labels LABELS.json --calib ${c.path}`;
+  renderModal(s);
+}
+
+// ---------------------------------------------------------------- science panel (relief family)
+function sphereSvg(name, d) {
+  const R = 34, c = 40, x = c + (d ? d.x * R : 0), y = c - (d ? d.z * R : 0);
+  return `<div style="text-align:center"><svg width="80" height="86" viewBox="0 0 80 86"><circle cx="${c}" cy="${c}" r="${R}" fill="#15161a" stroke="#777"/><line x1="${c - R}" y1="${c}" x2="${c + R}" y2="${c}" stroke="#444"/>
+    <text x="${c}" y="9" fill="#ffd8a0" font-size="8" text-anchor="middle">raised</text><text x="${c}" y="83" fill="#8fb8ff" font-size="8" text-anchor="middle">sunk</text>
+    ${d ? `<circle cx="${x}" cy="${y}" r="5" fill="${d.outcome ? '#ff6b5e' : '#ffd60a'}"/>` : ''}</svg><div class="dim" style="font-size:11px">${name}${d ? `<br>γ ${d.gamma_deg}°` : ''}</div></div>`;
+}
+function renderScience(s) {
+  const sc = s.science; if (!sc) return;
+  $('spheres').innerHTML = s.scene.panels.map((n, i) => sphereSvg(n, sc.spheres && sc.spheres[i])).join('');
+  $('reliefBudget').textContent = `tilt budget κ=${sc.kappa}: per-panel visibility ${sc.panels.map(p => p.visibility.toFixed(2)).join(', ')} (Σtau² ${sc.panels.map(p => p.sum_tau2.toFixed(2)).join(', ')}) · ${sc.couplings} facet couplings (strength ${sc.entangle})`;
+  const cert = $('cert');
+  if (sc.certificate) { cert.hidden = false; cert.textContent = sc.certificate.lines.join('\n'); } else cert.hidden = true;
+  $('contrast').value = s.knobs.contrast; $('contrastV').textContent = s.knobs.contrast;
+}
+
+// ---------------------------------------------------------------- preview and handles
+function drawHandles(s) {
+  const svg = $('handles'), img = $('preview');
+  svg.toggleAttribute('hidden', !s.align);          // SVG elements have no .hidden property
+  if (!s.align) { svg.innerHTML = ''; return; }
+  const W = img.clientWidth, H = img.clientHeight, sx = W / s.size[0], sy = H / s.size[1];
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', W); svg.setAttribute('height', H);   // exactly the image's box
+  svg.innerHTML = s.align.quad.map((q, i) => `<circle data-i="${i}" cx="${q[0] * sx}" cy="${q[1] * sy}" r="${i === s.align.selected ? 15 : 11}" class="${i === s.align.selected ? 'sel' : ''}"></circle><text x="${q[0] * sx + 16}" y="${q[1] * sy - 12}">${i + 1}</text>`).join('');
+}
+let dragging = null, lastDrag = 0;
+$('handles').addEventListener('pointerdown', e => { const c = e.target.closest('circle'); if (c) { dragging = +c.dataset.i; c.setPointerCapture(e.pointerId); } });
+$('handles').addEventListener('pointermove', e => {
+  if (dragging === null || !S || !S.align) return;
+  const now = performance.now(); if (now - lastDrag < 50) return; lastDrag = now;
+  const r = $('preview').getBoundingClientRect();
+  post('align_move', { index: dragging, x: (e.clientX - r.left) / r.width * S.size[0], y: (e.clientY - r.top) / r.height * S.size[1] });
+});
+$('handles').addEventListener('pointerup', e => {
+  if (dragging === null) return;
+  const r = $('preview').getBoundingClientRect(), i = dragging; dragging = null;
+  post('align_move', { index: i, x: (e.clientX - r.left) / r.width * S.size[0], y: (e.clientY - r.top) / r.height * S.size[1] });
+});
+$('preview').addEventListener('load', () => S && drawHandles(S));
+addEventListener('resize', () => S && drawHandles(S));
+
+// ---------------------------------------------------------------- modal (help, re-solve)
+let resolvePlan = null, modalKind = null;
+function showModal(html) { $('modalCard').innerHTML = html; $('modal').hidden = false; }
+function hideModal() { $('modal').hidden = true; modalKind = null; }
+function renderModal(s) {
+  if (s.ui.help && modalKind !== 'help') { modalKind = 'help'; showModal('<h3>Keys</h3><table>' + INIT.help[(S && S.family) || 'relief'].map(([g, rows]) => `<tr><td colspan="2" style="padding-top:10px;color:var(--accent)">${g}</td></tr>` + rows.map(([k, l]) => `<tr><td><kbd>${k}</kbd></td><td>${l}</td></tr>`).join('')).join('') + '</table><div class="row"><button id="mClose">Close <kbd>?</kbd></button></div>'); $('mClose').onclick = () => post('help_toggle'); }
+  else if (!s.ui.help && modalKind === 'help') hideModal();
+  if (s.ui.resolve && modalKind !== 'resolve') openResolve();
+  else if (!s.ui.resolve && modalKind === 'resolve') hideModal();
+}
+async function openResolve() {
+  modalKind = 'resolve';
+  showModal('<h3>Re-solve</h3><div class="dim">Reading the payload&hellip;</div>');
+  const out = [];
+  for (const engine of ['qdrive', 'graph_v1']) {
+    try {
+      const r = await fetch('/api/resolve/plan', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Token': TOKEN }, body: JSON.stringify({ engine }) });
+      out.push(await r.json());
+    } catch (e) { out.push({ engine, error: String(e) }); }
+  }
+  showModal('<h3>Re-solve</h3><div class="dim">Nothing is sent until you press a spend button. Each button repeats the exact payload hash and cost shown here; the server refuses if either has changed.</div>' +
+    out.map(p => p.error ? `<div class="box bad">${p.engine}: ${p.error}</div>` : `<div class="box"><b>${p.engine_id}</b><table>
+      <tr><td>payload</td><td><code>${p.payload}</code></td></tr><tr><td>entries</td><td>${p.n_targets}</td></tr><tr><td>sha256</td><td><code>${p.sha256.slice(0, 16)}&hellip;</code></td></tr>
+      <tr><td>cost</td><td><b>${p.credits} credit(s)</b>${p.cached ? ' (a result for this exact payload is already on disk)' : ''}</td></tr></table>
+      <div class="dim">${p.note}</div>
+      <div class="row"><button class="danger" data-eng="${p.engine}" data-sha="${p.sha256}" data-cr="${p.credits}" ${(!p.allow_spend && p.credits) ? 'disabled' : ''}>${p.credits ? 'Spend ' + p.credits + ' credit(s)' : 'Reuse saved result (free)'}</button></div></div>`).join('') +
+    '<div class="row"><button id="mClose">Close</button></div>');
+  $('mClose').onclick = () => post('resolve_close');
+  document.querySelectorAll('#modalCard button[data-eng]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    const r = await fetch('/api/resolve/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Token': TOKEN }, body: JSON.stringify({ engine: b.dataset.eng, sha256: b.dataset.sha, credits: +b.dataset.cr }) });
+    const j = await r.json(); if (j.error) { toast(j.error); b.disabled = false; } else toast('started: watch the Log tab');
+  });
+}
+
+// ---------------------------------------------------------------- controls
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.pane').forEach(p => p.hidden = p.id !== 't-' + b.dataset.tab);
+});
+$('next').onclick = () => post('next'); $('prev').onclick = () => post('prev'); $('auto').onclick = () => post('auto_toggle');
+$('cycle').oninput = e => post('cycle', { seconds: +e.target.value });
+$('ctlA').onclick = () => post('noise_toggle'); $('ctlB').onclick = () => post('dephased_toggle'); $('ctlI').onclick = () => post('light_interference_toggle');
+$('witness').onclick = () => post('witness_run'); $('contrast').oninput = e => post('contrast', { value: +e.target.value });
+document.querySelectorAll('#segL1 button').forEach(b => b.onclick = () => post('hold_lamp', { index: 0, value: b.dataset.v === 'auto' ? null : +b.dataset.v }));
+document.querySelectorAll('#segL2 button').forEach(b => b.onclick = () => post('hold_lamp', { index: 1, value: b.dataset.v === 'auto' ? null : +b.dataset.v }));
+document.querySelectorAll('[data-polall]').forEach(b => b.onclick = () => post('hold_pol_all', { value: b.dataset.polall === 'auto' ? null : +b.dataset.polall }));
+document.querySelectorAll('#segBasis button').forEach(b => b.onclick = () => S && b.dataset.v !== S.pol_basis && post('pol_basis_toggle'));
+$('kRange').oninput = e => post('K', { value: S.ladder[+e.target.value] });
+$('sweep').onchange = e => post('hardness_sweep_set', { on: e.target.checked });
+$('blend').oninput = e => post('blend', { value: +e.target.value }); $('gain').oninput = e => post('gain', { value: +e.target.value }); $('fade').oninput = e => post('fade', { value: +e.target.value });
+$('source').onchange = async e => { const r = await post('set_source', { kind: e.target.value }); if (r && !r.ok) e.target.value = S.source; };
+$('blackout').onclick = () => post('blackout_toggle'); $('noise').onclick = () => post('noise_toggle'); $('overlayBtn').onclick = () => post('overlay_toggle');
+$('demoBtn').onclick = () => post('demo_toggle'); $('resolveBtn').onclick = () => post('resolve_open'); $('helpBtn').onclick = () => post('help_toggle');
+$('demoNext').onclick = () => post('demo_next'); $('demoPrev').onclick = () => post('demo_prev'); $('demoOff').onclick = () => post('demo_toggle');
+$('alignStart').onclick = () => post('align_start'); $('alignApply').onclick = () => post('align_apply'); $('alignCancel').onclick = () => post('align_cancel');
+$('alignReset').onclick = () => confirm('Reset to the scale-only mapping? The saved calibration is kept as calibration.json.bak.') && post('align_reset');
+$('gaps').onchange = () => S && render(S);
+$('margin').onchange = e => post('set_margin', { px: +e.target.value });
+$('snap').onclick = () => post('snapshot');
+document.querySelectorAll('[data-pat]').forEach(b => b.onclick = () => post('pattern', { name: b.dataset.pat || null }));
+$('patBtns').innerHTML = ['black', 'white', 'outline', 'align', 'dots', 'grid', 'edge'].map(n => `<button data-pat="${n}">${n}</button>`).join('');
+$('patBtns').querySelectorAll('button').forEach(b => b.onclick = () => post(b.dataset.pat === 'align' ? 'align_start' : 'pattern', b.dataset.pat === 'align' ? {} : { name: b.dataset.pat }));
+$('openOut').onclick = () => window.open('/output', 'standing-light-output', 'popup,width=1280,height=720');
+$('openAud').onclick = () => window.open('/audience', 'standing-light-audience', 'popup,width=1280,height=720');
+
+// ---------------------------------------------------------------- keys
+let selHandle = 0;
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
+  if (tag === 'select') return;
+  if (S && S.align) {                                       // alignment: 1-4 select a marker, arrows nudge it
+    if ('1234'.includes(e.key) && e.key.length === 1) { selHandle = +e.key - 1; post('align_nudge', { index: selHandle, dx: 0, dy: 0 }); e.preventDefault(); return; }
+    const step = e.shiftKey ? 10 : 1, d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+    if (d) { post('align_nudge', { index: S.align.selected, dx: d[0], dy: d[1] }); e.preventDefault(); return; }
+  }
+  const demo = !!(S && S.demo);
+  const cands = INIT.keys.filter(b => (b.family === 'both' || !S || b.family === S.family) && b.keys.some(k => k.toLowerCase() === e.key.toLowerCase()));
+  const b = cands.find(x => x.demo === demo) || cands.find(x => !x.demo);
+  if (!b || (b.demo && !demo)) return;
+  e.preventDefault();
+  post(b.action, b.args);
+});
+
+// ---------------------------------------------------------------- live updates
+function connect() {
+  const es = new EventSource('/api/events?role=operator');
+  es.addEventListener('state', e => render(JSON.parse(e.data)));
+  es.addEventListener('frame', e => { const m = JSON.parse(e.data); $('preview').src = '/api/frame/' + m.seq + '.png'; if (m.kind === 'resend') $('preview').src = '/api/latest.png?t=' + m.seq; });
+  es.onerror = () => { es.close(); setTimeout(connect, 1500); };
+}
+fetch('/api/state').then(r => r.json()).then(render).then(connect);
+setInterval(() => fetch('/api/coherence').then(r => r.json()).then(m => {
+  if (m.family === 'relief') { $('coh').textContent = `relief circuit: ${m.facets} facet qubits + ${m.polarity} polarity = ${m.simulated} simulated, ${m.circuit} with lamp and observation registers; panel visibility ${m.visibility.join(', ')}`; return; }
+  $('coh').textContent = `coherence (spec §2.2): coplanar ${m.coplanar_agreement.toFixed(2)}, crease ${m.crease_agreement.toFixed(2)}, light L/R ${m.light_left_right.toFixed(2)}, polarity ${m.polarity_agreement.toFixed(2)}  (independent noise ≈ 0)`;
+}).catch(() => {}), 8000);
+</script>
+</body>
+</html>

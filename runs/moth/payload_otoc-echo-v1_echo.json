@@ -1,0 +1,17 @@
+{
+  "params": {
+    "lattice": "square",
+    "width": 5,
+    "height": 4,
+    "depth": 6,
+    "theta_x": 1.099557,
+    "theta_z": 0.471239,
+    "theta_zz": 0.785398,
+    "kick": "Z",
+    "machine": "aer",
+    "shots": 4096,
+    "include_taps": true,
+    "exact": false,
+    "seed": 7
+  }
+}

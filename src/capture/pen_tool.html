@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standing Light pen tool</title>
+<style>
+  :root { --bg:#16171a; --panel:#1f2126; --line:#33363d; --text:#e8e8ea; --dim:#9a9ca3; --accent:#ffd60a; --bad:#ff6b5e; --ok:#5fd38d; }
+  * { box-sizing: border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 -apple-system, system-ui, sans-serif; display:flex; height:100vh; overflow:hidden; }
+  #stage { flex:1; min-width:0; display:flex; align-items:center; justify-content:center; padding:12px; background:var(--bg); position:relative; }
+  #stage:fullscreen { background:#000; padding:0; }
+  #stage.drop::after { content:"Drop a photo to trace over it"; position:absolute; inset:12px; border:2px dashed var(--accent); border-radius:8px;
+    display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:18px; background:rgba(0,0,0,.6); }
+  canvas { display:block; cursor:crosshair; background:#000; border-radius:3px; }
+  #side { width:350px; flex:none; background:var(--panel); border-left:1px solid var(--line); padding:14px; overflow:auto; }
+  body.nosidebar #side { display:none; }
+  h1 { font-size:15px; margin:0 0 4px; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); margin:16px 0 6px; }
+  .modes { display:flex; gap:6px; }
+  button, input, label.btn { font:inherit; color:var(--text); background:#2a2d34; border:1px solid var(--line); border-radius:5px; }
+  button, label.btn { padding:6px 10px; cursor:pointer; display:inline-block; }
+  button.on { border-color:var(--accent); color:var(--accent); }
+  button.primary { background:var(--accent); color:#111; border-color:var(--accent); font-weight:600; width:100%; padding:9px; margin-top:12px; }
+  input { padding:4px 6px; min-width:0; }
+  input[type=number] { width:70px; }
+  input[type=checkbox] { width:auto; margin-right:6px; }
+  .row { display:flex; align-items:center; gap:6px; margin:4px 0; flex-wrap:wrap; }
+  .item { border:1px solid var(--line); border-radius:6px; padding:6px; margin:6px 0; }
+  .item.sel { border-color:var(--accent); }
+  .sw { width:12px; height:12px; border-radius:3px; flex:none; }
+  .x { margin-left:auto; padding:2px 8px; }
+  .dim { color:var(--dim); font-size:12px; }
+  .box { border:1px solid var(--line); border-radius:6px; padding:8px; }
+  #budget.over { border-color:var(--bad); }
+  #budget .big { font-size:15px; font-weight:600; }
+  #budget.over .big { color:var(--bad); }
+  #msg { margin-top:8px; min-height:18px; font-size:12px; }
+  kbd { background:#2a2d34; border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:11px; }
+  .ok { color:var(--ok); } .warn { color:var(--accent); }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c"></canvas></div>
+<div id="side">
+  <h1>Standing Light pen tool</h1>
+  <div class="dim" id="subtitle"></div>
+
+  <h2>Surface</h2>
+  <div class="box">
+    <div class="row"><b id="srcname"></b></div>
+    <div id="projbox">
+      <div class="dim">No photo: you are drawing in projector space. Connect the projector as a display and watch the lines land on the object. Shapes are outline-only so only the lines are projected.</div>
+      <div class="row"><button id="openproj">Open projector window</button><button id="fsbtn">Fullscreen <kbd>F</kbd></button><button id="hidebtn">Hide panel <kbd>Tab</kbd></button></div>
+      <div class="dim" id="projstatus">Projector window: not open. (With a mirrored display just use Fullscreen.)</div>
+      <div class="row"><span class="dim">canvas</span><input type="number" id="pw" min="100" step="1"> &times; <input type="number" id="ph" min="100" step="1">
+        <button id="matchscreen" title="use this window's screen size">this screen</button></div>
+      <div class="row"><label class="dim"><input type="checkbox" id="follow" checked>follow projector window size</label></div>
+    </div>
+    <div class="row"><label class="btn">Use a photo instead&hellip;<input type="file" id="file" accept="image/*" hidden></label>
+      <button id="rmphoto" hidden>Remove photo</button></div>
+    <div class="dim" id="photohelp">Optional. A photo taken from the projector's position, to trace over. You can also drop one onto the canvas.</div>
+  </div>
+
+  <h2>View</h2>
+  <div class="row"><label><input type="checkbox" id="vfill">fill shapes</label><label><input type="checkbox" id="vlabels">labels</label></div>
+  <div class="row"><label><input type="checkbox" id="vgrid">patch grid</label><label><input type="checkbox" id="vcells">patch cells</label></div>
+  <div class="row"><label><input type="checkbox" id="vborder">frame border</label><label><input type="checkbox" id="vcross">cursor crosshair on projector</label></div>
+  <div class="row"><label><input type="checkbox" id="vsnap">snap to vertices and edges</label><label><input type="checkbox" id="vverts">show vertices</label></div>
+
+  <h2>Draw</h2>
+  <div class="modes">
+    <button data-mode="panel" class="on">Panel <kbd>P</kbd></button>
+    <button data-mode="glass">Glass <kbd>G</kbd></button>
+    <button data-mode="off">Off-limits <kbd>O</kbd></button>
+  </div>
+  <div class="dim" style="margin-top:6px">Click to add vertices; click the first vertex or press <kbd>Enter</kbd> to close.
+    <kbd>Backspace</kbd> or right-click removes the last vertex, <kbd>Esc</kbd> cancels, <kbd>U</kbd> undoes the last shape, <kbd>S</kbd> saves.
+    Glass and off-limits get no qubits and are always black.</div>
+  <div class="dim" style="margin-top:6px"><b>Shared edges.</b> New vertices snap to existing vertices (ring) and edges (diamond), so a shape can start on, or run along, a neighbour's edge.
+    Hold <kbd>Alt</kbd> to place a vertex freely. When a shape closes, vertices that land on a neighbour's edge are added to it so both shapes share the edge.
+    <b>Drag</b> a vertex or an edge to reshape: yellow vertices are shared and everything sharing them moves together, like perspective editing. <kbd>Esc</kbd> cancels a drag, <kbd>U</kbd> undoes.</div>
+
+  <h2>Panels (plane id, angle)</h2>
+  <div class="dim">Angle: yaw of the plane's normal; positive tilts it toward image right (bay window: left wing +35, centre 0, right wing -35). Same plane id = coplanar.</div>
+  <div id="panels"></div>
+
+  <h2>Glass / off-limits</h2>
+  <div id="blocked"></div>
+
+  <h2>Patch grid</h2>
+  <div class="row">
+    <input type="number" id="nx" min="1" max="40"> &times; <input type="number" id="ny" min="1" max="40">
+    <span class="dim">cells (nx &times; ny)</span>
+  </div>
+  <div class="row"><input type="number" id="cover" min="0.05" max="1" step="0.05"><span class="dim">min projectable fraction per cell</span></div>
+
+  <h2>Qubit budget</h2>
+  <div id="budget" class="box"><span class="dim">draw a panel to see the budget</span></div>
+
+  <button class="primary" id="save">Save labels.json + mask.png <kbd style="color:#111;background:#e6c200;border-color:#b89a00">S</kbd></button>
+  <div id="msg"></div>
+</div>
+
+<script id="init" type="application/json">__INIT__</script>
+<script src="/pen_draw.js"></script>
+<script src="/pen_geom.js"></script>
+<script>
+const init = JSON.parse(document.getElementById('init').textContent);
+const TOKEN = "__TOKEN__";
+const SCHEMA = "standing-light/labels@1";
+const $ = id => document.getElementById(id);
+const round1 = v => Math.round(v * 10) / 10;
+const bc = new BroadcastChannel('standing-light-pen');
+
+// ---- state
+let IMG_W = init.image.width, IMG_H = init.image.height;
+let photoName = init.image.file;                    // null = no photo = projector space
+let projSize = init.size.slice();                   // last projector-space size, kept while a photo is loaded
+let panels = [], glass = [], off = [], undo = [];   // polygons are [[x, y], ...] in image pixels; undo holds snapshots of all three
+let mode = 'panel', cur = [], sel = null, mouse = null, cells = [], dirty = false, hud = false, projConnected = null;
+let snapNow = null, hover = null, press = null, drag = null, suppressClick = false;
+const grid = Object.assign({}, init.grid);
+let canvasPx = init.canvas;
+const view = { fill: !!photoName, labels: !!photoName, grid: false, cells: false, border: !photoName, crosshair: true, snap: true, vertices: true };
+
+if (init.labels) {
+  panels = init.labels.panels.map(p => Object.assign({}, p));
+  glass = init.labels.glass.map(g => g.polygon);
+  off = init.labels.off_limits.map(g => g.polygon);
+}
+const hasPhoto = () => !!photoName;
+const recomputeCanvas = () => { canvasPx = { width: init.canvas_width, height: Math.max(1, Math.round(init.canvas_width * IMG_H / IMG_W)) }; };
+
+const stage = $('stage'), cv = $('c'), ctx = cv.getContext('2d');
+const img = new Image();
+img.onload = () => draw();
+if (hasPhoto()) img.src = '/photo.jpg';
+
+// ---- layout: always fit the whole surface in view
+function fit() {
+  const dpr = window.devicePixelRatio || 1, fs = document.fullscreenElement === stage;
+  const pad = fs ? 0 : 24, availW = stage.clientWidth - pad, availH = stage.clientHeight - pad;
+  const s = Math.min(availW / IMG_W, availH / IMG_H);
+  cv.style.width = IMG_W * s + 'px'; cv.style.height = IMG_H * s + 'px';
+  cv.width = Math.round(IMG_W * s * dpr); cv.height = Math.round(IMG_H * s * dpr);
+  draw();
+}
+addEventListener('resize', fit);
+document.addEventListener('fullscreenchange', fit);
+const k = () => cv.width / IMG_W;                    // device px per image px
+function toImage(e) {
+  const r = cv.getBoundingClientRect();
+  return [round1(Math.min(IMG_W, Math.max(0, (e.clientX - r.left) / r.width * IMG_W))), round1(Math.min(IMG_H, Math.max(0, (e.clientY - r.top) / r.height * IMG_H)))];
+}
+
+// ---- drawing (control canvas) and mirroring to the projector window
+const scene = () => ({ panels, glass, off, cur, mouse, mode, grid, cells, sel, snap: snapNow, hover });
+function draw() {
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
+  if (hasPhoto() && img.complete && img.naturalWidth) ctx.drawImage(img, 0, 0, cv.width, cv.height);
+  PenDraw.drawScene(ctx, scene(), Object.assign({ W: IMG_W, H: IMG_H, k: k(), dpr: window.devicePixelRatio || 1 }, view, { crosshair: false }));
+  if (hud) {                                        // on-canvas status for fullscreen drawing (not sent to the projector)
+    ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fillRect(8, cv.height - 34, 420, 26);
+    ctx.fillStyle = PenDraw.MODE_COLOUR[mode]; ctx.font = '13px system-ui';
+    ctx.fillText(`${mode.toUpperCase()}   ${panels.length} panels  ${$('budget').dataset.line || ''}`, 16, cv.height - 16);
+  }
+  broadcast();
+}
+let pending = false;
+function broadcast() {
+  if (pending) return; pending = true;
+  requestAnimationFrame(() => {
+    pending = false;
+    bc.postMessage({ type: 'state', W: IMG_W, H: IMG_H, scene: scene(), view: Object.assign({}, view) });
+  });
+}
+bc.onmessage = e => {
+  if (e.data.type !== 'projector') return;
+  projConnected = e.data;
+  const m = e.data, st = $('projstatus');
+  st.innerHTML = `Projector window: <b>${m.w}×${m.h}</b> ` + (m.fullscreen ? '<span class="ok">fullscreen ✓</span>'
+    : '<span class="warn">windowed: drag it to the projector and press F there so the aspect is exact</span>');
+  if (!hasPhoto() && $('follow').checked && (m.w !== IMG_W || m.h !== IMG_H)) setSurface(m.w, m.h);
+  broadcast();
+};
+
+// ---- surface size changes keep shapes where they are, proportionally
+function setSurface(w, h) {
+  undo = [];                                        // snapshots are in the old coordinates
+  const fx = w / IMG_W, fy = h / IMG_H, sc = poly => poly.map(p => [round1(p[0] * fx), round1(p[1] * fy)]);
+  panels.forEach(p => { p.polygon = sc(p.polygon); if (p.depth_x) p.depth_x = p.depth_x.map(v => v * fx); });
+  glass = glass.map(sc); off = off.map(sc); cur = cur.map(p => [round1(p[0] * fx), round1(p[1] * fy)]);
+  IMG_W = w; IMG_H = h; if (!hasPhoto()) projSize = [w, h];
+  recomputeCanvas(); syncSurfaceUI(); fit(); refresh(false);
+}
+function syncSurfaceUI() {
+  $('pw').value = IMG_W; $('ph').value = IMG_H;
+  $('srcname').textContent = hasPhoto() ? `Photo: ${photoName}  (${IMG_W}×${IMG_H})` : `Projector space  (${IMG_W}×${IMG_H})`;
+  $('projbox').hidden = hasPhoto(); $('rmphoto').hidden = !hasPhoto();
+  $('photohelp').hidden = hasPhoto();
+  $('subtitle').textContent = `working canvas ${canvasPx.width}×${canvasPx.height} → ${init.out}`;
+  $('pw').disabled = $('ph').disabled = hasPhoto();
+}
+$('pw').onchange = $('ph').onchange = () => { const w = Math.round(+$('pw').value), h = Math.round(+$('ph').value); if (w >= 100 && h >= 100) setSurface(w, h); else syncSurfaceUI(); };
+$('matchscreen').onclick = () => setSurface(screen.width, screen.height);
+$('openproj').onclick = () => { window.open('/projector', 'standing-light-projector', 'popup,width=960,height=540'); setTimeout(() => bc.postMessage({ type: 'hello' }), 700); };
+$('fsbtn').onclick = toggleFs; $('hidebtn').onclick = () => { document.body.classList.toggle('nosidebar'); fit(); };
+function toggleFs() { document.fullscreenElement ? document.exitFullscreen() : stage.requestFullscreen(); }
+
+// ---- optional photo: choose, drop, or remove
+async function usePhoto(file) {
+  if (!file) return;
+  const r = await fetch('/api/photo', { method: 'POST', headers: { 'X-Token': TOKEN, 'X-Filename': encodeURIComponent(file.name) }, body: file });
+  const data = await r.json();
+  if (!r.ok) { say(data.error, false); return; }
+  const had = panels.length + glass.length + off.length > 0;
+  if (!hasPhoto()) projSize = [IMG_W, IMG_H];
+  if (had && !confirm('Keep the shapes you have drawn? They will be scaled proportionally onto the photo.\nCancel clears them.')) { panels = []; glass = []; off = []; undo = []; sel = null; cur = []; }
+  photoName = data.image.file;
+  img.src = '/photo.jpg?v=' + Date.now();
+  Object.assign(view, { fill: true, labels: true, border: false }); syncView();
+  setSurface(data.image.width, data.image.height);
+  say(`Using photo ${photoName}. Shapes drawn on a photo are in camera space and will need a warp to projector space.`, true);
+}
+async function removePhoto() {
+  await fetch('/api/photo/clear', { method: 'POST', headers: { 'X-Token': TOKEN }, body: '{}' });
+  photoName = null; Object.assign(view, { fill: false, labels: false, border: true }); syncView();
+  setSurface(projSize[0], projSize[1]);
+}
+$('file').onchange = e => { usePhoto(e.target.files[0]); e.target.value = ''; };
+$('rmphoto').onclick = removePhoto;
+['dragenter', 'dragover'].forEach(t => stage.addEventListener(t, e => { e.preventDefault(); stage.classList.add('drop'); }));
+['dragleave', 'drop'].forEach(t => stage.addEventListener(t, e => { e.preventDefault(); stage.classList.remove('drop'); }));
+stage.addEventListener('drop', e => usePhoto(e.dataTransfer.files[0]));
+
+// ---- view toggles
+const viewIds = { fill: 'vfill', labels: 'vlabels', grid: 'vgrid', cells: 'vcells', border: 'vborder', crosshair: 'vcross', snap: 'vsnap', vertices: 'vverts' };
+function syncView() { for (const [key, id] of Object.entries(viewIds)) $(id).checked = view[key]; draw(); }
+for (const [key, id] of Object.entries(viewIds)) $(id).onchange = () => { view[key] = $(id).checked; draw(); };
+
+// ---- polygon interaction: snapping, shared edges, dragging
+const clone = a => JSON.parse(JSON.stringify(a));
+const snapshot = () => ({ panels: clone(panels), glass: clone(glass), off: clone(off) });
+function pushUndo(snap) { undo.push(snap || snapshot()); if (undo.length > 100) undo.shift(); }
+function restore(sn) { panels = sn.panels; glass = sn.glass; off = sn.off; sel = null; }
+const allPolys = () => [...panels.map(p => p.polygon), ...glass, ...off];       // live references: edits through these edit the shapes
+const cssPerImg = () => cv.getBoundingClientRect().width / IMG_W;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+// Where a vertex at p should land. Hold Alt (Option) to place it exactly where the cursor is.
+function snapAt(p, e, skip) {
+  if (!view.snap || (e && e.altKey)) return { pt: p, kind: null };
+  const s = cssPerImg();
+  return PenGeom.snap(p, allPolys(), 12 / s, 8 / s, skip);
+}
+function closePoly() {
+  if (cur.length < 3) return;
+  const poly = cur; cur = [];
+  pushUndo();
+  if (mode === 'panel') {
+    const nextPlane = panels.length ? Math.max(...panels.map(p => p.plane_id)) + 1 : 0;
+    panels.push({ name: 'panel' + panels.length, plane_id: nextPlane, angle_deg: 0, polygon: poly });
+    sel = panels.length - 1;
+  } else if (mode === 'glass') glass.push(poly); else off.push(poly);
+  const added = PenGeom.weld(allPolys());           // shapes that touch end up with matching vertices along the shared edge
+  if (added) say(`Shared edge: ${added} ${added > 1 ? 'vertices' : 'vertex'} added so the touching shapes share it. They now move together.`, true);
+  dirty = true; refresh();                          // focus deliberately stays on the canvas so P / G / O keep working while you watch the object
+}
+function undoShape() {
+  if (cur.length) { cur.pop(); draw(); return; }
+  if (!undo.length) return;
+  restore(undo.pop()); dirty = true; refresh();
+}
+cv.addEventListener('click', e => {
+  if (suppressClick) { suppressClick = false; return; }
+  const p = toImage(e);
+  if (cur.length >= 3) {
+    const r = cv.getBoundingClientRect(), s = r.width / IMG_W;                        // css px per image px
+    if (Math.hypot((p[0] - cur[0][0]) * s, (p[1] - cur[0][1]) * s) < 14) return closePoly();
+  }
+  if (!cur.length && e.shiftKey) { const i = panels.findIndex(q => inside(p, q.polygon)); if (i >= 0) { sel = i; renderLists(); draw(); return; } }
+  const q = snapAt(p, e).pt;
+  if (cur.length && Math.hypot(q[0] - cur[cur.length - 1][0], q[1] - cur[cur.length - 1][1]) < PenGeom.EPS) return;   // same spot twice
+  cur.push(q); draw();
+});
+cv.addEventListener('mousemove', e => {
+  if (drag) return;
+  const raw = toImage(e), sn = snapAt(raw, e);
+  mouse = sn.pt; snapNow = sn.kind ? sn : null; hover = null;
+  if (!cur.length) {
+    const s = cssPerImg(), g = PenGeom.grab(raw, allPolys(), 10 / s, 6 / s);
+    hover = g && g.kind === 'vertex' ? g.pt : null;
+    cv.style.cursor = g ? 'move' : 'crosshair';
+  } else cv.style.cursor = 'crosshair';
+  draw();
+});
+cv.addEventListener('mouseleave', () => { if (drag) return; mouse = null; snapNow = null; hover = null; draw(); });
+cv.addEventListener('contextmenu', e => { e.preventDefault(); cur.pop(); draw(); });
+// Drag a vertex (everything coincident with it moves too) or an edge (both of its ends, with their coincident vertices). A press that does
+// not move is an ordinary click, so you can still start a new shape from an existing vertex.
+cv.addEventListener('mousedown', e => {
+  if (e.button !== 0 || cur.length || e.shiftKey) return;
+  const p = toImage(e), s = cssPerImg(), g = PenGeom.grab(p, allPolys(), 10 / s, 6 / s);
+  press = g ? { x: e.clientX, y: e.clientY, g, p0: p } : null;
+});
+window.addEventListener('mousemove', e => {
+  if (press && !drag && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 4) {
+    const polys = allPolys();
+    drag = { kind: press.g.kind, members: press.g.members, p0: press.p0, before: snapshot(),
+             orig: press.g.members.map(([si, vi]) => polys[si][vi].slice()), skip: new Set(press.g.members.map(m => m[0] + ':' + m[1])) };
+    cv.style.cursor = 'grabbing';
+  }
+  if (!drag) return;
+  const p = toImage(e), polys = allPolys();
+  if (drag.kind === 'vertex') {
+    const sn = snapAt(p, e, (si, vi) => drag.skip.has(si + ':' + vi));
+    PenGeom.moveGroup(polys, drag.members, sn.pt); snapNow = sn.kind ? sn : null;
+  } else {
+    const dx = p[0] - drag.p0[0], dy = p[1] - drag.p0[1]; snapNow = null;
+    drag.members.forEach(([si, vi], i) => { polys[si][vi] = [clamp(PenGeom.round1(drag.orig[i][0] + dx), 0, IMG_W), clamp(PenGeom.round1(drag.orig[i][1] + dy), 0, IMG_H)]; });
+  }
+  draw();
+});
+window.addEventListener('mouseup', () => {
+  if (drag) {
+    pushUndo(drag.before);
+    const added = PenGeom.weld(allPolys());
+    if (added) say(`Shared edge: ${added} ${added > 1 ? 'vertices' : 'vertex'} added so the touching shapes share it.`, true);
+    drag = null; snapNow = null; suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+    cv.style.cursor = 'crosshair'; dirty = true; refresh();
+  }
+  press = null;
+});
+function inside(p, poly) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > p[1]) !== (yj > p[1]) && p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+document.addEventListener('keydown', e => {
+  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) || e.metaKey || e.ctrlKey) return;
+  const key = e.key.toLowerCase();
+  if (e.key === 'Enter') closePoly();
+  else if (e.key === 'Escape') { if (drag) { restore(drag.before); drag = null; press = null; snapNow = null; cv.style.cursor = 'crosshair'; refresh(); } else { cur = []; draw(); } }
+  else if (e.key === 'Backspace') { e.preventDefault(); cur.pop(); draw(); }
+  else if (e.key === 'Tab') { e.preventDefault(); $('hidebtn').click(); }
+  else if (key === 'p') setMode('panel'); else if (key === 'g') setMode('glass'); else if (key === 'o') setMode('off');
+  else if (key === 'u') undoShape();
+  else if (key === 'f') toggleFs();
+  else if (key === 'h') { hud = !hud; draw(); }
+  else if (key === 's') save();
+});
+function setMode(m) { mode = m; cur = []; document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === m)); draw(); }
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+
+// ---- sidebar lists
+function renderLists() {
+  const pl = $('panels'); pl.innerHTML = '';
+  panels.forEach((p, i) => {
+    const d = document.createElement('div'); d.className = 'item' + (i === sel ? ' sel' : ''); d.dataset.i = i;
+    d.innerHTML = `<div class="row"><span class="sw" style="background:hsl(${PenDraw.hue(p.plane_id)},70%,55%)"></span>
+      <input data-f="name" value="${p.name.replace(/"/g, '&quot;')}" style="flex:1">
+      <button class="x" title="delete panel">×</button></div>
+      <div class="row"><span class="dim">plane</span><input type="number" data-f="plane_id" step="1" value="${p.plane_id}">
+      <span class="dim">angle°</span><input type="number" data-f="angle_deg" step="1" value="${p.angle_deg}"></div>`;
+    d.onclick = () => { sel = i; document.querySelectorAll('#panels .item').forEach((el, n) => el.classList.toggle('sel', n === i)); draw(); };
+    d.querySelectorAll('input').forEach(inp => inp.onchange = () => edit(i, inp));
+    d.querySelector('.x').onclick = ev => { ev.stopPropagation(); removeShape('panel', i); };
+    pl.appendChild(d);
+  });
+  const bl = $('blocked'); bl.innerHTML = '';
+  [['glass', glass], ['off', off]].forEach(([kind, arr]) => arr.forEach((poly, i) => {
+    const d = document.createElement('div'); d.className = 'row';
+    d.innerHTML = `<span class="sw" style="background:${kind === 'glass' ? '#4696ff' : '#ff4646'}"></span>${kind === 'glass' ? 'glass' : 'off-limits'} ${i + 1} <span class="dim">${poly.length} vertices</span><button class="x">×</button>`;
+    d.querySelector('.x').onclick = () => removeShape(kind, i);
+    bl.appendChild(d);
+  }));
+  if (!glass.length && !off.length) bl.innerHTML = '<span class="dim">none yet</span>';
+}
+function removeShape(kind, i) {
+  pushUndo();
+  const arr = kind === 'panel' ? panels : kind === 'glass' ? glass : off; arr.splice(i, 1);
+  if (kind === 'panel') sel = null; dirty = true; refresh();
+}
+function edit(i, inp) {
+  const p = panels[i], f = inp.dataset.f; dirty = true;
+  if (f === 'name') p.name = inp.value || p.name;
+  else {
+    const v = Number(inp.value);
+    if (!Number.isFinite(v)) { inp.value = p[f]; return; }
+    if (f === 'plane_id') {
+      p.plane_id = Math.round(v);
+      const mate = panels.find((q, n) => n !== i && q.plane_id === p.plane_id);      // coplanar panels share an angle
+      if (mate) { p.angle_deg = mate.angle_deg; delete p.window_near; delete p.window_far; delete p.depth_x; }
+    } else {
+      p.angle_deg = Math.max(-89, Math.min(89, v));
+      panels.forEach(q => { if (q.plane_id === p.plane_id) { q.angle_deg = p.angle_deg; delete q.window_near; delete q.window_far; delete q.depth_x; } });
+    }
+  }
+  refresh();
+}
+['nx', 'ny'].forEach(key => { const el = $(key); el.value = grid[key]; el.onchange = () => { grid[key] = Math.max(1, Math.round(Number(el.value)) || grid[key]); el.value = grid[key]; dirty = true; refresh(); }; });
+$('cover').value = grid.min_cover;
+$('cover').onchange = () => { const v = Number($('cover').value); if (v > 0 && v <= 1) grid.min_cover = v; $('cover').value = grid.min_cover; dirty = true; refresh(); };
+
+// ---- labels, budget, save
+function labels() {
+  return {
+    schema: SCHEMA, source: hasPhoto() ? 'photo' : 'projector',
+    image: { file: photoName, width: IMG_W, height: IMG_H }, canvas: canvasPx,
+    grid: { nx: grid.nx, ny: grid.ny, min_cover: grid.min_cover },
+    panels: panels.map((p, i) => Object.assign({}, p, { id: i })),
+    glass: glass.map(polygon => ({ polygon })), off_limits: off.map(polygon => ({ polygon })),
+  };
+}
+async function post(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'X-Token': TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  return [r.ok, await r.json()];
+}
+let timer = null;
+function refresh(markDirty = true) { if (markDirty) dirty = true; renderLists(); draw(); clearTimeout(timer); timer = setTimeout(updateBudget, 250); }
+async function updateBudget() {
+  const box = $('budget');
+  if (!panels.length) { cells = []; box.className = 'box'; box.dataset.line = ''; box.innerHTML = '<span class="dim">draw a panel to see the budget</span>'; draw(); return; }
+  const [ok, s] = await post('/api/budget', labels());
+  if (!ok) { box.className = 'box'; box.innerHTML = `<span class="dim">${s.error}</span>`; return; }
+  cells = s.cells;
+  box.dataset.line = `${s.patches} patches, ${s.total} qubits${s.over_cap ? ' (over ' + s.cap + ')' : ''}`;
+  box.className = 'box' + (s.over_cap ? ' over' : ''); box.id = 'budget';
+  box.innerHTML = `<div class="big">${s.total} qubits${s.over_cap ? ' — over ' + s.cap : ''}</div>
+    <div>${s.patches} patches + ${s.lamps} lamps + ${s.panels} polarity (one per panel)</div>` +
+    (s.over_cap ? `<div class="dim">warning: above ${s.cap}; the engine cap is unknown. ` +
+      (s.suggestions.length ? 'Grids that fit: ' + s.suggestions.map(g => `${g.nx}×${g.ny} (${g.total})`).join(', ') : '') + '</div>' : '');
+  draw();
+}
+function say(text, ok) { const m = $('msg'); m.style.color = ok ? 'var(--ok)' : 'var(--bad)'; m.textContent = text; }
+async function save() {
+  const [ok, s] = await post('/api/save', labels());
+  if (ok) dirty = false;
+  say(ok ? `Saved ${s.patches} patches / ${s.total} qubits → ${Object.values(s.files)[0].replace(/[^/]*$/, '')}` : s.error, ok);
+}
+$('save').onclick = save;
+addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+// ---- go
+syncSurfaceUI(); syncView(); renderLists(); fit();
+bc.postMessage({ type: 'hello' });                  // an already-open projector window reports its size straight away
+if (panels.length) updateBudget();
+</script>
+</body>
+</html>

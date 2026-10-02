@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standing Light output</title>
+<style>
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; }
+  body.fs { cursor:none; }
+  canvas { position:fixed; inset:0; width:100vw; height:100vh; display:block; background:#000; image-rendering:pixelated; }
+  #hint { position:fixed; left:50%; bottom:6%; transform:translateX(-50%); text-align:center; color:#9a9ca3; font:15px/1.6 system-ui, sans-serif; max-width:70ch;
+          background:rgba(0,0,0,.72); padding:10px 16px; border-radius:8px; }
+  #hint b { color:#ddd; }
+  #hint button { font:inherit; background:#2a2d34; color:#eee; border:1px solid #444; border-radius:5px; padding:6px 12px; cursor:pointer; margin:4px 4px 0; }
+  body.fs #hint { display:none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hint">
+  <b>Standing Light projector output</b><br>
+  Drag this window onto the projector display, then press <b>F</b> (or double-click) for fullscreen.<br>
+  <button id="fsproj">Fullscreen on the projector screen&hellip;</button>
+  <div id="status" style="font-size:12px;margin-top:6px"></div>
+</div>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d', { alpha: false });
+let cur = null, prev = null, fadeStart = 0, fadeMs = 0, raf = 0;
+const status = document.getElementById('status');
+
+function dpr() { return window.devicePixelRatio || 1; }
+function sizePx() { return [Math.round(innerWidth * dpr()), Math.round(innerHeight * dpr())]; }
+function fit() {
+  const [w, h] = sizePx();
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+}
+function paint(now) {
+  fit();
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.imageSmoothingEnabled = false;
+  const t = fadeMs > 0 ? Math.min(1, (now - fadeStart) / fadeMs) : 1;
+  const draw = (img, a) => { if (img && a > 0) { ctx.globalAlpha = a; ctx.drawImage(img, 0, 0, cv.width, cv.height); ctx.globalAlpha = 1; } };
+  if (prev && t < 1) { draw(prev, 1); draw(cur, t); raf = requestAnimationFrame(paint); }
+  else { draw(cur, 1); prev = null; raf = 0; }
+}
+function show(img, fade) {
+  prev = cur; cur = img; fadeStart = performance.now(); fadeMs = prev ? fade : 0;
+  if (!raf) raf = requestAnimationFrame(paint);
+}
+
+let reportTimer = 0;
+function report() {
+  clearTimeout(reportTimer);
+  reportTimer = setTimeout(() => {
+    const [w, h] = sizePx();
+    status.textContent = `${w} x ${h} px` + (document.fullscreenElement ? ' (fullscreen)' : '');
+    fetch('/api/output/report', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ w, h, dpr: dpr(), fullscreen: !!document.fullscreenElement }) }).catch(() => {});
+  }, 150);
+}
+
+function load(seq, meta) {
+  const img = new Image();
+  img.onload = () => show(img, meta.kind === 'frame' ? (meta.fade_ms || 0) : 0);        // patterns are never faded
+  img.src = `/api/frame/${seq}.png`;
+}
+
+function connect() {
+  const es = new EventSource('/api/events?role=output');
+  es.addEventListener('frame', e => { const m = JSON.parse(e.data); load(m.seq, m); });
+  es.onopen = report;
+  es.onerror = () => { es.close(); setTimeout(connect, 1500); };
+}
+
+function toggleFs() { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+addEventListener('keydown', e => { if (e.key.toLowerCase() === 'f') toggleFs(); else if (e.key === 'Escape' && document.fullscreenElement) document.exitFullscreen(); });
+addEventListener('dblclick', toggleFs);
+addEventListener('resize', () => { fit(); if (cur) paint(performance.now()); report(); });
+document.addEventListener('fullscreenchange', () => { document.body.classList.toggle('fs', !!document.fullscreenElement); report(); });
+document.getElementById('fsproj').addEventListener('click', async () => {
+  try {
+    const d = await window.getScreenDetails();
+    const target = d.screens.find(s => !s.isPrimary) || d.currentScreen;
+    await document.documentElement.requestFullscreen({ screen: target });
+  } catch (err) {
+    status.textContent = 'Could not pick the screen automatically (' + (err.name || err) + '). Drag the window onto the projector and press F.';
+  }
+});
+async function keepAwake() { try { if (navigator.wakeLock) await navigator.wakeLock.request('screen'); } catch (e) {} }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake(); });
+keepAwake(); fit(); report(); connect();
+</script>
+</body>
+</html>

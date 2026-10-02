@@ -1,0 +1,20 @@
+  panel        size    8:    9 qubits, chi    2, norm deficit 2.2e-15, 0.2s
+  panel        size   18:   19 qubits, chi    2, norm deficit 2.8e-14, 0.2s
+  panel        size  100:  101 qubits, chi    2, norm deficit 1.2e-13, 0.2s
+  panel        size  400:  401 qubits, chi    2, norm deficit 8.7e-13, 0.7s
+  bay          size  500:   36 qubits, chi   59, norm deficit 1.3e-10, 0.2s
+  bay          size  220:   56 qubits, chi  128 (CAP), norm deficit 5.1e-06, 8.5s
+  grid-relief  size    2:   12 qubits, chi    4, norm deficit 1.6e-15, 0.2s
+  grid-relief  size    3:   27 qubits, chi    8, norm deficit 1.8e-15, 0.2s
+  grid-relief  size    4:   48 qubits, chi   16, norm deficit 1.4e-14, 0.2s
+  grid-relief  size    5:   75 qubits, chi   32, norm deficit 9.4e-10, 3.3s
+  grid-relief  size    6:  108 qubits, chi  128 (CAP), norm deficit 6.5e-05, 89.4s
+  grid-graph   size    2:   12 qubits, chi    8, norm deficit 4.0e-15, 0.2s
+  grid-graph   size    3:   27 qubits, chi   16, norm deficit 2.2e-15, 0.2s
+  grid-graph   size    4:   48 qubits, chi   32, norm deficit 5.4e-14, 0.5s
+  grid-graph   size    5:   75 qubits, chi  128 (CAP), norm deficit 7.4e-02, 25.0s
+  bay 150 px, bond cap   8: norm deficit 1.3e-02, 0.2s
+  bay 150 px, bond cap  16: norm deficit 6.2e-03, 0.3s
+  bay 150 px, bond cap  32: norm deficit 1.5e-03, 1.0s
+  bay 150 px, bond cap  64: norm deficit 7.6e-04, 6.5s
+wrote runs/baselines/baselines.json and classical_baselines.png

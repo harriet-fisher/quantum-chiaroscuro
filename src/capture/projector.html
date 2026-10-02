@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standing Light projector output</title>
+<style>
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; cursor:none; }
+  canvas { position:fixed; inset:0; width:100vw; height:100vh; display:block; }
+  #hint { position:fixed; left:0; right:0; top:42%; text-align:center; color:#888; font:16px/1.6 system-ui, sans-serif; pointer-events:none; }
+  #hint b { color:#ccc; }
+  body.fs #hint { display:none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hint"><b>Projector output window</b><br>Drag this window onto the projector display, then press <b>F</b> (or double-click) for fullscreen.<br>
+  Shapes and your cursor from the pen tool appear here live. The pen tool adopts this window's size as its canvas.</div>
+<script src="/pen_draw.js"></script>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const bc = new BroadcastChannel('standing-light-pen');
+let state = null;      // last scene from the control page
+
+function size() {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(innerWidth * dpr); cv.height = Math.round(innerHeight * dpr);
+}
+function draw() {
+  size();
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);          // black = no light
+  document.getElementById('hint').style.display = state ? 'none' : '';
+  if (!state) return;
+  const dpr = window.devicePixelRatio || 1;
+  // one uniform scale; the control page adopts this window's size, so W:H matches innerWidth:innerHeight
+  const k = Math.min(cv.width / state.W, cv.height / state.H);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, state.W * k, state.H * k); ctx.clip();
+  PenDraw.drawScene(ctx, state.scene, Object.assign({ W: state.W, H: state.H, k, dpr }, state.view));
+  ctx.restore();
+}
+function report() {
+  bc.postMessage({ type: 'projector', w: innerWidth, h: innerHeight, dpr: window.devicePixelRatio || 1,
+                   fullscreen: !!document.fullscreenElement, sw: screen.width, sh: screen.height });
+}
+bc.onmessage = e => {
+  if (e.data.type === 'state') { state = e.data; draw(); }
+  else if (e.data.type === 'hello') report();
+};
+function toggleFs() { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+addEventListener('keydown', e => { if (e.key.toLowerCase() === 'f') toggleFs(); });
+addEventListener('dblclick', toggleFs);
+addEventListener('resize', () => { draw(); report(); });
+document.addEventListener('fullscreenchange', () => { document.body.classList.toggle('fs', !!document.fullscreenElement); draw(); report(); });
+draw(); report();
+</script>
+</body>
+</html>

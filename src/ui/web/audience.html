@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standing Light</title>
+<link rel="stylesheet" href="/web/common.css">
+<style>
+  body { background:#0c0d0f; display:flex; flex-direction:column; min-height:100vh; padding:3vh 4vw; font-size:clamp(16px, 1.7vw, 30px); overflow:hidden; cursor:default; }
+  body.fs { cursor:none; }
+  #banner { font-size:.62em; padding:.5em .9em; border-radius:.5em; border:1px solid var(--line); color:var(--dim); margin-top:auto; }
+  #banner.rehearsal { border-color:var(--accent); color:var(--accent); }
+  h1 { font-size:2.3em; margin:.1em 0 .3em; font-weight:650; letter-spacing:-.01em; }
+  h2 { font-size:1.5em; margin:.2em 0 .6em; font-weight:600; }
+  .row { display:flex; gap:2vw; align-items:stretch; flex-wrap:wrap; }
+  .card { border:1px solid var(--line); background:#15161a; border-radius:.7em; padding:.7em 1em; min-width:9em; flex:1; }
+  .card .name { color:var(--dim); font-size:.62em; text-transform:uppercase; letter-spacing:.08em; }
+  .card .val { font-size:1.35em; font-weight:600; }
+  .sunk { color:#8fb8ff; } .raised { color:#ffd8a0; }
+  .qubit { display:inline-flex; align-items:center; gap:.5em; margin-right:1.2em; font-size:.7em; color:var(--dim); }
+  .qubit i { width:1.5em; height:1.5em; border-radius:50%; border:2px solid #777; display:inline-block; text-align:center; font-style:normal; line-height:1.4em; font-size:.9em; color:#ddd; }
+  .qubit i.one { background:#ddd; color:#111; border-color:#ddd; }
+  #thumb { width:min(32vw, 520px); border-radius:.5em; border:1px solid var(--line); image-rendering:auto; background:#000; }
+  p.explain { font-size:.82em; color:#c9cbd1; max-width:60ch; line-height:1.5; }
+  ul.slide { font-size:1em; line-height:1.55; max-width:62ch; padding-left:1.1em; }
+  ul.slide li { margin:.35em 0; }
+  img.slide { max-width:min(80vw, 1400px); max-height:48vh; border-radius:.5em; border:1px solid var(--line); background:#111; }
+  .foot { color:var(--dim); font-size:.65em; margin-top:.8em; }
+  #wait { color:var(--dim); font-size:1.2em; margin:auto; }
+  #hint { position:fixed; right:1vw; top:1vh; font-size:11px; color:#555; }
+  body.fs #hint { display:none; }
+</style>
+</head>
+<body>
+<div id="hint">Standing Light audience screen. Press F for fullscreen.</div>
+<div id="wait">Waiting for the show to start&hellip;</div>
+<main id="view" hidden></main>
+<div id="banner" hidden></div>
+<script>
+const view = document.getElementById('view'), banner = document.getElementById('banner'), wait = document.getElementById('wait');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let lastSeq = 0;
+
+function sphere(d) {
+  if (!d) return '';
+  const R = 30, c = 36, x = c + d.x * R, y = c - d.z * R;
+  return `<svg width="72" height="72" viewBox="0 0 72 72" style="margin-top:.3em"><circle cx="${c}" cy="${c}" r="${R}" fill="#0c0d0f" stroke="#666"/><line x1="${c - R}" y1="${c}" x2="${c + R}" y2="${c}" stroke="#3a3b40"/>
+    <circle cx="${c}" cy="${c - R}" r="2" fill="#ffd8a0"/><circle cx="${c}" cy="${c + R}" r="2" fill="#8fb8ff"/><circle cx="${x}" cy="${y}" r="5" fill="${d.outcome ? '#ff6b5e' : '#ffd60a'}"/></svg>`;
+}
+function live(a) {
+  const c = a.caption;
+  if (!c) return '<h1>Starting&hellip;</h1>';
+  return `<div class="row"><div style="flex:2;min-width:20em">
+      <h1>${esc(c.headline)}</h1>
+      <div class="row">${c.panels.map((p, i) => `<div class="card"><div class="name">${esc(p.name)} panel</div><div class="val ${p.state}">${p.state}</div>${c.spheres ? sphere(c.spheres[i]) : ''}</div>`).join('')}
+        <div class="card"><div class="name">hardness</div><div class="val" style="font-size:1em">${esc(c.hardness)}</div></div></div>
+      <p style="margin:1em 0 .2em">${c.lamp_bits.map(l => `<span class="qubit"><i class="${l.bit < 0 ? 'one' : ''}">${l.bit < 0 ? 1 : 0}</i>${esc(l.name)}: ${esc(l.meaning)}</span>`).join('')}
+        ${c.panels.map(p => `<span class="qubit"><i class="${p.bit < 0 ? 'one' : ''}">${p.bit < 0 ? 1 : 0}</i>${esc(p.name)}: ${p.state}</span>`).join('')}</p>
+      <p class="explain">${esc(c.explain)}</p></div>
+    <div style="flex:1"><img id="thumb" src="/api/latest.png?t=${lastSeq}" alt="what is on the wall"></div></div>`;
+}
+function slide(a) {
+  return `<h1>${esc(a.title)}</h1><ul class="slide">${a.bullets.map(b => `<li>${esc(b)}</li>`).join('')}</ul>` +
+    (a.image ? `<img class="slide" src="/api/asset/${esc(a.image)}.png" alt="">` : '') + (a.footnote ? `<div class="foot">${esc(a.footnote)}</div>` : '');
+}
+function overlay(a) {
+  return `<h1>The qubit graph</h1><img class="slide" src="/api/overlay.png?gaps=${a.gaps || 'source'}&t=${Date.now()}" alt="patch graph"><div class="foot">${esc(a.caption || '')}</div>`;
+}
+function render(s) {
+  const a = s.audience;
+  wait.hidden = true; view.hidden = false;
+  view.innerHTML = a.kind === 'slide' ? slide(a) : a.kind === 'overlay' ? overlay(a) : live(a);
+  const prov = s.provenance;
+  banner.hidden = false;
+  if (a.kind === 'live' && a.caption) {
+    banner.textContent = a.caption.provenance;
+    banner.className = prov.quantum_backed && !s.knobs.noise && !s.knobs.dephased ? '' : 'rehearsal';
+  } else {
+    banner.textContent = prov.quantum_backed ? 'Source: ' + prov.label + (prov.untested ? ' (untested design)' : '') : 'Rehearsal: classical stand-in sampler, no quantum calls.';
+    banner.className = prov.quantum_backed ? '' : 'rehearsal';
+  }
+}
+let es;
+function connect() {
+  es = new EventSource('/api/events?role=audience');
+  es.addEventListener('state', e => render(JSON.parse(e.data)));
+  es.addEventListener('frame', e => { lastSeq = JSON.parse(e.data).seq; const t = document.getElementById('thumb'); if (t) t.src = '/api/latest.png?t=' + lastSeq; });
+  es.onerror = () => { es.close(); setTimeout(connect, 1500); };
+}
+function toggleFs() { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+addEventListener('keydown', e => { if (e.key.toLowerCase() === 'f') toggleFs(); });
+document.addEventListener('fullscreenchange', () => document.body.classList.toggle('fs', !!document.fullscreenElement));
+connect();
+</script>
+</body>
+</html>
