@@ -96,7 +96,7 @@ The studio ([Quick start](#quick-start)) runs these same modules for you. You ca
 
 ### 1. The show on its own (what studio step 3 opens)
 
-Use this to skip the studio, or to pass relief options the studio does not expose (`--kappa`, `--n-dirs`, `--entangle`, a facet-register circuit).
+Use this to skip the studio. The studio's step 3 and step 5 each have a "Show options" section that sets these same flags from the page (greyed out when the source or engine you picked ignores them); blank leaves the show's own default.
 
 ```bash
 python -m src.show                                          # built-in bay window, Superposed Relief
@@ -119,6 +119,7 @@ python -m src.show --lan                                    # also serve /output
 | `--n-dirs` | slope-orientation facets per panel (4 gives 4 band facets, a qubit each, plus a classical plateau facet: 12 qubits for the bay window) |
 | `--entangle` | strength of the diagonal couplings between facets (0 = product relief) |
 | `--contrast` | projection tone: stretch of the lit field about mid-grey (an exposure, not a scene property) |
+| `--lamp-mode` | `z` (default: a light world is drawn per look) or `x` (the lamp register is read in X, so the light directions interfere; the `x` experiment key, set from the start) |
 | `--calib`, `--run` | directories with calibration targets and engine results (for the demo slides and re-solve) |
 | `--engine` | `panel` (default) or `domain`; the flags below apply to `domain` only |
 | `--seg-len` | facet length along a polygon edge in px (150: 46 facets; 100: 78; smaller: more qubits) |

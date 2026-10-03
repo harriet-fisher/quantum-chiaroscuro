@@ -120,7 +120,7 @@ class Session:
     def __init__(self, labels=None, calibration=None, *, source="relief", pol_basis=None, circuit=None, coupling="lamp2",
                  calib_dir="runs/calibration_5x4", run_dir="runs/first_run", out_dir="runs/show", projector_size=None, seed=2026,
                  pool_size=60000, hub=None, allow_spend=False, solve_fn=None, log=None, complementary_report="runs/complementary/report.json",
-                 kappa=1.0, n_dirs=4, entangle=0.8, contrast=1.15, engine="panel", domain=None, game=False, game_fraction=0.5):
+                 kappa=1.0, n_dirs=4, entangle=0.8, contrast=1.15, engine="panel", domain=None, game=False, game_fraction=0.5, lamp_mode="z"):
         self.labels = validate(fill_defaults(labels if labels is not None else bay_window_labels()))
         self.scene = build_scene(self.labels)
         g = self.labels["grid"]
@@ -165,6 +165,9 @@ class Session:
         if game and engine != "domain":
             raise ValueError("the parity game needs --engine domain")
         self.knobs.game, self.knobs.game_fraction = bool(game), float(game_fraction)
+        if lamp_mode not in ("z", "x"):
+            raise ValueError("lamp_mode must be 'z' or 'x'")
+        self.knobs.light_interference = lamp_mode == "x"
         self.certificate = None
         self._game, self._game_for, self.evolution = None, None, None
 

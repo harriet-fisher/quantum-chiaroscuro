@@ -35,6 +35,18 @@
   .plan { margin:10px 0 0 34px; border:1px solid var(--accent); border-radius:6px; padding:10px 12px; }
   .plan code { font-size:12px; word-break:break-all; }
   .plan .cost { font-size:15px; font-weight:600; margin:6px 0; }
+  .knobs { margin:10px 0 0 34px; }
+  .knobs summary { color:var(--accent); }
+  .knobs fieldset { border:1px solid var(--line); border-radius:6px; margin:8px 0 0; padding:6px 10px 8px; }
+  .knobs legend { font-size:12px; color:var(--dim); padding:0 4px; }
+  .knobs .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:6px 14px; }
+  .knobs label { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--dim); }
+  .knobs label code { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text, inherit); }
+  .knobs input[type=text] { width:96px; padding:3px 6px; }
+  .knobs select { width:132px; padding:3px 6px; }
+  .knobs input[type=text].wide { width:150px; }
+  .knobs label.off { opacity:.35; }
+  .knobs .row { margin-top:8px; display:flex; gap:8px; align-items:center; }
   #msg { position:sticky; top:0; z-index:2; margin-bottom:10px; padding:8px 12px; border-radius:6px; background:#3a1f1d; border:1px solid var(--bad); color:var(--bad); }
 </style>
 </head>
@@ -57,6 +69,11 @@ const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.crea
 const $ = id => document.getElementById(id);
 let S = null, plan = null, planEngine = "qdrive", busy = false;
 const inputs = { photo: "", nx: "", ny: "", sweeps: "" };
+const knobVals = {};                             // show options by key; blank/false = the show's own default
+const KNOB_STORE = "studio-knobs";
+try { Object.assign(knobVals, JSON.parse(localStorage.getItem(KNOB_STORE) || "{}")); } catch (e) { /* storage unavailable: start blank */ }
+const saveKnobs = () => { try { localStorage.setItem(KNOB_STORE, JSON.stringify(knobVals)); } catch (e) { /* ignore */ } };
+let knobsBuilt = false;
 
 async function post(path, body) {
   const r = await fetch(path, { method: "POST", headers: { "X-Token": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
@@ -89,7 +106,72 @@ function optsFor(id) {
     if (inputs.sweeps) o.sweeps = Number(inputs.sweeps);
     return o;
   }
+  if (id === "preview" || id === "final") return { show: shownKnobs(id) };
   return {};
+}
+
+const knobSource = id => id === "final" ? "circuit" : (knobVals.source || "relief");
+const knobEngine = () => knobVals.engine || S.engine;
+function knobOff(k, id) {                        // a knob that cannot apply to the source/engine chosen is greyed out and not sent
+  const src = knobSource(id);
+  if (k.key === "allow_spend") return !S.allow_spend;
+  if (k.needs === "relief" || k.needs === "domain") if (src !== "relief") return true;
+  if (k.needs === "domain" && knobEngine() !== "domain") return true;
+  if (k.key === "game" && knobVals.lamp_mode === "x") return true;
+  return false;
+}
+function shownKnobs(id) {
+  const out = {};
+  for (const k of S.knobs) {
+    const v = knobVals[k.key];
+    if (k.stages.includes(id) && !knobOff(k, id) && v !== undefined && v !== "" && v !== false) out[k.key] = v;
+  }
+  return out;
+}
+function knobPanel(id) {
+  const box = el("details", { className: "knobs", id: id + "-knobs" }, el("summary", { textContent: "Show options (flags of src.show)" }));
+  const groups = [];
+  for (const k of S.knobs.filter(k => k.stages.includes(id))) {
+    let g = groups.find(x => x.name === k.group);
+    if (!g) { g = { name: k.group, grid: el("div", { className: "grid" }) }; groups.push(g); }
+    let input;
+    const def = k.key === "engine" ? S.engine : k.default;
+    if (k.kind === "bool") {
+      input = el("input", { type: "checkbox", checked: !!knobVals[k.key] });
+      input.onchange = () => { knobVals[k.key] = input.checked; saveKnobs(); applyKnobs(); };
+    } else if (k.kind === "choice") {
+      input = el("select", {}, el("option", { value: "", textContent: "default" + (def !== "" ? " (" + def + ")" : "") }), ...k.limits.map(c => el("option", { value: c, textContent: c })));
+      input.value = knobVals[k.key] || "";
+      input.onchange = () => { knobVals[k.key] = input.value; saveKnobs(); applyKnobs(); };
+    } else {
+      input = el("input", { type: "text", placeholder: def !== "" && def !== 0 ? String(def) : (k.kind === "size" ? "1920x1080" : k.kind === "path" ? "default" : "default"), value: knobVals[k.key] || "" });
+      if (k.kind === "path") input.className = "wide";
+      input.oninput = () => { knobVals[k.key] = input.value; saveKnobs(); };
+    }
+    input.dataset.knob = k.key;
+    const lab = el("label", {}, el("code", { textContent: k.flag, title: k.flag }), input);
+    lab.dataset.knob = k.key;
+    g.grid.append(lab);
+  }
+  for (const g of groups) box.append(el("fieldset", {}, el("legend", { textContent: g.name }), g.grid));
+  box.append(el("div", { className: "row" }, el("button", { textContent: "Reset options", onclick: () => { for (const key of Object.keys(knobVals)) delete knobVals[key]; saveKnobs(); rebuildKnobs(); } })));
+  return box;
+}
+function rebuildKnobs() {
+  for (const id of ["preview", "final"]) {
+    const old = $(id + "-knobs"), open = old && old.open;
+    const fresh = knobPanel(id); fresh.open = !!open;
+    old ? old.replaceWith(fresh) : $(id + "-actions").after(fresh);
+  }
+  applyKnobs();
+}
+function applyKnobs() {                          // greying only: never rebuilds, so typing keeps its focus
+  for (const id of ["preview", "final"])
+    for (const lab of document.querySelectorAll("#" + id + "-knobs label")) {
+      const k = S.knobs.find(x => x.key === lab.dataset.knob), off = knobOff(k, id);
+      lab.className = off ? "off" : "";
+      lab.querySelector("[data-knob]").disabled = off;
+    }
 }
 
 async function reviewPayload() {
@@ -143,6 +225,7 @@ function buttons(host, stage) {                  // rebuilt only when something 
 
 function render() {
   if (!S) return;
+  if (!knobsBuilt) { knobsBuilt = true; rebuildKnobs(); } else applyKnobs();
   $("project").textContent = "project: " + S.project;
   const sp = $("spend"); sp.textContent = S.allow_spend ? "Moth submit: enabled (asks first)" : "Moth submit: preview only"; sp.className = "chip" + (S.allow_spend ? " on" : "");
   for (const st of S.stages) {

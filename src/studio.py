@@ -19,8 +19,8 @@ downstream says so). Long-running tools (pen tool, show) are started on a free p
 
 Spending. Step 4 cannot submit unless the studio was started with --allow-spend AND you press the send button on the plan it shows
 (payload hash and credits); the request must repeat that hash and cost, so a payload that changed after you read it is refused. A
-payload that already has a result on disk is free and sends nothing. The show started here is never given --allow-spend, and the
-Moth key is read by the solver itself, never by this file.
+payload that already has a result on disk is free and sends nothing. The show started here is given --allow-spend only if the studio has it too and you tick it in the show options (the show's own
+re-solve dialog still asks, with hash and cost), and the Moth key is read by the solver itself, never by this file.
 """
 import argparse
 import collections
@@ -48,6 +48,61 @@ LOG_LINES = 300
 STAGES = ("draw", "targets", "preview", "solve", "final")
 TITLES = dict(draw="Draw the shapes", targets="Calibrate targets", preview="Rehearse the show", solve="Solve on Moth", final="Perform with the result")
 ENGINES = {"qdrive": ("payload_qdrive.json", "qdrive-api-v1", "qdrive"), "graph-v1": ("payload_graph_v1.json", "graph-v1", "graph_v1")}
+
+
+CLASSICAL = ("oracle", "mock", "circuit", "complementary")
+PI = 3.1416
+
+# One row per `src.show` flag the studio can set before step 3 (and the runtime ones before step 5). (key, kind, default, limits, stages, needs, group)
+#   kind    float | int | bool | choice | path | size        needs   None | relief | domain | classical (checked against the source/engine chosen)
+# The key is the flag with underscores ("seg_len" -> --seg-len). A blank value means "leave the show's own default". The page is built from this table.
+KNOBS = [
+    ("source", "choice", "relief", ("relief",) + CLASSICAL, ("preview",), None, "Show"),
+    ("engine", "choice", "panel", ("panel", "domain"), ("preview",), "relief", "Show"),
+    ("backend", "choice", "auto", ("auto", "exact", "mps"), ("preview",), "domain", "Show"),
+    ("lamp_mode", "choice", "z", ("z", "x"), ("preview",), "relief", "Show"),
+    ("kappa", "float", 1.0, (0.01, 8.0), ("preview",), "relief", "Relief"),
+    ("n_dirs", "int", 4, (1, 16), ("preview",), "relief", "Relief"),
+    ("entangle", "float", 0.8, (0.0, PI), ("preview",), "relief", "Relief"),
+    ("contrast", "float", 1.15, (0.1, 5.0), ("preview",), "relief", "Relief"),
+    ("seg_len", "float", 150.0, (10.0, 2000.0), ("preview",), "domain", "Domain"),
+    ("group_size", "int", 1, (1, 64), ("preview",), "domain", "Domain"),
+    ("tau", "float", 0.5, (0.0, PI), ("preview",), "domain", "Domain"),
+    ("pol_coupling", "float", 0.3, (-PI, PI), ("preview",), "domain", "Domain"),
+    ("crease_coupling", "float", 1.0, (-PI, PI), ("preview",), "domain", "Domain"),
+    ("crease_sign", "float", -1.0, (-1.0, 1.0), ("preview",), "domain", "Domain"),
+    ("seam_coupling", "float", 1.0, (-PI, PI), ("preview",), "domain", "Domain"),
+    ("seam_mix", "float", 0.0, (0.0, 1.0), ("preview",), "domain", "Domain"),
+    ("leaf_tau", "float", 0.3, (0.0, PI), ("preview",), "domain", "Domain"),
+    ("leaf_prefer", "choice", "visible", ("visible", "seam"), ("preview",), "domain", "Domain"),
+    ("lock", "float", 1.5708, (-PI, PI), ("preview",), "domain", "Domain"),
+    ("tau_mix", "float", 0.0, (0.0, 1.0), ("preview",), "domain", "Domain"),
+    ("pol_field", "float", 0.0, (-PI, PI), ("preview",), "domain", "Domain"),
+    ("game", "bool", False, None, ("preview",), "domain", "Game and evolution"),
+    ("game_fraction", "float", 0.5, (0.0, 1.0), ("preview",), "domain", "Game and evolution"),
+    ("evolve_steps", "int", 0, (0, 40), ("preview",), "domain", "Game and evolution"),
+    ("evolve_zz", "float", 0.7, (-PI, PI), ("preview",), "domain", "Game and evolution"),
+    ("evolve_x", "float", 0.5, (-PI, PI), ("preview",), "domain", "Game and evolution"),
+    ("polarity_basis", "choice", "", ("z", "x"), ("preview", "final"), None, "Classical stand-ins"),
+    ("coupling", "choice", "lamp2", ("hub", "lamp1", "lamp2"), ("preview", "final"), None, "Classical stand-ins"),
+    ("pool", "int", 60000, (100, 10_000_000), ("preview", "final"), None, "Classical stand-ins"),
+    ("seed", "int", 2026, (0, 2**31 - 1), ("preview", "final"), None, "Classical stand-ins"),
+    ("calib", "path", "", "dir", ("preview", "final"), None, "Folders and files"),
+    ("run", "path", "", "dir", ("preview", "final"), None, "Folders and files"),
+    ("calibration", "path", "", "file", ("preview", "final"), None, "Folders and files"),
+    ("circuit", "path", "", "file", ("preview",), "relief", "Folders and files"),
+    ("projector_size", "size", "", None, ("preview", "final"), None, "Server"),
+    ("allow_spend", "bool", False, None, ("preview", "final"), None, "Server"),
+    ("lan", "bool", False, None, ("preview", "final"), None, "Server"),
+    ("port", "int", 0, (1, 65535), ("preview", "final"), None, "Server"),
+    ("no_browser", "bool", False, None, ("preview", "final"), None, "Server"),
+]
+KNOB = {k[0]: k for k in KNOBS}
+
+
+def knob_schema():
+    return [dict(key=k, flag="--" + k.replace("_", "-"), kind=kind, default=d, limits=(list(lim) if isinstance(lim, tuple) else lim), stages=list(st), needs=needs, group=g)
+            for k, kind, d, lim, st, needs, g in KNOBS]
 
 
 class StageError(ValueError):
@@ -264,19 +319,19 @@ class Studio:
     def state(self):
         stages, nxt = self.stage_views()
         return dict(project=os.path.relpath(self.project, ROOT) if self.project.startswith(ROOT) else self.project,
-                    allow_spend=self.allow_spend, stages=stages, next=nxt, busy=bool(self._running("targets") or self._running("solve")))
+                    allow_spend=self.allow_spend, engine=self.engine, knobs=knob_schema(), stages=stages, next=nxt, busy=bool(self._running("targets") or self._running("solve")))
 
     # ------------------------------------------------------------------ starting things
     def _py(self, *args):
         return [self.python, "-m", *args]
 
-    def _server_job(self, name, argv, port, **meta):
+    def _server_job(self, name, argv, port, open_browser=None, **meta):
         old = self.jobs.get(name)
         if old:
             old.stop()
         url = f"http://127.0.0.1:{port}/"
         job = self.jobs[name] = Job(name, argv, self.spawn, url=url, **meta)
-        if self.open_browser:
+        if self.open_browser if open_browser is None else open_browser:
             threading.Thread(target=self._open_when_up, args=(job, port), daemon=True).start()
         return job
 
@@ -346,22 +401,98 @@ class Studio:
         if job.returncode == 0:
             self._remember(targets_for=sha, previewed=None, final=None)
 
-    def _show_argv(self, port, source, extra=()):
-        return self._py("src.show", "--labels", self.labels_path, "--calib", self.calib, "--run", self.solve, "--out", self.project,
-                        "--source", source, *extra, "--port", str(port), "--no-browser")
+    def _knob_values(self, stage, raw, engine_default=None):
+        """Check the show knobs the page sent for this stage; returns {key: typed value} for the ones that differ from the show's own default."""
+        raw = dict(raw or {})
+        if engine_default and not raw.get("engine") and (raw.get("source") or "relief") == "relief":
+            raw["engine"] = engine_default
+        for key in raw:
+            if key not in KNOB:
+                raise StageError(f"unknown option {key!r}")
+        given = {}
+        for key, kind, default, lim, stages, needs, _ in KNOBS:
+            v = raw.get(key)
+            if v is None or (isinstance(v, str) and not v.strip()) or (kind == "bool" and not v):
+                continue
+            flag = "--" + key.replace("_", "-")
+            if stage not in stages:
+                raise StageError(f"{flag} does not apply to the {TITLES[stage].lower()} step")
+            try:
+                if kind == "float":
+                    v = float(v)
+                    if not (v == v and lim[0] <= v <= lim[1]):
+                        raise ValueError
+                elif kind == "int":
+                    f = float(v)
+                    if f != int(f) or not lim[0] <= int(f) <= lim[1]:
+                        raise ValueError
+                    v = int(f)
+                elif kind == "bool":
+                    if v is not True:
+                        raise ValueError
+                elif kind == "choice":
+                    v = str(v).strip()
+                    if v not in lim:
+                        raise ValueError
+                elif kind == "size":
+                    w, h = (int(x) for x in str(v).lower().split("x"))
+                    if not (1 <= w <= 16384 and 1 <= h <= 16384):
+                        raise ValueError
+                    v = f"{w}x{h}"
+                else:                                                   # path: relative paths are relative to the project root, where the show runs
+                    v = os.path.abspath(os.path.join(ROOT, os.path.expanduser(str(v).strip())))
+                    if not (os.path.isdir(v) if lim == "dir" else os.path.isfile(v)):
+                        raise StageError(f"{flag}: no {'folder' if lim == 'dir' else 'file'} at {v!r}")
+            except StageError:
+                raise
+            except (ValueError, TypeError, IndexError, OverflowError):
+                shown = f"between {lim[0]} and {lim[1]}" if kind in ("float", "int") else f"one of {', '.join(lim)}" if kind == "choice" else "like 1920x1080" if kind == "size" else "on or off"
+                raise StageError(f"{flag} must be {shown}")
+            if v != default:
+                given[key] = v
+        source = given.get("source", "relief") if stage == "preview" else "circuit"
+        engine = given.get("engine", "panel")
+        for key in given:
+            needs = KNOB[key][5]
+            flag = "--" + key.replace("_", "-")
+            if needs in ("relief", "domain") and source != "relief":
+                raise StageError(f"{flag} applies to the relief source only")
+            if needs == "domain" and engine != "domain":
+                raise StageError(f"{flag} applies to the domain engine only")
+        if given.get("lamp_mode") == "x" and given.get("game"):
+            raise StageError("--game needs --lamp-mode z: with the lamp read in X no round is played")
+        if given.get("allow_spend") and not self.allow_spend:
+            raise StageError("the studio was started without --allow-spend, so the show cannot be given it")
+        return given
+
+    def _show_argv(self, port, source, knobs=None, extra=()):
+        knobs = dict(knobs or {})
+        calib, run = knobs.pop("calib", self.calib), knobs.pop("run", self.solve)
+        no_browser, user_port = knobs.pop("no_browser", False), knobs.pop("port", None)
+        argv = self._py("src.show", "--labels", self.labels_path, "--calib", calib, "--run", run, "--out", self.project, "--source", knobs.pop("source", source), *extra)
+        for key, v in knobs.items():
+            flag = "--" + key.replace("_", "-")
+            argv += [flag] if v is True else [flag, str(v)]
+        return argv + ["--port", str(port), "--no-browser"]
+
+    def _show_port(self, knobs):
+        port = knobs.get("port") or free_port()
+        if knobs.get("port") and port_open(port):
+            raise StageError(f"port {port} is already in use")
+        return port
 
     def _start_preview(self, opts):
-        port = free_port()
-        engine = (opts or {}).get("engine", self.engine)
-        extra = ("--engine", engine) if engine == "domain" else ()
-        self._server_job("show", self._show_argv(port, "relief", extra), port, mode="oracle")
+        knobs = self._knob_values("preview", (opts or {}).get("show"), engine_default=(opts or {}).get("engine", self.engine))
+        port = self._show_port(knobs)
+        self._server_job("show", self._show_argv(port, "relief", knobs), port, open_browser=False if knobs.get("no_browser") else None, mode="oracle")
         self._remember(previewed=self.labels_info()[0])
         return dict(url=self.jobs["show"].url)
 
     def _start_final(self, opts):
         circuit = self.circuit_path()
-        port = free_port()
-        self._server_job("show", self._show_argv(port, "circuit", ("--circuit", circuit)), port, mode="circuit")
+        knobs = self._knob_values("final", (opts or {}).get("show"))
+        port = self._show_port(knobs)
+        self._server_job("show", self._show_argv(port, "circuit", knobs, ("--circuit", circuit)), port, open_browser=False if knobs.get("no_browser") else None, mode="circuit")
         self._remember(final=sha_file(circuit))
         return dict(url=self.jobs["show"].url)
 

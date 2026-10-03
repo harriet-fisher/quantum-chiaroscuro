@@ -192,6 +192,111 @@ class Order(Base):
         self.assertEqual(self.rec.calls, [])
 
 
+class ShowKnobs(Base):
+    def setUp(self):
+        super().setUp()
+        self.with_targets()
+
+    def argv(self, show, stage="preview", **extra):
+        self.s.start(stage, dict(show=show, **extra))
+        return self.rec.calls[-1]
+
+    def value(self, argv, flag):
+        return argv[argv.index(flag) + 1]
+
+    def test_every_show_flag_has_a_knob_and_defaults_match_the_show(self):
+        import argparse
+        import re
+        with open(os.path.join(studio.ROOT, "src", "show.py")) as f:
+            src = f.read()
+        flags = set(re.findall(r'add_argument\("--([a-z0-9-]+)"', src))
+        owned = {"labels", "out", "run", "calib", "calibration", "circuit"} | {k["flag"][2:] for k in studio.knob_schema()}
+        self.assertEqual(flags - owned, set())
+        self.assertEqual({k["key"] for k in studio.knob_schema()} - {f.replace("-", "_") for f in flags}, set())
+
+    def test_defaults_send_no_flags_beyond_the_old_command(self):
+        argv = self.argv({})
+        self.assertEqual(argv[argv.index("--source"):], ["--source", "relief", "--port", argv[-2], "--no-browser"])
+
+    def test_values_become_flags_and_blank_or_default_ones_do_not(self):
+        argv = self.argv(dict(kappa="1.5", n_dirs=6, entangle="", contrast=1.15, lamp_mode="x", projector_size="1280x720", lan=True, game=False))
+        self.assertEqual((self.value(argv, "--kappa"), self.value(argv, "--n-dirs"), self.value(argv, "--lamp-mode"), self.value(argv, "--projector-size")),
+                         ("1.5", "6", "x", "1280x720"))
+        for absent in ("--entangle", "--contrast", "--game"):
+            self.assertNotIn(absent, argv)
+        self.assertIn("--lan", argv)
+
+    def test_domain_knobs_and_the_studio_engine_default(self):
+        argv = self.argv(dict(seg_len=100, game=True, evolve_steps=3, leaf_prefer="seam", backend="mps"), engine="domain")
+        self.assertEqual(self.value(argv, "--engine"), "domain")
+        self.assertIn("--game", argv)
+        self.assertEqual((self.value(argv, "--seg-len"), self.value(argv, "--evolve-steps"), self.value(argv, "--leaf-prefer")), ("100.0", "3", "seam"))
+        self.s.engine = "domain"
+        self.assertEqual(self.value(self.argv({}), "--engine"), "domain")
+        self.assertNotIn("--engine", self.argv(dict(engine="panel")))
+
+    def test_classical_source_replaces_the_relief_source_and_refuses_relief_knobs(self):
+        self.assertEqual(self.value(self.argv(dict(source="oracle", pool=5000)), "--source"), "oracle")
+        n = len(self.rec.calls)
+        for show in (dict(source="oracle", kappa=2), dict(tau=0.2), dict(source="oracle", engine="domain")):
+            with self.assertRaises(StageError):
+                self.s.start("preview", dict(show=show))
+        self.assertEqual(len(self.rec.calls), n)
+
+    def test_bad_values_are_refused_before_anything_runs(self):
+        n = len(self.rec.calls)
+        bad = (dict(kappa="nan"), dict(kappa=99), dict(n_dirs=2.5), dict(projector_size="big"), dict(lamp_mode="y"), dict(nope=1), dict(port=0, lan="yes"),
+               dict(calib="/no/such/folder"), dict(lamp_mode="x", engine="domain", game=True))
+        for show in bad:
+            with self.assertRaises(StageError, msg=show):
+                self.s.start("preview", dict(show=show, engine="domain") if show.get("game") else dict(show=show))
+        self.assertEqual(len(self.rec.calls), n)
+
+    def test_the_show_gets_spend_permission_only_if_the_studio_has_it(self):
+        with self.assertRaises(StageError):
+            self.s.start("preview", dict(show=dict(allow_spend=True)))
+        self.s.allow_spend = True
+        self.assertIn("--allow-spend", self.argv(dict(allow_spend=True)))
+
+    def test_path_overrides_replace_the_project_paths(self):
+        argv = self.argv(dict(calib=CALIB, run=self.tmp.name))
+        self.assertEqual(self.value(argv, "--calib"), os.path.abspath(os.path.join(studio.ROOT, CALIB)))
+        self.assertEqual(self.value(argv, "--run"), os.path.abspath(self.tmp.name))
+        self.assertEqual(argv.count("--calib"), 1)
+
+    def test_own_port_and_no_browser(self):
+        opened = []
+        self.s.open_browser = True
+        self.s._open_when_up = lambda job, port: opened.append(port)
+        argv = self.argv(dict(port=51999, no_browser=True))
+        self.assertEqual(self.value(argv, "--port"), "51999")
+        time.sleep(0.1)
+        self.assertEqual(opened, [])
+        self.argv(dict())
+        self.assertTrue(wait_for(lambda: opened))
+
+    def test_performance_step_takes_only_the_common_knobs_and_keeps_its_circuit(self):
+        run = os.path.join(self.s.solve, "qdrive")
+        os.makedirs(run)
+        with open(os.path.join(run, "circuit.qasm"), "w") as f:
+            f.write("OPENQASM 3.0;\n")
+        plan = self.s.plan("qdrive")
+        with open(os.path.join(run, "payload.sha256"), "w") as f:
+            f.write(plan["sha256"] + "\n")
+        with open(os.path.join(run, "raw_result_x.json"), "w") as f:
+            f.write("{}")
+        argv = self.argv(dict(seed=7, projector_size="800x600"), "final")
+        self.assertEqual((self.value(argv, "--source"), self.value(argv, "--seed"), self.value(argv, "--projector-size")), ("circuit", "7", "800x600"))
+        for show in (dict(kappa=2), dict(lamp_mode="x")):
+            with self.assertRaises(StageError):
+                self.s.start("final", dict(show=show))
+
+    def test_state_carries_the_schema(self):
+        st = self.s.state()
+        self.assertIn("lamp_mode", {k["key"] for k in st["knobs"]})
+        self.assertEqual(st["engine"], "panel")
+
+
 class SpendGate(Base):
     def setUp(self):
         super().setUp()
