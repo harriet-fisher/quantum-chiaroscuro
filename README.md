@@ -1,8 +1,8 @@
-# Standing Light
+# Quantum Chiaroscuro
 
 **Quantum chiaroscuro, projected onto a real surface.**
 
-Standing Light projects *shading*, not images, onto a real object (the reference scene is a bay window with glass panes). A physical wall has one shape; light can make it look swollen, hollowed, creased or flat. The project makes that literal with quantum mechanics:
+Quantum Chiaroscuro projects *shading*, not images, onto a real object (the reference scene is a bay window with glass panes). A physical wall has one shape; light can make it look swollen, hollowed, creased or flat. The project makes that literal with quantum mechanics:
 
 - Every patch of the wall is a **qubit whose state is its surface normal**. The light is the measurement axis, and Lambert's cosine law is the Born rule, so a frame is a measurement, not a render.
 - Each panel's **depth is in superposition** (a raised and a sunk version). How decided the depth looks in any one frame depends on where the observation lands on that panel's Bloch sphere, and that is drawn *inside the circuit*, never toggled: a pole gives a definite bump or hollow, the equator gives a flat, undecided panel.
@@ -137,6 +137,138 @@ python -m src.show --lan                                    # also serve /output
 | `--projector-size WxH` | initial projector size; the output window reports its real size once open |
 | `--allow-spend` | lets the re-solve dialog submit to Moth (it still asks, showing hash and cost) |
 | `--port`, `--no-browser` | server port (default: any free) and do not open a browser |
+
+Relief flags: what each knob changes, conceptually and in practice
+These are not cosmetic controls. In this project, a “relief knob” changes the quantum state that is sampled, the geometry it is allowed to express, and the trade-off between “visible relief,” “entangled wall,” and “certified parity-game behavior.”
+
+The simplest rule of thumb is:
+
+--kappa sets how much tilt the wall is allowed to carry.
+--entangle sets how strongly the facets are coupled together.
+--seam-mix and --tau-mix move the state toward a graph-state / seam-heavy regime.
+--game and --game-fraction switch the scene into the Mermin certifier.
+--evolve-steps decides whether the state stays static or grows entanglement in time.
+--lock decides whether the lamp acts like a coherent control or a plain coin.
+Geometry and visibility
+--kappa
+
+Conceptually: this is the per-panel tilt budget. The relief state is built from facet normals, and the total allowed angular spread is constrained by sum(tau²) = kappa².
+Practically: larger kappa means stronger relief / stronger bevel, but also weaker interference because visibility falls roughly like exp(-kappa²/2). In other words, it increases the sculptural effect while reducing the “quantum coherence” of the state.
+--n-dirs
+
+Conceptually: how many slope directions each panel is decomposed into. More directions means more facet classes, more qubits, more structure.
+Practically: a panel with few directions is simpler and cleaner; a panel with many directions has more nuanced relief but more complexity and more measurement overhead. This is the knob that chooses the granularity of the panel geometry.
+--tau
+
+Conceptually: the actual facet tilt angle.
+Practically: it is the “shape” parameter for each facet normal. If kappa sets the total available budget, tau is the per-facet tilt that spends it. In the wall, this controls how much each local patch leans relative to the panel plane.
+--contrast
+
+Conceptually: not a geometry or Hamiltonian parameter; it is an output/exposure control.
+Practically: it stretches the lit field around mid-grey. It changes how the projector looks, but it does not change the underlying quantum structure. This is the “make the image easier to read” knob, not the “change the physics” knob.
+Domain graph and seam structure
+--seg-len
+
+Conceptually: the length of a facet segment along an edge.
+Practically: smaller segment lengths produce more facets, more qubits, and a finer-grained relief. Larger values simplify the wall and reduce the Hilbert space. This is the coarse/fine control for how much detail the geometry exposes.
+--group-size
+
+Conceptually: how many facets share a single polarity qubit.
+Practically: group-size = 1 gives the most coherent result because each facet has its own depth qubit. Larger groups smear the polarity across multiple facets, which reduces coherence but can simplify the model. It is the main way to trade off “finer physical detail” against “cleaner, more stable domain behavior.”
+--pol-coupling
+
+Conceptually: the Ising coupling between neighbouring domain polarity qubits along a boundary.
+Practically: this is the strength of the signed domain interaction that makes local relief decisions correlate across a panel. Weak values keep nearby domains mostly independent; stronger values add structural continuity and make the wall act like one correlated object.
+--crease-coupling, --crease-sign
+
+Conceptually: the same idea as above, but specifically across a crease between panels.
+Practically: these decide how strongly the relief wants to differ across the shared edge and whether the sign of that difference is positive or negative. This is where the wall’s “crease” behavior is encoded. The sign matters because a crease is not just a boundary; it is a geometric frustration line that can prefer “bump on one side, hollow on the other.”
+--seam-coupling
+
+Conceptually: the ZZ coupling among facets that touch across a seam or crease.
+Practically: this is the direct graph-state coupling that makes the seam behave like an entangled edge rather than a simple boundary. High values create strong seam entanglement and can dramatically change the parity-game behavior.
+--seam-mix
+
+Conceptually: a “move only the seam facets toward the equator” control.
+Practically: this is the knob that shifts the wall from ordinary relief into the seam-heavy regime. At seam-mix = 0, the visible relief stays ordinary and the seams remain weakly perturbed. At seam-mix = 1, the seam facets are pushed toward the equatorial graph-state regime, which gives stronger seam entanglement but destroys the ordinary relief behavior on those geometry lines. In short: it makes the wall look like a graph-state skeleton rather than a clean relief surface.
+--tau-mix
+
+Conceptually: a general “mix the facet state toward the equator” knob.
+Practically: it makes the facets less visible as ordinary relief and more like an entangled graph-state arrangement. It is a broader, less targeted version of --seam-mix, and it reduces visibility while pushing the state toward the seam regime.
+--pol-field
+
+Conceptually: a transverse field on the polarity qubits.
+Practically: it acts like a local drive that competes with the Ising order. Large fields push the polarity state away from clean ordered relief and into a more fluctuating, graph-like regime. This is the “how energetic is the local polarity field?” knob.
+Game and certification
+--game
+
+Conceptually: enable the Mermin parity-game witness.
+Practically: the system starts using a four-party parity-game frame for some fraction of the looks, and the operator page shows a running tally versus the classical bound of 75%. This is the knob that turns the installation into a nonclassical certification mode rather than a purely visual render.
+--game-fraction
+
+Conceptually: how often a look is treated as a parity-game round instead of an ordinary relief frame.
+Practically: the project will still show a normal scene, but a fraction of the frames become game rounds. This is a way to trade between “presentation” and “proof”: more game fraction means more certification, but less ordinary visual output.
+--leaf-tau, --leaf-prefer
+
+Conceptually: the leaf domains used in the parity game and the tilt assigned to those leaves.
+Practically: more visible / more coherent leaves produce a stronger game signal; choosing seam or visible leaves changes which facets participate directly in the certification. This is the part of the design that makes the game “about” the same geometry that produces the wall.
+--lock
+
+Conceptually: how strongly the lamp couples to the polarity register.
+Practically: --lock 0 leaves the lamp effectively as a plain coin; --lock π/2 gives it maximal coherent control over the polarity. This is the prime knob for turning the lamp from a passive observer into an active driver of the relief state.
+Time evolution and entanglement growth
+--evolve-steps
+
+Conceptually: the number of kicked-Ising steps applied to the facet graph before the polarity is attached.
+Practically: this is the “dynamic entanglement” knob. Each step entangles the graph more deeply, makes the relief evolve in time, and changes the normal field from one frame to the next. In the code, it runs a Floquet-style evolution on the facet graph; it is not a cosmetic animation, it is a real change in the state’s entanglement structure.
+--evolve-zz, --evolve-x
+
+Conceptually: the ZZ and X angles of the kicked-Ising step.
+Practically: they set how strongly the graph is entangling and how much local transverse field is applied. Larger values push the system toward a more deeply entangled, more time-dependent regime, and they also hurt the parity-game win rate as the entanglement grows.
+Backend and runtime
+--backend
+
+Conceptually: whether the state is built as an exact simulator or an MPS-backed approximation.
+Practically: use auto unless you need to debug a specific compression regime. exact is the “full” physically faithful path for smaller systems; mps is the scalable approximation that keeps large domains tractable but changes the numerical behavior and the classical cost.
+--projector-size WxH
+
+Conceptually: the initial output resolution of the projector page.
+Practically: this is a runtime/output sizing choice, not a physics knob.
+--allow-spend
+
+Conceptually: allow the system to spend credits when submitting to Moth or re-solving against a remote engine.
+Practically: it is a safety gate around Moth integration. The show still asks for confirmation and shows the hash/cost before sending anything.
+--port, --no-browser
+
+Conceptually: local hosting options.
+Practically: choose where the show serves and whether it opens a browser automatically.
+In practice: what changes when you “turn a knob up”?
+The most important pattern in this project is that the same state can be tuned in three different directions:
+
+Visibility / relief mode
+
+increase --kappa
+adjust --tau
+keep --entangle modest
+this gives a strong, readable relief wall
+Seam / graph-state mode
+
+increase --seam-mix
+increase --seam-coupling
+raise --tau-mix or --pol-field
+this makes the wall more entangled along seams and less like an ordinary optical relief
+Game / witness mode
+
+turn on --game
+set --game-fraction
+adjust --leaf-tau and --lock
+this emphasizes the parity-game certification and measures the wall against the classical 75% bound
+Dynamical entanglement mode
+
+use --evolve-steps
+increase --evolve-zz and --evolve-x
+this creates entanglement growth over time, but it costs the game and often destroys the clean relief regime
+This is why the project is not just a renderer: each knob changes the state, not merely the appearance. The live image is the measured outcome of that state, and the operator is really choosing a physics regime for the wall.
 
 ### 2. The studio's steps, individually
 
