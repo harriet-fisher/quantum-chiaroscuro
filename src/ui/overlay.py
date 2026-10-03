@@ -136,7 +136,7 @@ def render_relief_overlay(scene, fs, spec, look_img, draw, domains=None):
             rr = max(4, R // 4)
             d.ellipse([sx + dx - rr, sy + dy - rr, sx + dx + rr, sy + dy + rr], fill=(255, 107, 94) if draw.pol[k] < 0 else (255, 214, 10))
         L1 = "light in superposition" if draw.lamp_mode != "z" else f"L1 {'right' if draw.lamp[0] > 0 else 'left'}   L2 {'frontal' if draw.lamp[1] > 0 else 'grazing'}"
-        d.text((10, 8), f"{L1}   observation gamma {math.degrees(draw.gamma):.0f} deg   control: {draw.control}", fill=(255, 214, 10), font=big)
+        d.text((10, 8), f"{L1}   observation gamma {math.degrees(draw.gamma):.0f} chi {math.degrees(draw.chi):.0f} deg   control: {draw.control}", fill=(255, 214, 10), font=big)
     d.text((10, scene.H - 22), "nodes: facet qubits (arrow = slope direction, length = tilt)   edges: blue coplanar, orange crease   sphere dot: where the observation landed"
            + ("   big rings: domain polarity qubits (yellow raised, red sunk; +/- lamp lock sign)" if domains is not None else ""), fill=(200, 200, 205), font=small)
     return im

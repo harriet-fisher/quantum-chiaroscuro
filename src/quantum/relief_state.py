@@ -37,7 +37,31 @@ from src.quantum import sampler_local as sl
 # lamp world index w = bit(L1) + 2 bit(L2); bit 0 means +1 (L1: light from the right, L2: frontal), as in the rest of the repo
 WORLDS = [(1, 1), (-1, 1), (1, -1), (-1, -1)]
 WORLD_NAMES = ["right, frontal", "left, frontal", "right, grazing", "left, grazing"]
-DEFAULT_OBSERVATIONS = [(float(np.deg2rad(g)), 0.0) for g in (0, 30, 60, 90)]      # (gamma, chi) of the 4 observe-register values
+# (gamma, chi) of the 4 observe-register values. The reduced state of a polarity qubit is (V, 0, 0) on the depth sphere, so chi picks which
+# coherence of the raised and sunk branches a frame samples: cos(chi) reads it in the polarity outcome (P(o=0) = (1 + V sin(gamma) cos(chi))/2), and
+# the facets are left in |psi> + e^{i chi} P|psi>, a different bevel signature for each chi. With 'zz' the bevel is exactly flat on the equator at
+# chi = 0 and 180 only; at chi = 90 the sin(chi) cross-term leaves a small outcome-dependent residual (about +-0.03 on the bay window), so the
+# ring puts its equatorial observation at chi = 180.
+LINE_OBSERVATIONS = [(float(np.deg2rad(g)), 0.0) for g in (0, 30, 60, 90)]          # the original line of longitude, chi = 0 throughout
+RING_OBSERVATIONS = [(0.0, 0.0), (float(np.deg2rad(60)), 0.0), (float(np.deg2rad(60)), float(np.pi / 2)), (float(np.pi / 2), float(np.pi))]
+DEFAULT_OBSERVATIONS = RING_OBSERVATIONS      # decided; between, +X side; between, +Y side (outcome-symmetric); undecided, -X side
+OBSERVATION_SETS = dict(line=LINE_OBSERVATIONS, ring=RING_OBSERVATIONS)
+
+
+def parse_observations(text):
+    """'line' | 'ring' | 'g,c;g,c;g,c;g,c' (degrees) -> [(gamma, chi)] in radians. Exactly four: the observe register is two qubits."""
+    if text is None:
+        return None
+    t = str(text).strip().lower()
+    if t in OBSERVATION_SETS:
+        return list(OBSERVATION_SETS[t])
+    try:
+        obs = [tuple(float(np.deg2rad(float(v))) for v in pair.split(",")) for pair in t.split(";")]
+    except ValueError:
+        obs = []
+    if len(obs) != 4 or any(len(o) != 2 for o in obs):
+        raise ValueError("observations: 'line', 'ring', or four 'gamma,chi' pairs in degrees separated by ';' (the observe register has 2 qubits)")
+    return obs
 X_, Y_, Z_ = (np.array([[0, 1], [1, 0]], complex), np.array([[0, -1j], [1j, 0]], complex), np.diag([1.0, -1.0]).astype(complex))
 
 

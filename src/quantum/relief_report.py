@@ -46,7 +46,8 @@ def contact_sheet(scene, state, composer, out, K=48, seed=3):
         rows = [(f"obs {g}: gamma {np.degrees(gm):.0f} chi {np.degrees(ch):.0f}", g, "coherent") for g, (gm, ch) in enumerate(obs)]
         rows += [("control B: dephased depth", 0, "dephased"), ("control A: independent noise", 0, "noise")]
     else:
-        rows = [("decided (gamma 0)", 0, "coherent"), ("between (gamma 60)", 2, "coherent"), ("undecided (gamma 90)", 3, "coherent"),
+        deg = lambda g: f"gamma {np.degrees(obs[g][0]):.0f} chi {np.degrees(obs[g][1]):.0f}"
+        rows = [(f"decided ({deg(0)})", 0, "coherent"), (f"between ({deg(1)})", 1, "coherent"), (f"between ({deg(2)})", 2, "coherent"), (f"undecided ({deg(3)})", 3, "coherent"),
                 ("control B: dephased depth", 0, "dephased"), ("control A: independent noise", 0, "noise")]
     s = 0.27
     th, tw = int(scene.H * s), int(scene.W * s)

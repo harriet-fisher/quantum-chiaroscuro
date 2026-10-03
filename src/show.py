@@ -43,6 +43,8 @@ def main(argv=None):
     ap.add_argument("--n-dirs", type=int, default=4, help="relief: slope-orientation facets per panel (4 gives 5 facets, 15 qubits for the bay window)")
     ap.add_argument("--entangle", type=float, default=0.8, help="relief: strength of the diagonal facet couplings (0 = product relief)")
     ap.add_argument("--contrast", type=float, default=1.15, help="relief: projection tone, a stretch of the lit field about mid-grey")
+    ap.add_argument("--observations", default=None, help="relief: the four (gamma, chi) observation axes on each polarity qubit's depth sphere: 'ring' (default for the panel engine; the domain engine with --lock keeps its own four, built for the parity game: "
+                    "decided, between at chi 0 and 90, undecided at chi 180), 'line' (the original gamma 0/30/60/90 at chi 0), or 'g,c;g,c;g,c;g,c' in degrees")
     ap.add_argument("--lamp-mode", choices=["z", "x"], default="z", help="relief: z draws a light world per look; x reads the lamp register in X so the light directions interfere (the experiment key)")
     ap.add_argument("--engine", choices=["panel", "domain"], default="panel",
                     help="relief engine: panel (one polarity qubit per panel, exact, 12 facet qubits) or domain (one per depth domain, coupled along the geometry graph; "
@@ -98,7 +100,7 @@ def main(argv=None):
                           run_dir=a.run, out_dir=out, projector_size=parse_size(a.projector_size) if a.projector_size else None, seed=a.seed,
                           pool_size=a.pool, allow_spend=a.allow_spend, log=lambda m: print("  " + m),
                           kappa=a.kappa, n_dirs=a.n_dirs, entangle=a.entangle, contrast=a.contrast, engine=a.engine,
-                          game=a.game, game_fraction=a.game_fraction, lamp_mode=a.lamp_mode,
+                          game=a.game, game_fraction=a.game_fraction, lamp_mode=a.lamp_mode, observations=a.observations,
                           domain=dict(seg_len=a.seg_len, group_size=a.group_size, tau=a.tau, pol_coupling=a.pol_coupling, lock=a.lock, tau_mix=a.tau_mix,
                                       pol_field=a.pol_field, crease_sign=a.crease_sign, backend=a.backend, crease_coupling=a.crease_coupling,
                                       seam_coupling=a.seam_coupling, seam_mix=a.seam_mix, leaf_tau=a.leaf_tau, leaf_prefer=a.leaf_prefer,

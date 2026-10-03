@@ -61,9 +61,10 @@ def describe(draw, panel_names, K, prov, noise=False):
 
 def sphere_dot(gamma, chi):
     """Where the observation landed on a polarity qubit's Bloch sphere (the depth sphere): north pole = decided raised, south = decided sunk,
-    equator = undecided. (x, z) in the unit disc seen from the side, the form the audience page draws."""
+    equator = undecided. (x, z) in the unit disc seen from the side, the form the audience page draws; y (the azimuth chi, toward the viewer) is
+    drawn as the dot's size."""
     import math
-    return dict(x=math.sin(gamma) * math.cos(chi), z=math.cos(gamma), gamma_deg=round(math.degrees(gamma), 1), chi_deg=round(math.degrees(chi), 1))
+    return dict(x=math.sin(gamma) * math.cos(chi), y=math.sin(gamma) * math.sin(chi), z=math.cos(gamma), gamma_deg=round(math.degrees(gamma), 1), chi_deg=round(math.degrees(chi), 1))
 
 
 def describe_relief(draw, panel_names, K, prov, control="coherent"):
@@ -84,9 +85,12 @@ def describe_relief(draw, panel_names, K, prov, control="coherent"):
         look = "The observation landed at a pole of the depth sphere: each panel's depth is decided, so the frame shows a definite bump or hollow."
     elif abs(dot["z"]) < 0.25:
         look = ("The observation landed on the equator of the depth sphere: raised and sunk are equally present, so no panel can show a bevel in this frame. "
-                "It looks flat; the evidence that both depths are there is in the correlations, not in the picture.")
+                "It looks flat; the evidence that both depths are there is in the correlations, not in the picture. "
+                "Which way round the equator it landed (the azimuth) changes which correlations that frame samples; away from the x axis it can leave a faint bevel.")
     else:
         look = "The observation landed between a pole and the equator: the more decided the depth, the stronger the bevel, and the less the two depths can interfere."
+        if abs(dot["chi_deg"] % 180) > 1:
+            look += " It also landed off the x axis, so this frame samples the phase between raised and sunk, not only their weight."
     cap = dict(
         headline=headline, panels=panels, hardness=f"{K} photon{'s' if K != 1 else ''} averaged: {hardness_word(K)}", lamp_bits=lamp_bits,
         provenance=provenance_line(prov), observation=dict(text=look, **dot),

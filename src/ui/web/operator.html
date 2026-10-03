@@ -186,7 +186,7 @@ function renderLook(s) {
   const world = relief && l.lamp_mode !== 'z' ? 'Light in superposition' : `Light from the ${l.lamp[0] > 0 ? 'right' : 'left'}, ${l.lamp[1] > 0 ? 'frontal' : 'grazing'}`;
   const pol = relief ? s.scene.panels.map((n, i) => `${n} ${l.words[i]}`).join(' · ') : s.scene.panels.map((n, i) => `${n} ${l.pol[i] > 0 ? 'raised' : 'sunk'}`).join(' · ');
   const ctl = relief && l.control !== 'coherent' ? ` · CONTROL ${l.control === 'noise' ? 'A: INDEPENDENT NOISE' : 'B: DEPHASED DEPTH'}` : (l.noise ? ' · INDEPENDENT NOISE' : '');
-  const obs = relief ? ` · observation ${l.gamma_deg.toFixed(0)}°` : '';
+  const obs = relief ? ` · observation γ ${l.gamma_deg.toFixed(0)}° χ ${l.chi_deg.toFixed(0)}°` : '';
   const msg = $('look').dataset.msg;
   $('look').innerHTML = `${world} <span class="sub">· ${pol}${obs} · K=${l.K}${ctl} · look ${l.position}/${l.history}</span>` + (s.error ? `<div class="bad" style="font-size:13px;font-weight:400">${s.error}</div>` : '') + (msg ? `<div class="warn" style="font-size:13px;font-weight:400">${msg}</div>` : '');
 }
@@ -256,7 +256,7 @@ function sphereSvg(name, d) {
   const R = 34, c = 40, x = c + (d ? d.x * R : 0), y = c - (d ? d.z * R : 0);
   return `<div style="text-align:center"><svg width="80" height="86" viewBox="0 0 80 86"><circle cx="${c}" cy="${c}" r="${R}" fill="#15161a" stroke="#777"/><line x1="${c - R}" y1="${c}" x2="${c + R}" y2="${c}" stroke="#444"/>
     <text x="${c}" y="9" fill="#ffd8a0" font-size="8" text-anchor="middle">raised</text><text x="${c}" y="83" fill="#8fb8ff" font-size="8" text-anchor="middle">sunk</text>
-    ${d ? `<circle cx="${x}" cy="${y}" r="5" fill="${d.outcome ? '#ff6b5e' : '#ffd60a'}"/>` : ''}</svg><div class="dim" style="font-size:11px">${name}${d ? `<br>γ ${d.gamma_deg}°` : ''}</div></div>`;
+    ${d ? `<circle cx="${x}" cy="${y}" r="${5 + 2 * (d.y || 0)}" fill="${d.outcome ? '#ff6b5e' : '#ffd60a'}"/>` : ''}</svg><div class="dim" style="font-size:11px">${name}${d ? `<br>γ ${d.gamma_deg}° χ ${d.chi_deg}°` : ''}</div></div>`;
 }
 function renderScience(s) {
   const sc = s.science; if (!sc) return;

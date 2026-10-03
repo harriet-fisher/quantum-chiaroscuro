@@ -218,7 +218,7 @@ class Couplings(unittest.TestCase):
         st = ReliefState(sp)
         xs = [i for i, f in enumerate(FACETS.facets) if f.kind == "band" and abs(np.cos(f.phi)) > 0.9]
         sg = np.array([np.sign(np.cos(FACETS.facets[i].phi)) for i in xs])
-        self.assertGreater(abs(float((st.marginals(3, w=1, o=7)[xs] * sg).mean())), 0.05)
+        self.assertGreater(max(abs(float((st.marginals(3, w=1, o=o)[xs] * sg).mean())) for o in (0, 7)), 0.05)       # which outcome shows it depends on chi
 
 
 class Scaling(unittest.TestCase):
@@ -437,6 +437,83 @@ class ProvenanceIsHonest(unittest.TestCase):
             s.dephased_set(False)
             s.noise_set(True)
             self.assertIn("random numbers", s.live_caption()["provenance"])
+
+
+class Azimuth(unittest.TestCase):
+    """The observation register picks (gamma, chi) pairs; chi chooses which coherence of raised and sunk a frame samples."""
+
+    @staticmethod
+    def _state(gam, chi):
+        return ReliefState(ReliefSpec(toy_spec().tau, toy_spec().phi, np.zeros(8, int), [0.0], [], FixedRig(), [(np.deg2rad(gam), np.deg2rad(chi))]))
+
+    def test_default_observations_use_several_azimuths_and_keep_a_decided_and_a_flat_frame(self):
+        from src.quantum.relief_state import DEFAULT_OBSERVATIONS
+        self.assertEqual(len(DEFAULT_OBSERVATIONS), 4)
+        self.assertGreater(len({round(float(np.degrees(c)) % 360, 6) for _, c in DEFAULT_OBSERVATIONS}), 2)
+        self.assertAlmostEqual(DEFAULT_OBSERVATIONS[0][0], 0.0)
+        self.assertAlmostEqual(DEFAULT_OBSERVATIONS[3][0], np.pi / 2)
+
+    def test_parse_observations(self):
+        from src.quantum.relief_state import LINE_OBSERVATIONS, RING_OBSERVATIONS, parse_observations
+        self.assertEqual(parse_observations("line"), LINE_OBSERVATIONS)
+        self.assertEqual(parse_observations("ring"), RING_OBSERVATIONS)
+        self.assertIsNone(parse_observations(None))
+        got = parse_observations("0,0; 45,90; 90,180; 90,270")
+        np.testing.assert_allclose(np.degrees(got), [[0, 0], [45, 90], [90, 180], [90, 270]])
+        for bad in ("1,2;3,4", "a,b;c,d;e,f;g,h", "0,0,0;1,1;2,2;3,3"):
+            with self.assertRaises(ValueError):
+                parse_observations(bad)
+
+    def test_polarity_outcome_follows_cos_chi_and_the_y_reading_is_a_fair_coin(self):
+        V = float(np.prod(np.cos(toy_spec().tau)))
+        for gam in (30, 60, 90):
+            for chi in (0, 40, 90, 180, 270):
+                p0 = self._state(gam, chi).polarity_probs(0)[0]
+                self.assertAlmostEqual(p0, 0.5 * (1 + V * np.sin(np.deg2rad(gam)) * np.cos(np.deg2rad(chi))), places=10)
+
+    def test_chi_changes_the_frame_and_the_toy_equator_is_flat_on_the_x_axis(self):
+        def contrast(st, o):
+            m = st.marginals(0, w=0, o=o)
+            return m[:4].mean() - m[4:].mean()
+        c0, c90, c180 = (contrast(self._state(60, chi), 0) for chi in (0, 90, 180))
+        self.assertGreater(abs(c0 - c90), 0.02)
+        self.assertGreater(abs(c0 - c180), 0.05)
+        for chi in (0, 180):                                                # exactly flat on the x axis of the equator, either side
+            st = self._state(90, chi)
+            self.assertLess(abs(contrast(st, 0)), 1e-9)
+            self.assertLess(abs(contrast(st, 1)), 1e-9)
+        sym = self._state(60, 90)                                           # the Y reading: the two outcomes are mirror images
+        self.assertAlmostEqual(contrast(sym, 0), -contrast(sym, 1), places=10)
+
+    def test_on_the_real_scene_the_equator_is_flat_at_chi_0_and_180_and_only_faintly_off_at_chi_90(self):
+        """Not flat for every chi: the sin(chi) cross-term of the superposition leaves an outcome-dependent residual bevel (measured +-0.026)."""
+        xs = [i for i, f in enumerate(FACETS.facets) if f.kind == "band" and abs(np.cos(f.phi)) > 0.9]
+        sg = np.array([np.sign(np.cos(FACETS.facets[i].phi)) for i in xs])
+        res = {}
+        for chi in (0, 90, 180):
+            sp = spec_from_facets(FACETS, SCENE, entangle=0.8, observations=[(np.pi / 2, np.deg2rad(chi))] * 4)
+            st = ReliefState(sp)
+            res[chi] = [float((st.marginals(0, w=1, o=o)[xs] * sg).mean()) for o in (0, 7)]
+        for chi in (0, 180):
+            self.assertLess(max(abs(v) for v in res[chi]), 1e-4)                # measured ~1e-5 at entangle 0.8 (cause not chased), three orders under the chi = 90 residual
+        self.assertGreater(max(abs(v) for v in res[90]), 1e-2)
+        self.assertLess(max(abs(v) for v in res[90]), 0.05)
+
+    def test_the_circuit_realises_the_azimuth(self):
+        """The circuit's controlled rotations (RZ(-chi) then RY(-gamma)) agree with the exact engine's cell for an observation with chi != 0."""
+        sp = ReliefSpec(toy_spec().tau, toy_spec().phi, np.zeros(8, int), [0.0], [], FixedRig(), [(0.0, 0.0), (np.deg2rad(60), 0.0), (np.deg2rad(60), np.pi / 2), (np.pi / 2, np.pi)])
+        st = ReliefState(sp)
+        psi = statevector_of(full_circuit(sp).remove_final_measurements(inplace=False))
+        F, P = sp.F, sp.P
+        probs = np.abs(psi.reshape(-1)) ** 2                                  # index bits: facets | pol | lamp(2) | obs(2), little-endian
+        for g in range(4):
+            cell = st.cell(g)                                                 # [w, o, x]
+            idx = np.arange(len(probs))
+            sel = ((idx >> (F + P + 2)) & 3) == g
+            got = np.zeros((4, 2 ** P, 2 ** F))
+            for i in idx[sel]:
+                got[(i >> (F + P)) & 3, (i >> F) & (2 ** P - 1), i & (2 ** F - 1)] += probs[i]
+            np.testing.assert_allclose(got * 4, cell, atol=1e-9)
 
 
 if __name__ == "__main__":

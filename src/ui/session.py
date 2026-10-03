@@ -120,7 +120,7 @@ class Session:
     def __init__(self, labels=None, calibration=None, *, source="relief", pol_basis=None, circuit=None, coupling="lamp2",
                  calib_dir="runs/calibration_5x4", run_dir="runs/first_run", out_dir="runs/show", projector_size=None, seed=2026,
                  pool_size=60000, hub=None, allow_spend=False, solve_fn=None, log=None, complementary_report="runs/complementary/report.json",
-                 kappa=1.0, n_dirs=4, entangle=0.8, contrast=1.15, engine="panel", domain=None, game=False, game_fraction=0.5, lamp_mode="z"):
+                 kappa=1.0, n_dirs=4, entangle=0.8, contrast=1.15, engine="panel", domain=None, game=False, game_fraction=0.5, lamp_mode="z", observations=None):
         self.labels = validate(fill_defaults(labels if labels is not None else bay_window_labels()))
         self.scene = build_scene(self.labels)
         g = self.labels["grid"]
@@ -158,6 +158,8 @@ class Session:
         self.source_kind = None
         if engine not in ("panel", "domain"):
             raise ValueError("engine must be 'panel' (one polarity qubit per panel) or 'domain' (one per depth domain, coupled along the geometry graph)")
+        from src.quantum.relief_state import parse_observations
+        self.observations = parse_observations(observations) if isinstance(observations, str) or observations is None else [tuple(o) for o in observations]
         self.relief_params = dict(kappa=kappa, n_dirs=n_dirs, entangle=entangle, engine=engine, domain=dict(DOMAIN_DEFAULTS, **(domain or {})))
         self._rel = None                                                # facets, spec, composer: built on first use of the relief source
         self.rstate = None
@@ -236,13 +238,13 @@ class Session:
                 ds = build_domains(self.scene, seg_len=dp["seg_len"], group_size=dp["group_size"], tau=dp["tau"], crease_sign=dp["crease_sign"])
                 spec = spec_from_domains(ds, self.scene, entangle=rp["entangle"], pol_coupling=dp["pol_coupling"], lock=dp["lock"], tau_mix=dp["tau_mix"],
                                          pol_field=dp["pol_field"], crease_coupling=dp["crease_coupling"], seam_coupling=dp["seam_coupling"], seam_mix=dp["seam_mix"],
-                                         leaf_tau=dp["leaf_tau"], leaf_prefer=dp["leaf_prefer"], floquet=(dp["floquet_steps"], dp["floquet_zz"], dp["floquet_x"]))
+                                         leaf_tau=dp["leaf_tau"], leaf_prefer=dp["leaf_prefer"], observations=self.observations, floquet=(dp["floquet_steps"], dp["floquet_zz"], dp["floquet_x"]))
                 self._rel = dict(facets=ds.facets, spec=spec, composer=make_composer(self.scene, ds.facets), ds=ds)
             else:
                 from src.geometry.facets import build_facets
                 from src.quantum.relief_state import spec_from_facets
                 fs = build_facets(self.scene, n_dirs=rp["n_dirs"], kappa=rp["kappa"])
-                spec = spec_from_facets(fs, self.scene, entangle=rp["entangle"])
+                spec = spec_from_facets(fs, self.scene, entangle=rp["entangle"], observations=self.observations)
                 self._rel = dict(facets=fs, spec=spec, composer=make_composer(self.scene, fs), ds=None)
         return self._rel
 

@@ -45,7 +45,7 @@ function sphere(d) {
   if (!d) return '';
   const R = 30, c = 36, x = c + d.x * R, y = c - d.z * R;
   return `<svg width="72" height="72" viewBox="0 0 72 72" style="margin-top:.3em"><circle cx="${c}" cy="${c}" r="${R}" fill="#0c0d0f" stroke="#666"/><line x1="${c - R}" y1="${c}" x2="${c + R}" y2="${c}" stroke="#3a3b40"/>
-    <circle cx="${c}" cy="${c - R}" r="2" fill="#ffd8a0"/><circle cx="${c}" cy="${c + R}" r="2" fill="#8fb8ff"/><circle cx="${x}" cy="${y}" r="5" fill="${d.outcome ? '#ff6b5e' : '#ffd60a'}"/></svg>`;
+    <circle cx="${c}" cy="${c - R}" r="2" fill="#ffd8a0"/><circle cx="${c}" cy="${c + R}" r="2" fill="#8fb8ff"/><circle cx="${x}" cy="${y}" r="${5 + 2 * (d.y || 0)}" fill="${d.outcome ? '#ff6b5e' : '#ffd60a'}"/></svg>`;
 }
 function live(a) {
   const c = a.caption;

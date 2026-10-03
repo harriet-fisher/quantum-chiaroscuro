@@ -65,6 +65,7 @@ KNOBS = [
     ("n_dirs", "int", 4, (1, 16), ("preview",), "relief", "Relief"),
     ("entangle", "float", 0.8, (0.0, PI), ("preview",), "relief", "Relief"),
     ("contrast", "float", 1.15, (0.1, 5.0), ("preview",), "relief", "Relief"),
+    ("observations", "choice", "", ("ring", "line"), ("preview",), "relief", "Relief"),
     ("seg_len", "float", 150.0, (10.0, 2000.0), ("preview",), "domain", "Domain"),
     ("group_size", "int", 1, (1, 64), ("preview",), "domain", "Domain"),
     ("tau", "float", 0.5, (0.0, PI), ("preview",), "domain", "Domain"),
