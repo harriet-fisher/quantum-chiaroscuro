@@ -40,6 +40,22 @@ source .venv/bin/activate          # Python 3.10+; see Installation if you have 
 python -m src.studio               # opens the studio in your browser
 ```
 
+### Common startup modes
+
+Use these when you want to start the system in a particular mode instead of the default local studio run:
+
+| Command | Purpose |
+|---|---|
+| `python -m src.studio` | default studio launcher; opens the guided workflow in the browser |
+| `python -m src.studio --project runs/myroom` | keep a separate project folder for a different scene or run |
+| `python -m src.studio --allow-spend` | allow the studio to submit or spend on Moth during the solve/send flow; still asks for confirmation before sending |
+| `python -m src.studio --engine domain` | launch the domain-relief workflow instead of the default per-panel relief |
+| `python -m src.show --engine domain --game` | start the live show directly in domain mode with the parity-game witness enabled |
+| `python -m src.show --engine domain --evolve-steps 4` | start the live show directly with Floquet entanglement growth enabled |
+| `python -m src.show --lan` | serve the output and audience pages on the local network as well as the operator page |
+
+> The spend gate is the one you want when you are intentionally testing the Moth-backed flow: `--allow-spend` is the actual flag in the current codebase, and it still asks for confirmation before any submission occurs.
+
 On the page, press **Next step** each time (it always offers the first step that isn't done), or click a step's own button:
 
 | Step | Button does | Needs |
