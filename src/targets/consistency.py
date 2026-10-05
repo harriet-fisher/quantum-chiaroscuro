@@ -7,6 +7,23 @@ Estimates from a sampler satisfy them up to Monte-Carlo error; hand-designed tar
 """
 
 
+def scene_problem(meta, cells, grid=None, n_panels=None):
+    """None when a calibration (targets.json 'meta') was made for exactly this patch grid, else a sentence saying how it differs. `cells` are a
+    Sampler's patch cells (i, j, k = panel); `grid` (nx, ny) and `n_panels` only make the sentence more helpful. The payloads are built from the
+    targets, so sending them for another scene would pay for the wrong state; files without `patch_cells` (older calibrations) cannot be checked and pass."""
+    cells_meta = meta.get("patch_cells")
+    if cells_meta is None:
+        return None
+    theirs = [(c["i"], c["j"], c["panel"]) for c in cells_meta]
+    mine = [(c["i"], c["j"], c["k"]) for c in cells]
+    if theirs == mine:
+        return None
+    g = meta.get("grid") or ["?", "?"]
+    there = f"{len(theirs)} patches on a {g[0]}x{g[1]} grid, {1 + max((t[2] for t in theirs), default=-1)} panels"
+    here = f"{len(mine)} patches" + (f" on a {grid[0]}x{grid[1]} grid" if grid else "") + (f", {n_panels} panels" if n_panels else "")
+    return f"the targets were made for a different scene ({there}) than this one ({here})"
+
+
 def check_bounds(bloch, relationships, n_sigma=3.0):
     """Each |<Z>| and |<ZZ>| must be <= 1 (allowing n_sigma standard errors)."""
     bad = []

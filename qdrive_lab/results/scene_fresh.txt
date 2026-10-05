@@ -1,0 +1,38 @@
+mock semantics: fresh; components: [(0, 10, 11), (11, 18, 8)]
+
+component qubits 0..10 (11 qubits)
+  A naive singles+pairs, one layer x1          rms(singles+pairs) 0.0465  max 0.163  TV 0.206  targets  37 updates   1
+  A naive singles+pairs, one layer x2          rms(singles+pairs) 0.0100  max 0.028  TV 0.152  targets  74 updates   2
+  A naive singles+pairs, one layer x4          rms(singles+pairs) 0.0071  max 0.022  TV 0.156  targets 148 updates   4
+  B pair groups k=2 (targets only) x1          rms(singles+pairs) 0.1687  max 0.618  TV 0.533  targets  26 updates  20
+  B pair groups k=2 (targets only) x2          rms(singles+pairs) 0.1418  max 0.615  TV 0.480  targets  52 updates  40
+  B pair groups k=2 (targets only) x3          rms(singles+pairs) 0.1488  max 0.652  TV 0.496  targets  78 updates  60
+  C triangle groups k=3 (exact words) x1       rms(singles+pairs) 0.2714  max 0.788  TV 0.661  targets  10 updates   8
+  C triangle groups k=3 (exact words) x2       rms(singles+pairs) 0.2146  max 0.531  TV 0.565  targets  20 updates  16
+  C triangle groups k=3 (exact words) x3       rms(singles+pairs) 0.2081  max 0.476  TV 0.574  targets  30 updates  24
+  D closed loop, k=3 exact words, tol 0.03, gain 0.5
+     job 1: rms 0.0922 stubborn 7/10
+     job 2: rms 0.0633 stubborn 6/7
+     job 3: rms 0.0680 stubborn 6/6
+     job 4: rms 0.0709 stubborn 6/6
+     job 5: rms 0.0778 stubborn 6/6
+  D after loop                                 rms(singles+pairs) 0.2470  max 0.626  TV 0.632  targets   0 updates   0
+
+component qubits 11..18 (8 qubits)
+  A naive singles+pairs, one layer x1          rms(singles+pairs) 0.0242  max 0.050  TV 0.070  targets  19 updates   1
+  A naive singles+pairs, one layer x2          rms(singles+pairs) 0.0144  max 0.028  TV 0.055  targets  38 updates   2
+  A naive singles+pairs, one layer x4          rms(singles+pairs) 0.0057  max 0.016  TV 0.039  targets  76 updates   4
+  B pair groups k=2 (targets only) x1          rms(singles+pairs) 0.0223  max 0.062  TV 0.122  targets  11 updates  11
+  B pair groups k=2 (targets only) x2          rms(singles+pairs) 0.0922  max 0.234  TV 0.173  targets  22 updates  22
+  B pair groups k=2 (targets only) x3          rms(singles+pairs) 0.1069  max 0.246  TV 0.201  targets  33 updates  33
+  C triangle groups k=3 (exact words) x1       rms(singles+pairs) 0.3438  max 0.587  TV 0.581  targets   4 updates   4
+  C triangle groups k=3 (exact words) x2       rms(singles+pairs) 0.2754  max 0.477  TV 0.497  targets   8 updates   8
+  C triangle groups k=3 (exact words) x3       rms(singles+pairs) 0.2670  max 0.436  TV 0.488  targets  12 updates  12
+  D closed loop, k=3 exact words, tol 0.03, gain 0.5
+     job 1: rms 0.0911 stubborn 4/4
+     job 2: rms 0.0732 stubborn 3/4
+     job 3: rms 0.0573 stubborn 3/3
+     job 4: rms 0.0430 stubborn 2/3
+     job 5: rms 0.0309 stubborn 2/2
+  D after loop                                 rms(singles+pairs) 0.2338  max 0.345  TV 0.437  targets   0 updates   0
+

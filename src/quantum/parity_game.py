@@ -1,6 +1,6 @@
-"""The depth-consistency parity game: every frame is one round of a Mermin (GHZ-style) game between the lamp and the depth qubits of three panels.
+"""The depth-consistency parity game: every frame is one round of a Mermin (GHZ-style) game between the lamp and the depth qubits of three leaf domains (one per wall section of the bay window: left, centre, right).
 
-Parties: the lamp (L1) and three leaf domains' polarity qubits (one per panel, the ones the lamp is locked to). A round draws an input S, a uniformly random
+Parties: the lamp (L1) and three leaf domains' polarity qubits (one per plane, the ones the lamp is locked to). A round draws an input S, a uniformly random
 EVEN-size subset of the four parties. A party in S reads its qubit along its setting A', a party outside S along A (the frames A, A' come from the state:
 numerically optimised Mermin axes, see `game_frames`). Everyone gets a +1/-1 outcome (bit 0 is +1). The parties win the round when
 
@@ -56,7 +56,7 @@ def classical_bound(m=4):
 
 def game_frames(state, leaves=None, restarts=24, seed=0):
     """(M, axes): the largest Mermin value of the lamp plus the leaf domains, and the (A, A') Bloch-vector pair of each party, the lamp first. `leaves`
-    defaults to the domains the lamp is locked to (one per panel)."""
+    defaults to the spec's leaves (the domains the lamp is locked to: one per plane, at most three)."""
     sp = state.spec
     lock = sp.lock_array()
     if lock is None:
@@ -70,17 +70,8 @@ def game_frames(state, leaves=None, restarts=24, seed=0):
 
 
 def _default_leaves(sp):
-    """One locked domain per panel (the most visible), at most three, as the witness picks them."""
-    lock = sp.lock_array()
-    dom_panel = {int(sp.panel_of[i]): int(sp.panel_of[i] if sp.facet_panel is None else sp.facet_panel[i]) for i in range(sp.F)}
-    best = {}
-    for d in range(sp.P):
-        if lock[d]:
-            p = dom_panel.get(d, 0)
-            v = sp.visibility(d)
-            if p not in best or v > best[p][1]:
-                best[p] = (d, v)
-    return [d for d, _ in best.values()][:3]
+    """The spec's leaves (one locked domain per plane, at most three), as the witness picks them."""
+    return dw.default_leaves(sp)
 
 
 class GameStats:

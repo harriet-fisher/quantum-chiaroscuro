@@ -1,0 +1,114 @@
+{
+ "schema: many violations at once": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"maximum: got 3, want 2\", \"location\": \"body.params.tomography\"}, {\"message\": \"minimum: got -1, want 0\", \"location\": \"body.params.seed\"}, {\"message\": \"got number, want null\", \"location\": \"body.params.seed\"}, {\"message\": \"got string, want boolean\", \"location\": \"body.params.sample\"}, {\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.n_qubits\"}, {\"message\": \"got number, want null\", \"location\": \"body.params.n_qubits\"}, {\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "schema: unknown param key": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}, {\"message\": \"additional properties 'bogus_key' not allowed\", \"location\": \"body.params\"}]}"
+ },
+ "schema: update_method bogus (schema or runtime?)": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "schema: machine bogus": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "schema: targets as bare number list": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"got number, want object\", \"location\": \"body.params.targets.0\"}, {\"message\": \"got number, want null\", \"location\": \"body.params.targets.0\"}, {\"message\": \"got number, want object\", \"location\": \"body.params.targets.1\"}, {\"message\": \"got number, want null\", \"location\": \"body.params.targets.1\"}, {\"message\": \"got number, want string\", \"location\": \"body.params.targets.0\"}, {\"message\": \"got number, want string\", \"location\": \"body.params.targets.1\"}, {\"message\": \"got array, want string\", \"location\": \"body.params.targets\"}, {\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "schema: targets as string": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "schema: targets list of strings": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "schema: coupling_map string": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "schema: coupling_map bad edge": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "schema: ansatz string": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "schema: n_qubits as float": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"got number, want integer\", \"location\": \"body.params.n_qubits\"}, {\"message\": \"got number, want null\", \"location\": \"body.params.n_qubits\"}, {\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "schema: n_qubits huge (is there an upper cap?)": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "schema: no n_qubits and no initial_circuit": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "input_files: unknown asset id": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "input_files: job reference to a missing job": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "input_files: unknown slot name": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "route: /v1/generation form _params": {
+  "http": 404,
+  "body": "404 page not found\n"
+ },
+ "route: /v1/generation form chain ref": {
+  "http": 404,
+  "body": "404 page not found\n"
+ },
+ "asset: register png": {
+  "http": 201,
+  "body": "{\"asset_id\": \"ce26814a-f9eb-4984-a499-b2d8f343e2bb\", \"owner\": \"9e2e755a-620c-433a-88e7-c224355e4861\", \"kind\": \"upload\", \"filename\": \"lab_probe.png\", \"content_type\": \"image/png\", \"size_bytes\": 73, \"status\": \"pending\", \"metadata\": {}, \"created_at\": \"2026-10-04T21:08:50Z\", \"updated_at\": \"2026-10-04T21:08:50Z\", \"upload\": {\"url\": \"https://moth-api-assets-us-east-1.s3.us-east-1.amazonaws.com/users/9e2e755a-620c-433a-88e7-c224355e4861/assets/ce26814a-f9eb-4984-a499-b2d8f343e2bb?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIA6G75DOFZ4ZELFQV3%2F20261004%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261004T210850Z&X-Amz-Expires=900&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEAIaCXVzLWVhc3QtMSJGMEQCIFV"
+ },
+ "asset: PUT": {
+  "http": 200,
+  "body": ""
+ },
+ "asset: complete": {
+  "http": 200,
+  "body": "{\"asset_id\": \"ce26814a-f9eb-4984-a499-b2d8f343e2bb\", \"owner\": \"9e2e755a-620c-433a-88e7-c224355e4861\", \"kind\": \"upload\", \"filename\": \"lab_probe.png\", \"content_type\": \"image/png\", \"size_bytes\": 73, \"status\": \"uploaded\", \"metadata\": {\"height\": 2, \"labels\": [{\"confidence\": 94.73041534423828, \"name\": \"Logo\"}, {\"confidence\": 94.31963348388672, \"name\": \"Maroon\"}], \"resized\": false, \"width\": 2}, \"created_at\": \"2026-10-04T21:08:50Z\", \"updated_at\": \"2026-10-04T21:08:52Z\"}"
+ },
+ "asset: PNG asset id as initial_circuit (type mismatch?)": {
+  "http": 422,
+  "body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"params do not match the engine schema\", \"errors\": [{\"message\": \"exclusiveMinimum: got 0, want 0\", \"location\": \"body.params.shots\"}]}"
+ },
+ "asset: download": {
+  "http": 200,
+  "body": "{\"download_url\": \"https://moth-api-assets-us-east-1.s3.us-east-1.amazonaws.com/users/9e2e755a-620c-433a-88e7-c224355e4861/assets/ce26814a-f9eb-4984-a499-b2d8f343e2bb?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIA6G75DOFZ4ZELFQV3%2F20261004%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261004T"
+ },
+ "asset: delete": {
+  "http": 204,
+  "body": ""
+ },
+ "asset: register text/plain": {
+  "http": 201,
+  "body": "{\"asset_id\": \"85ece304-2265-449a-97dd-f5742f65393a\", \"owner\": \"9e2e755a-620c-433a-88e7-c224355e4861\", \"kind\": \"upload\", \"filename\": \"bell.qasm\", \"content_type\": \"text/plain\", \"size_bytes\": 73, \"status\": \"pending\", \"metadata\": {}, \"created_at\": \"2026-10-04T21:08:55Z\", \"updated_at\": \"2026-10-04T21:08:55Z\", \"upload\": {\"url\": \"https://moth-api-assets-us-east-1.s3.us-east-1.amazonaws.com/users/9e2e755a-620c-433a-88e7-c224355e4861/assets/85ece304-2265-449a-97dd-f5742f65393a?X-Amz-Algorithm=AWS4-HMAC-S"
+ },
+ "asset: register application/octet-stream": {
+  "http": 201,
+  "body": "{\"asset_id\": \"9d0b3d49-481f-4978-bd36-9cea8f2506b3\", \"owner\": \"9e2e755a-620c-433a-88e7-c224355e4861\", \"kind\": \"upload\", \"filename\": \"bell.qasm\", \"content_type\": \"application/octet-stream\", \"size_bytes\": 73, \"status\": \"pending\", \"metadata\": {}, \"created_at\": \"2026-10-04T21:08:58Z\", \"updated_at\": \"2026-10-04T21:08:58Z\", \"upload\": {\"url\": \"https://moth-api-assets-us-east-1.s3.us-east-1.amazonaws.com/users/9e2e755a-620c-433a-88e7-c224355e4861/assets/9d0b3d49-481f-4978-bd36-9cea8f2506b3?X-Amz-Algorit"
+ },
+ "asset: register application/json": {
+  "http": 201,
+  "body": "{\"asset_id\": \"9b355fc3-91cd-4fde-8d35-dc9ed2127041\", \"owner\": \"9e2e755a-620c-433a-88e7-c224355e4861\", \"kind\": \"upload\", \"filename\": \"bell.qasm\", \"content_type\": \"application/json\", \"size_bytes\": 73, \"status\": \"pending\", \"metadata\": {}, \"created_at\": \"2026-10-04T21:09:00Z\", \"updated_at\": \"2026-10-04T21:09:00Z\", \"upload\": {\"url\": \"https://moth-api-assets-us-east-1.s3.us-east-1.amazonaws.com/users/9e2e755a-620c-433a-88e7-c224355e4861/assets/9b355fc3-91cd-4fde-8d35-dc9ed2127041?X-Amz-Algorithm=AWS4-"
+ },
+ "storage": {
+  "http": 200,
+  "body": "{\"usage\": {\"upload_bytes\": 14700, \"output_bytes\": 103184, \"notebook_bytes\": 0, \"total_bytes\": 117884}, \"quota\": {\"upload_bytes\": 1073741824, \"total_bytes\": 10737418240, \"notebook_bytes\": 2147483648}}"
+ }
+}

@@ -10,8 +10,11 @@ partly documented, so the payload is a stated bet, and its result is checked loc
 """
 import hashlib
 import json
+import os
 
 import numpy as np
+
+from src.capture.labels import DEFAULT_CALIB_DIR
 
 
 def _round(v, nd=4):
@@ -22,7 +25,7 @@ def graph_v1_payload(bloch, relationships, n_qubits, shots=1024, mode="emu", ord
     """bloch: [{"qubit", "Z"}]; relationships: [{"qubits": [a, b], "ZZ"}] with a < b.
 
     Operations are applied in sequence by the engine, so order matters, and the first real run showed how much: sent as
-    "all <Z> first, then <ZZ> strongest to weakest" (order="strongest_first", what runs/first_run used), the engine returned
+    "all <Z> first, then <ZZ> strongest to weakest" (order="strongest_first", what the first run, runs/first_run, used), the engine returned
     ~zero correlation on every patch/lamp edge; later operations on shared qubits very likely overwrote earlier ones.
     order="weakest_first" puts the strongest targets last. drop_below omits targets with |value| below it (a ~0 target is
     already the default for a mixed qubit/pair and may only disturb earlier ones) and prunes coupling_map to the edges still
@@ -119,7 +122,7 @@ def main(argv=None):
     import argparse
     from src.store.jsonfmt import dumps_compact
     ap = argparse.ArgumentParser(description=main.__doc__)
-    ap.add_argument("--targets", default="runs/calibration_5x4/targets.json")
+    ap.add_argument("--targets", default=os.path.join(DEFAULT_CALIB_DIR, "targets.json"))
     ap.add_argument("--order", choices=["strongest_first", "weakest_first"], default="weakest_first")
     ap.add_argument("--drop-below", type=float, default=0.05)
     ap.add_argument("--out", required=True)

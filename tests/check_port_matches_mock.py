@@ -85,14 +85,29 @@ def compare_figs(dir_a, dir_b, failures):
         check(f"{name} pixels identical", same(mpimg.imread(os.path.join(dir_a, name)), mpimg.imread(pb)), failures)
 
 
+def compare_stacked(failures):
+    """The show's default window (six panes: two stacked windows per wing) is the mock window with each wing cut in two by a shared rail: pixel for
+    pixel the same wall, and every pane's plane is its wing."""
+    print("[six-pane bay window against the mock's three panels]")
+    orig = load_original()
+    six = build_scene(validate(fill_defaults(bay_window_labels())))
+    wing = np.where(six.region >= 0, six.region // 2, -1)
+    check("six panes cover exactly the mock's wall", same(six.region >= 0, orig.REGION >= 0), failures)
+    check("pane // 2 is the mock's panel (the wing)", same(wing, orig.REGION), failures)
+    check("every pane shares its wing's plane and angle", all(six.panels[2 * w].plane_id == six.panels[2 * w + 1].plane_id == w and
+                                                               six.panels[2 * w].angle_deg == six.panels[2 * w + 1].angle_deg for w in range(3)), failures)
+    check("brightness window follows the wing", same(six.lo[six.region >= 0], orig.LO[orig.REGION >= 0]) and same(six.hi[six.region >= 0], orig.HI[orig.REGION >= 0]), failures)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--figs", nargs=2, metavar=("DIR_A", "DIR_B"))
     args = ap.parse_args()
     failures = []
 
-    labels = validate(fill_defaults(bay_window_labels()))
-    compare_numeric(labels, "built-in bay window labels", failures)
+    labels = validate(fill_defaults(bay_window_labels(stacked=False)))             # the mock's own three undivided panels
+    compare_numeric(labels, "built-in three-panel mock window labels", failures)
+    compare_stacked(failures)
 
     path = os.path.join(ROOT, "runs", "_roundtrip_labels.json")
     save_labels(labels, path)

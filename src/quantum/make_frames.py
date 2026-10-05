@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate a stream of lighting frames from a quantum state (handoff §9.2, §9.4) and write them with a provenance manifest.
 
-    python -m src.quantum.make_frames --source circuit runs/first_run/qdrive/circuit.qasm --n 48 --K 8 --out runs/first_run/frames
+    python -m src.quantum.make_frames --source circuit runs/bay_run/qdrive/circuit.qasm --n 48 --K 8 --out runs/bay_run/frames
     python -m src.quantum.make_frames --source circuit CIRCUIT --polarity-basis x      # complementary-polarity experiment
     python -m src.quantum.make_frames --source oracle  --out runs/oracle_frames        # known-answer reference, NOT from Moth
     python -m src.quantum.make_frames --source mock    --out runs/mock_frames          # classical stand-in
@@ -23,7 +23,7 @@ import time
 import numpy as np
 from PIL import Image
 
-from src.capture.labels import bay_window_labels, fill_defaults, load_labels, validate
+from src.capture.labels import DEFAULT_CALIB_DIR, bay_window_labels, fill_defaults, load_labels, validate
 from src.geometry.planes import build_scene
 from src.graph.allocate_qubits import allocate
 from src.quantum import sampler_local as sl
@@ -46,7 +46,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--source", choices=["circuit", "oracle", "mock", "graph-v1"], required=True)
     ap.add_argument("circuit", nargs="?", help="QASM3 file (for --source circuit)")
-    ap.add_argument("--calib", default="runs/calibration_5x4", help="directory with targets.json (grid and qubit layout)")
+    ap.add_argument("--calib", default=DEFAULT_CALIB_DIR, help="directory with targets.json (grid and qubit layout)")
     ap.add_argument("--labels", help="labels.json (default: built-in bay window)")
     ap.add_argument("--n", type=int, default=24)
     ap.add_argument("--K", type=int, default=8, help="shots averaged per frame (hardness)")

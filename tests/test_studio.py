@@ -14,10 +14,11 @@ import time
 import unittest
 
 from src import studio
+from src.capture.labels import DEFAULT_CALIB_DIR
 from src.studio import Studio, StageError, make_server
 from src.targets.payloads import payload_sha256
 
-CALIB = "runs/calibration_5x4"
+CALIB = DEFAULT_CALIB_DIR
 
 
 class FakeProc:
@@ -67,10 +68,10 @@ class Base(unittest.TestCase):
         return {st["id"]: st["status"] for st in self.s.state()["stages"]}
 
     def with_targets(self, remember=True):
-        """A drawn scene plus the calibrated 5x4 payloads, as if step 2 had succeeded."""
+        """The demo scene (six panes, 4x4 grid) plus its calibrated payloads, as if step 2 had succeeded."""
         self.s.use_demo_scene()
         shutil.copytree(CALIB, self.s.calib)
-        path = os.path.join(self.s.calib, "payload_qdrive.json")           # the stored payload has 3 rounds (201 targets), which the client now refuses: use one round
+        path = os.path.join(self.s.calib, "payload_qdrive.json")           # keep one round of targets (older calibrations stored three, 201 targets, which the client refuses)
         with open(path) as f:
             payload = json.load(f)
         t = payload["params"]["targets"]

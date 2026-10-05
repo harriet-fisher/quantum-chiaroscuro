@@ -267,16 +267,7 @@ def _lamp_block(state, mermin):
     block = dict(pairs=pairs, best_chsh=max([p["chsh"] for p in pairs], default=0.0), local_bound=CHSH_BOUND)
     block["violating_pairs"] = sum(1 for p in pairs if p["chsh"] > CHSH_BOUND + 1e-9)
     if mermin:
-        # one locked domain per panel (the most visible one), so the three leaves are not neighbours on one strip
-        by_panel = {}
-        dom_panel = {int(sp.panel_of[i]): int(sp.panel_of[i] if sp.facet_panel is None else sp.facet_panel[i]) for i in range(sp.F)}
-        for d in range(sp.P):
-            if lock[d]:
-                p = dom_panel.get(d, 0)
-                v = sp.visibility(d)
-                if p not in by_panel or v > by_panel[p][1]:
-                    by_panel[p] = (d, v)
-        leaves = [d for d, _ in by_panel.values()][:3]
+        leaves = default_leaves(sp)
         if len(leaves) >= 2:
             group = [n] + [sp.F + d for d in leaves]
             rho = ls.rdm(group)
@@ -287,6 +278,23 @@ def _lamp_block(state, mermin):
             block["mermin"] = dict(parties=len(group), leaves=leaves, value=val, value_dephased=val_dep, local_bound=bound, quantum_max=top,
                                    violated=bool(val > bound + 1e-6))
     return block
+
+
+def default_leaves(sp):
+    """The leaf domains of the lamp's Mermin group: those the spec names (one per plane, at most three, so the leaves are not neighbours on one strip), else,
+    for a spec built without them, one locked domain per panel (the most visible one), at most three."""
+    lock = sp.lock_array()
+    if sp.leaves is not None:
+        return [int(d) for d in sp.leaves if lock is not None and lock[d]]
+    by_panel = {}
+    dom_panel = {int(sp.panel_of[i]): int(sp.panel_of[i] if sp.facet_panel is None else sp.facet_panel[i]) for i in range(sp.F)}
+    for d in range(sp.P):
+        if lock is not None and lock[d]:
+            p = dom_panel.get(d, 0)
+            v = sp.visibility(d)
+            if p not in by_panel or v > by_panel[p][1]:
+                by_panel[p] = (d, v)
+    return [d for d, _ in by_panel.values()][:3]
 
 
 def graph_frustration(ds, spec=None):

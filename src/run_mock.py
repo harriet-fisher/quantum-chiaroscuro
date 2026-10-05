@@ -3,7 +3,8 @@
 
     python -m src.run_mock [NX NY] [--labels labels.json] [--out runs/mock]
 
-Without --labels it renders the built-in synthetic bay window and should reproduce the five mock figures exactly.
+Without --labels it renders the ORIGINAL three-panel mock window (the layout of mock/standing_light_mock.py) and should reproduce the five mock figures
+exactly. --stacked renders the show's default instead: the same window with two stacked panes in every wing (six panels).
 """
 import argparse
 import os
@@ -30,10 +31,15 @@ def fig_dark(nr, nc, w=4.2, h=2.6):
     return fig, np.atleast_2d(axs)
 
 
-def polarity_combos(n):
-    if n == 3:
-        return [((-1, -1, -1), "all sunk"), ((1, 1, 1), "all raised"),
-                ((-1, 1, -1), "sides sunk, centre raised"), ((1, -1, 1), "sides raised, centre sunk")]
+def polarity_combos(scene):
+    """The four polarity patterns of figure 2. When the scene has a flat centre and tilted sides (the bay window, three panels or six panes) the
+    sides and the centre are set against each other; any other scene alternates panel by panel."""
+    n = scene.n_panels
+    side = [abs(p.angle_deg) > 0.5 for p in scene.panels]
+    if any(side) and not all(side):
+        sides = lambda v: tuple(v if s else -v for s in side)
+        return [((-1,) * n, "all sunk"), ((1,) * n, "all raised"),
+                (sides(-1), "sides sunk, centre raised"), (sides(1), "sides raised, centre sunk")]
     alt = tuple(1 if k % 2 else -1 for k in range(n))
     return [((-1,) * n, "all sunk"), ((1,) * n, "all raised"),
             (alt, "alternating, first sunk"), (tuple(-v for v in alt), "alternating, first raised")]
@@ -41,12 +47,13 @@ def polarity_combos(n):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("grid", nargs="*", type=int, help="NX NY (default: labels grid, or 6 4)")
-    ap.add_argument("--labels", help="labels.json from the pen tool (default: built-in bay window)")
+    ap.add_argument("grid", nargs="*", type=int, help="NX NY (default: the labels' grid: 6 4 for the mock window, 4 4 for --stacked)")
+    ap.add_argument("--labels", help="labels.json from the pen tool (default: the original three-panel mock window)")
+    ap.add_argument("--stacked", action="store_true", help="without --labels: the six-pane bay window the show uses by default (two stacked windows per wing)")
     ap.add_argument("--out", default="runs/mock", help="output directory for the figures")
     args = ap.parse_args(argv)
 
-    labels = load_labels(args.labels) if args.labels else validate(fill_defaults(bay_window_labels()))
+    labels = load_labels(args.labels) if args.labels else validate(fill_defaults(bay_window_labels(stacked=args.stacked)))
     NX, NY = args.grid if len(args.grid) == 2 else (labels["grid"]["nx"], labels["grid"]["ny"])
     os.makedirs(args.out, exist_ok=True)
 
@@ -89,7 +96,7 @@ def main(argv=None):
 
     # knob 2: polarity
     fig, axs = fig_dark(2, 2)
-    for ax, (pol, name) in zip(axs.ravel(), polarity_combos(scene.n_panels)):
+    for ax, (pol, name) in zip(axs.ravel(), polarity_combos(scene)):
         show(ax, run((1, 1), pol, 40, 5), name)
     fig.suptitle("Knob 2: relief polarity (one qubit per panel), light from right, K=40", color="w")
     fig.tight_layout(); fig.savefig(f"{args.out}/fig2_polarity.png", dpi=110, facecolor=fig.get_facecolor()); plt.close(fig)

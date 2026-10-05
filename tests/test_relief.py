@@ -13,7 +13,7 @@ import unittest
 
 import numpy as np
 
-from src.capture.labels import bay_window_labels, fill_defaults, validate
+from src.capture.labels import DEFAULT_CALIB_DIR, bay_window_labels, fill_defaults, validate
 from src.geometry.facets import build_facets, panel_budget
 from src.geometry.planes import build_scene
 from src.quantum import relief_witness as rw
@@ -25,6 +25,10 @@ from src.texture.relief_compose import ReliefComposer
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCENE = FACETS = SPEC = STATE = COMPOSER = None
+# A facet "faces left or right" when its slope has a sizeable x component. The default scene has six panes, so the per-panel engine cuts each into
+# two orientation facets (the most that keeps 12 + 6 qubits exact): the two slopes of a pane are opposite diagonals (about +-55 degrees from the
+# x axis), not four axis-aligned sides.
+FACING = 0.5
 
 
 def setUpModule():
@@ -137,20 +141,56 @@ class Facets(unittest.TestCase):
         self.assertTrue(np.all(FACETS.label[SCENE.frame] >= 0))
         self.assertTrue(np.all(FACETS.label[~SCENE.frame] == -1))
 
-    def test_the_budget_is_the_handoffs(self):
-        self.assertEqual((SPEC.F, SPEC.P, SPEC.n_sim, SPEC.n_full), (12, 3, 15, 19))          # 4 band facets x 3 panels; the 3 plateaus are classical
-        self.assertEqual((FACETS.n, FACETS.n_quantum, SPEC.n_classical), (15, 12, 3))
+    def test_the_default_scene_is_six_panes_in_three_planes(self):
+        self.assertEqual([p.name for p in SCENE.panels], ["left_top", "left_bottom", "centre_top", "centre_bottom", "right_top", "right_bottom"])
+        self.assertEqual([p.plane_id for p in SCENE.panels], [0, 0, 1, 1, 2, 2])
+        self.assertEqual([p.angle_deg for p in SCENE.panels], [35.0, 35.0, 0.0, 0.0, -35.0, -35.0])
+        self.assertEqual(len(SCENE.labels["glass"]), 6)                                       # one pane of glass in every window
+
+    def test_the_budget_of_the_default_scene(self):
+        self.assertEqual((SPEC.F, SPEC.P, SPEC.n_sim, SPEC.n_full), (12, 6, 18, 22))          # 2 band facets x 6 panes; the 6 plateaus are classical
+        self.assertEqual((FACETS.n, FACETS.n_quantum, SPEC.n_classical), (18, 12, 6))
         for k, b in panel_budget(FACETS).items():
             self.assertAlmostEqual(b["sum_tau2"], FACETS.kappa ** 2, places=6)
             self.assertAlmostEqual(b["visibility"], np.prod(np.cos(FACETS.tau[FACETS.panel_of == k])), places=9)
 
+    def test_n_dirs_follows_the_panel_count_so_that_the_circuit_stays_exact(self):
+        from src.geometry.facets import EXACT_QUBITS, auto_n_dirs
+        self.assertEqual([auto_n_dirs(n) for n in (1, 3, 6, 8, 20)], [4, 4, 2, 1, 1])
+        for n in (3, 6, 8):
+            self.assertLessEqual(n * (auto_n_dirs(n) + 1), EXACT_QUBITS)
+        three = build_scene(validate(fill_defaults(bay_window_labels(stacked=False))))          # the original three undivided panels: 4 orientation facets each, 15 qubits
+        sp3 = spec_from_facets(build_facets(three), three, entangle=0.8)
+        self.assertEqual((sp3.F, sp3.P, sp3.n_sim, sp3.n_full), (12, 3, 15, 19))
+
     def test_opposite_slopes_are_separate_facets_and_the_plateau_is_flat(self):
         for k in range(SCENE.n_panels):
             band = [FACETS.facets[i] for i in FACETS.of_panel(k) if FACETS.facets[i].kind == "band"]
-            self.assertEqual(len(band), 4)
+            self.assertEqual(len(band), 2)
             self.assertTrue(all(f.tau > 0.3 for f in band))
+            self.assertLess(np.cos(band[0].phi - band[1].phi), -0.9)                          # the two slopes of a pane point opposite ways
             flat = [FACETS.facets[i] for i in FACETS.of_panel(k) if FACETS.facets[i].kind == "interior"]
             self.assertTrue(all(f.tau < 0.05 for f in flat))
+
+    def test_four_orientation_facets_per_panel_on_the_three_panel_window_are_four_axis_aligned_sides(self):
+        three = build_scene(validate(fill_defaults(bay_window_labels(stacked=False))))
+        fs = build_facets(three)
+        for k in range(three.n_panels):
+            band = [fs.facets[i] for i in fs.of_panel(k) if fs.facets[i].kind == "band"]
+            self.assertEqual(len(band), 4)
+
+    def test_stacked_windows_of_one_wing_share_a_plane_so_their_rail_is_not_a_crease(self):
+        kinds = {(FACETS.facets[i].panel, FACETS.facets[j].panel): kind for i, j, kind, _ in FACETS.edges if FACETS.facets[i].panel != FACETS.facets[j].panel}
+        for (a, b), kind in kinds.items():
+            same_wing = SCENE.panels[a].plane_id == SCENE.panels[b].plane_id
+            self.assertEqual(kind, "coplanar" if same_wing else "crease", (a, b))
+        self.assertTrue(any(SCENE.panels[a].plane_id == SCENE.panels[b].plane_id for a, b in kinds))       # the rails touch
+        self.assertTrue(any(SCENE.panels[a].plane_id != SCENE.panels[b].plane_id for a, b in kinds))       # and so do the wings
+        # panes that only meet at the corner where four windows come together are not neighbours
+        adj = SCENE.panel_adjacency()
+        self.assertNotIn((0, 3), adj)                                                                    # left_top and centre_bottom touch at a point
+        self.assertIn((0, 1), adj)                                                                       # left_top and left_bottom share the rail
+        self.assertIn((0, 2), adj)                                                                       # left_top and centre_top share a wing edge
 
 
 class SeamsAndPlateaus(unittest.TestCase):
@@ -183,8 +223,18 @@ class SeamsAndPlateaus(unittest.TestCase):
 
     def test_keeping_the_plateau_qubits_is_still_possible(self):
         fk = build_facets(SCENE, interior="keep")
-        self.assertEqual((fk.n, fk.n_quantum), (15, 15))
-        self.assertEqual(spec_from_facets(fk, SCENE).F, 15)
+        self.assertEqual((fk.n, fk.n_quantum), (18, 18))                      # 6 panes x (2 bands + 1 plateau)
+        self.assertEqual(spec_from_facets(fk, SCENE).F, 18)
+
+
+def equal_tilt(entangle=0.8, **kw):
+    """The default scene with every band facet tilted by the same angle (the facets keep the azimuths the geometry gave them). At the equator of the depth
+    sphere a facet's lit fraction depends on its tilt and on the light's component along the panel normal only, never on its slope direction, so
+    'flat' is a statement about slope direction at fixed tilt; the geometry's own tilts differ a little from facet to facet (0.69 against 0.72 on one
+    pane) and would leave a small difference that is not a bevel."""
+    nq = FACETS.n_quantum
+    fs = FACETS.with_tilt([0.5 if i < nq else 0.0 for i in range(FACETS.n)], FACETS.phi)
+    return fs, spec_from_facets(fs, SCENE, entangle=entangle, **kw)
 
 
 class Couplings(unittest.TestCase):
@@ -205,10 +255,12 @@ class Couplings(unittest.TestCase):
         self.assertEqual(names, {"h", "ry", "rz", "rzz", "cz"})
 
     def test_the_bevel_is_exactly_flat_at_the_equator_for_every_polarity_outcome_with_diagonal_couplings(self):
-        xs = [i for i, f in enumerate(FACETS.facets) if f.kind == "band" and abs(np.cos(f.phi)) > 0.9]
-        sg = np.array([np.sign(np.cos(FACETS.facets[i].phi)) for i in xs])
-        for o in range(2 ** SPEC.P):
-            m = STATE.marginals(3, w=1, o=o)
+        fs, sp = equal_tilt()
+        st = ReliefState(sp)
+        xs = [i for i, f in enumerate(fs.facets) if f.kind == "band" and abs(np.cos(f.phi)) > FACING]
+        sg = np.array([np.sign(np.cos(fs.facets[i].phi)) for i in xs])
+        for o in range(2 ** sp.P):
+            m = st.marginals(3, w=1, o=o)
             self.assertLess(abs(float((m[xs] * sg).mean())), 2e-3, o)
 
     def test_exchange_couplings_are_an_opt_in_that_gives_up_the_flat_equator(self):
@@ -216,7 +268,7 @@ class Couplings(unittest.TestCase):
         sp = spec_from_facets(FACETS, SCENE, entangle=0.6, coupling="xy")
         np.testing.assert_allclose(rw.stabilizers(full_state(sp), sp), 1.0, atol=1e-9)
         st = ReliefState(sp)
-        xs = [i for i, f in enumerate(FACETS.facets) if f.kind == "band" and abs(np.cos(f.phi)) > 0.9]
+        xs = [i for i, f in enumerate(FACETS.facets) if f.kind == "band" and abs(np.cos(f.phi)) > FACING]
         sg = np.array([np.sign(np.cos(FACETS.facets[i].phi)) for i in xs])
         self.assertGreater(max(abs(float((st.marginals(3, w=1, o=o)[xs] * sg).mean())) for o in (0, 7)), 0.05)       # which outcome shows it depends on chi
 
@@ -254,7 +306,7 @@ class Observation(unittest.TestCase):
 
     def test_sampled_frames_at_ninety_degrees_have_no_bevel_on_the_real_scene(self):
         rng = np.random.default_rng(1)
-        left_facing = [i for i, f in enumerate(FACETS.facets) if f.kind == "band" and abs(np.cos(f.phi)) > 0.9]
+        left_facing = [i for i, f in enumerate(FACETS.facets) if f.kind == "band" and abs(np.cos(f.phi)) > FACING]
         diffs = []
         for _ in range(400):
             d = STATE.draw(32, rng, g=3, world=1)                       # light from the left
@@ -265,7 +317,7 @@ class Observation(unittest.TestCase):
 
     def test_decided_frames_have_a_definite_bevel_with_the_sign_of_the_outcome(self):
         rng = np.random.default_rng(2)
-        facing = [i for i in FACETS.of_panel(1) if FACETS.facets[i].kind == "band" and abs(np.cos(FACETS.facets[i].phi)) > 0.9]
+        facing = [i for i in FACETS.of_panel(1) if FACETS.facets[i].kind == "band" and abs(np.cos(FACETS.facets[i].phi)) > FACING]
         for o_wanted in (+1, -1):
             vals = []
             for _ in range(300):
@@ -380,7 +432,7 @@ class NoTogglesInPerformanceMode(unittest.TestCase):
     def test_session_in_performance_mode_has_no_look_choosing_actions(self):
         from src.ui.session import Session
         with tempfile.TemporaryDirectory() as tmp:
-            s = Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir="runs/calibration_5x4")
+            s = Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir=DEFAULT_CALIB_DIR)
             self.assertEqual(s.family, "relief")
             for a in self.REMOVED_ACTIONS:
                 with self.assertRaises(ValueError, msg=a) as cm:
@@ -400,7 +452,7 @@ class NoTogglesInPerformanceMode(unittest.TestCase):
         self.assertFalse(actions & set(self.REMOVED_ACTIONS))
         self.assertTrue({"dephased_toggle", "witness_run", "noise_toggle", "next"} <= actions)
         with tempfile.TemporaryDirectory() as tmp:
-            s = Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir="runs/calibration_5x4")
+            s = Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir=DEFAULT_CALIB_DIR)
             server, token, base = make_server(s)
             threading.Thread(target=server.serve_forever, daemon=True).start()
             try:
@@ -423,7 +475,7 @@ class ProvenanceIsHonest(unittest.TestCase):
         from src.ui import caption
         from src.ui.session import Session
         with tempfile.TemporaryDirectory() as tmp:
-            s = Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir="runs/calibration_5x4")
+            s = Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir=DEFAULT_CALIB_DIR)
             self.assertFalse(s.prov["from_moth"])
             line = caption.provenance_line(s.prov)
             self.assertIn("not a Moth result", line)
@@ -486,18 +538,19 @@ class Azimuth(unittest.TestCase):
         self.assertAlmostEqual(contrast(sym, 0), -contrast(sym, 1), places=10)
 
     def test_on_the_real_scene_the_equator_is_flat_at_chi_0_and_180_and_only_faintly_off_at_chi_90(self):
-        """Not flat for every chi: the sin(chi) cross-term of the superposition leaves an outcome-dependent residual bevel (measured +-0.026)."""
-        xs = [i for i, f in enumerate(FACETS.facets) if f.kind == "band" and abs(np.cos(f.phi)) > 0.9]
-        sg = np.array([np.sign(np.cos(FACETS.facets[i].phi)) for i in xs])
+        """Not flat for every chi: the sin(chi) cross-term of the superposition leaves an outcome-dependent residual bevel (measured +-0.06 on the six-pane default, +-0.026 on the three-panel window)."""
+        fs, _ = equal_tilt()
+        xs = [i for i, f in enumerate(fs.facets) if f.kind == "band" and abs(np.cos(f.phi)) > FACING]
+        sg = np.array([np.sign(np.cos(fs.facets[i].phi)) for i in xs])
         res = {}
         for chi in (0, 90, 180):
-            sp = spec_from_facets(FACETS, SCENE, entangle=0.8, observations=[(np.pi / 2, np.deg2rad(chi))] * 4)
+            sp = spec_from_facets(fs, SCENE, entangle=0.8, observations=[(np.pi / 2, np.deg2rad(chi))] * 4)
             st = ReliefState(sp)
             res[chi] = [float((st.marginals(0, w=1, o=o)[xs] * sg).mean()) for o in (0, 7)]
         for chi in (0, 180):
             self.assertLess(max(abs(v) for v in res[chi]), 1e-4)                # measured ~1e-5 at entangle 0.8 (cause not chased), three orders under the chi = 90 residual
         self.assertGreater(max(abs(v) for v in res[90]), 1e-2)
-        self.assertLess(max(abs(v) for v in res[90]), 0.05)
+        self.assertLess(max(abs(v) for v in res[90]), 0.1)                      # about +-0.06 on the six-pane default (+-0.026 on the three-panel window)
 
     def test_the_circuit_realises_the_azimuth(self):
         """The circuit's controlled rotations (RZ(-chi) then RY(-gamma)) agree with the exact engine's cell for an observation with chi != 0."""

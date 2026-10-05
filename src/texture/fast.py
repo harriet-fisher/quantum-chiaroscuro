@@ -59,6 +59,8 @@ class FastComposer:
         return d
 
     def polarity_map(self, pol):
+        if len(pol) != len(self.panel_masks):
+            raise ValueError(f"polarity has {len(pol)} entries but the scene has {len(self.panel_masks)} panels")
         pm = np.zeros((self.scene.H, self.scene.W))
         for m, v in zip(self.panel_masks, pol):
             pm[m] = v

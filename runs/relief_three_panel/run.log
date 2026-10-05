@@ -1,0 +1,24 @@
+LOCAL exact simulation of a circuit; no Moth engine involved
+12 facet qubits + 3 polarity = 15 simulated; 19 in the full circuit; 14 diagonal couplings
+state: local reference circuit (15 simulated qubits, exact statevector)
+panel 0: visibility <X_B> = 0.593 (product law 0.593); stabilizer <X_B Z^F> = 1.000; fidelity 1.000 vs bound 0.797: ENTANGLED (witness violated)
+panel 1: visibility <X_B> = 0.593 (product law 0.593); stabilizer <X_B Z^F> = 1.000; fidelity 1.000 vs bound 0.797: ENTANGLED (witness violated)
+panel 2: visibility <X_B> = 0.593 (product law 0.593); stabilizer <X_B Z^F> = 1.000; fidelity 1.000 vs bound 0.797: ENTANGLED (witness violated)
+control dephased: fidelity 0.125: not violated, as it must be for a classical mixture
+control noise: fidelity 3.05e-05: not violated, as it must be for a classical mixture
+best CHSH over polarity-facet pairs: 1.635 (classical bound 2): not violated
+best CHSH over facet-facet pairs: 1.600 (classical bound 2): not violated
+best CHSH over polarity-polarity pairs: 0.704 (classical bound 2): not violated
+
+domain relief: 46 facets + 46 domain qubits = 92 simulated (mps), 52 edges (6 creases)
+state: local reference circuit (92 qubits: 46 facets + 46 domain polarity qubits, mps backend)
+domain visibility <X_B>: 0.440 to 0.873 (isolated value 0.883; neighbours lower it)
+36 of 52 edges of the domain graph carry entanglement between their two domains (largest negativity 0.259, best CHSH 1.940); control B (dephased depth): 0 entangled edges, as it must be for a classical mixture
+creases (edges between panels): 6 of 6 carry entanglement between their two domains, largest negativity 0.259
+seam facets (12, mean tilt 0.50 rad): entropy of one seam facet against the rest 0.31 bits (other facets 0.31), of a pair across a crease 0.62 bits; seam domains' stabilizer <X_B Z^F> 0.50 to 0.50 while their visibility is 0.44 to 0.44
+matrix-product state: largest bond dimension 32, largest bond entropy 2.59 bits
+lamp - depth: 0 of 3 locked domains violate CHSH with the lamp (best 1.747, local bound 2); dephased depth: 0.000
+Mermin test, lamp + 3 domains from different panels: 6.568 against a local bound 4 (quantum maximum 8): VIOLATED; dephased depth 1.000
+frustration: 0 frustrated cycles among the domains alone, 0 once the lamp is joined to them
+parity game: 367 of 400 rounds won (91.8%), classical maximum 75%, this state's prediction 91.1% (Mermin value 6.57); +7.7 sigma from the classical bound
+wrote runs/relief/relief_frames.png, relief_complementarity.png, relief_scaling.png, relief_contrast_vs_visibility.png, report.json, domain_frames.png

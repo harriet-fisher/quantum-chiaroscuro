@@ -18,7 +18,7 @@ class FastMatchesReference(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.scene = build_scene(validate(fill_defaults(bay_window_labels())))
-        cls.sampler = Sampler(cls.scene, 5, 4)
+        cls.sampler = Sampler(cls.scene, 4, 4)
         cls.fast = FastComposer(cls.scene, cls.sampler.cells, cls.sampler.NX)
 
     def test_equal_to_reference_for_random_outcomes_and_blends(self):
@@ -32,15 +32,24 @@ class FastMatchesReference(unittest.TestCase):
                 got = self.fast.compose(lit, lamp, pol, blend_sigma=blend)
                 self.assertLess(np.abs(ref - got).max(), 1e-9)
 
+    def test_a_polarity_for_the_wrong_number_of_panels_is_refused_not_silently_truncated(self):
+        """A three-entry polarity on the six-pane scene used to leave panes 3-5 at polarity 0 (flat) without a word."""
+        lit = np.full(self.sampler.n, 0.5)
+        for pol in ((1, 1, 1), (1,) * 7):
+            with self.assertRaises(ValueError):
+                self.fast.compose(lit, (1, 1), pol)
+            with self.assertRaises(ValueError):
+                compose_frame(self.scene, self.sampler.cells, self.sampler.NX, lit, (1, 1), pol)
+
     def test_impenetrable_pixels_are_exactly_zero(self):
-        got = self.fast.compose(np.ones(self.sampler.n), (1, 1), (1, 1, 1))
+        got = self.fast.compose(np.ones(self.sampler.n), (1, 1), (1,) * self.scene.n_panels)
         self.assertTrue(np.all(got[self.scene.impenetrable] == 0))
         self.assertGreater(got.max(), 0.5)
 
     def test_is_much_faster_than_the_reference(self):
         lit = np.full(self.sampler.n, 0.5)
-        t = time.perf_counter(); self.fast.compose(lit, (1, 1), (1, 1, 1)); fast_s = time.perf_counter() - t
-        t = time.perf_counter(); compose_frame(self.scene, self.sampler.cells, self.sampler.NX, lit, (1, 1), (1, 1, 1)); ref_s = time.perf_counter() - t
+        t = time.perf_counter(); self.fast.compose(lit, (1, 1), (1,) * self.scene.n_panels); fast_s = time.perf_counter() - t
+        t = time.perf_counter(); compose_frame(self.scene, self.sampler.cells, self.sampler.NX, lit, (1, 1), (1,) * self.scene.n_panels); ref_s = time.perf_counter() - t
         self.assertLess(fast_s, ref_s / 3)
 
 

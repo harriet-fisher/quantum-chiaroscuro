@@ -22,9 +22,15 @@ SCENE = SAMPLER = LAYOUT = ORACLE = None
 def setUpModule():
     global SCENE, SAMPLER, LAYOUT, ORACLE
     SCENE = build_scene(validate(fill_defaults(bay_window_labels())))
-    SAMPLER = Sampler(SCENE, 5, 4)                                  # 14 patches + 2 lamps + 3 polarity = 19 qubits
+    SAMPLER = Sampler(SCENE, 4, 4)                                  # the default scene: 12 patches + 2 lamps + 6 polarity = 20 qubits
     LAYOUT = allocate(SAMPLER.n, SAMPLER.n_panels)
     ORACLE = sl.StateSource(sl.oracle_state(SAMPLER, LAYOUT), LAYOUT, label="oracle")
+
+
+def exact_polarity_zz(a, b):
+    """<s_a s_b> of the mock's polarity model by enumerating all 2^6 states (the polarity graph of six panes has cycles, so it is not tanh(J))."""
+    w = SAMPLER.polarity_weights()
+    return float(sum(wi * s[a] * s[b] for wi, s in zip(w, SAMPLER.polarity_states())) / w.sum())
 
 
 class Conventions(unittest.TestCase):
@@ -115,15 +121,22 @@ class OracleMatchesTheMock(unittest.TestCase):
         np.testing.assert_allclose(zz, exact[n:], atol=1e-9)
         np.testing.assert_allclose(single[LAYOUT["lamps"]], 0, atol=1e-12)       # lamps are uniform
         a, b = LAYOUT["polarity"][:2]
-        self.assertAlmostEqual(float(ORACLE.z_moments([(a, b)])[1][0]), float(np.tanh(0.9)), places=9)
+        self.assertAlmostEqual(float(ORACLE.z_moments([(a, b)])[1][0]), exact_polarity_zz(0, 1), places=9)       # the two windows of the left wing share a rail
 
     def test_sampled_pool_reproduces_coherence_metrics_of_the_mock(self):
         pool = ORACLE.pool(60000, np.random.default_rng(1))
         m = coherence_metrics(SAMPLER, pool.lamps, pool.shots, pool.pol)
-        self.assertGreater(m["coplanar_agreement"], 0.88)
-        self.assertLess(m["crease_agreement"], 0.0)
+        edges = patch_edges(SAMPLER.J)
+        n = SAMPLER.n
+        zz = estimate_patches_exact(SAMPLER, edges)[n:n + len(edges)]                # the mock model's own <s_a s_b> per patch edge
+        want_coplanar = float(np.mean([v for e, v in zip(edges, zz) if SAMPLER.J[e] > 0]))
+        want_crease = float(np.mean([v for e, v in zip(edges, zz) if SAMPLER.J[e] < 0]))
+        self.assertGreater(want_coplanar, 0.8)                                       # the model does make neighbours on one plane agree (0.87 on the default scene)
+        self.assertLess(want_crease, 0.0)
+        self.assertAlmostEqual(m["coplanar_agreement"], want_coplanar, delta=0.02)
+        self.assertAlmostEqual(m["crease_agreement"], want_crease, delta=0.02)
         self.assertGreater(m["light_left_right"], 0.95)
-        self.assertAlmostEqual(m["polarity_agreement"], np.tanh(0.9), delta=0.03)
+        self.assertAlmostEqual(m["polarity_agreement"], float(np.mean([exact_polarity_zz(a, b) for a, b in SAMPLER.pol_edges])), delta=0.03)
 
 
 class Frames(unittest.TestCase):
@@ -141,8 +154,8 @@ class Frames(unittest.TestCase):
             self.assertTrue(np.all((d.lit >= 0) & (d.lit <= 1)))
 
     def test_holding_lamp_and_polarity(self):
-        d = draw_frame(self.gen.index, 4, np.random.default_rng(4), lamp=(1, -1), pol=(1, 1, 1))
-        self.assertEqual((d.lamp, d.pol), ((1, -1), (1, 1, 1)))
+        d = draw_frame(self.gen.index, 4, np.random.default_rng(4), lamp=(1, -1), pol=(1,) * 6)
+        self.assertEqual((d.lamp, d.pol), ((1, -1), (1,) * 6))
 
     def test_partial_holds_fix_only_what_is_named(self):
         rng = np.random.default_rng(6)

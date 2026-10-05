@@ -1,5 +1,7 @@
 # Standing Light v2: Superposed Relief
 
+> **Scene note.** This document describes the first build's **three-panel** bay window (left, centre, right). The built-in window, and the default of the code, is now **six panels**: each wing holds two windows stacked on top of each other with a shared rail (`left_top`, `left_bottom`, `centre_top`, `centre_bottom`, `right_top`, `right_bottom`; three planes). Counts and numbers below that say three panels, 15 or 19 qubits, or 3 polarity qubits are the three-panel ones; the README's *The default scene* has the current ones.
+
 Handoff for Claude Code. Written 1 Oct 2026. Read this after `standing-light-handoff.md` (where they differ, **this file wins** for anything about the quantum design, the bevel, and the controls). The reference simulation `superposed_relief_refsim.py` (same folder) is runnable and checks every formula below; run it first.
 
 ## 0. What changes, in five lines

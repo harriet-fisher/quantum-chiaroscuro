@@ -1,0 +1,252 @@
+{
+ "engine_id": "qdrive-api-v1",
+ "name": "QDrive",
+ "description": "Build a quantum circuit by specifying target expectation values instead of gates.",
+ "owner": "51d7e7a6-480b-41bc-a3c1-7ea1f8886ea0",
+ "owner_type": "user",
+ "created_by": "51d7e7a6-480b-41bc-a3c1-7ea1f8886ea0",
+ "visibility": "public",
+ "queue": "",
+ "input_type": "multipart/form-data",
+ "output_type": "application/json",
+ "input_files": [
+  {
+   "name": "initial_circuit",
+   "mime_types": [
+    "text/plain"
+   ],
+   "required": false,
+   "description": ""
+  }
+ ],
+ "output_files": [
+  {
+   "name": "circuit",
+   "content_types": [
+    "text/plain"
+   ],
+   "required": true,
+   "description": "The final circuit (QASM3), also chainable into a later job's initial_circuit via job:<id>/circuit."
+  }
+ ],
+ "is_multipart": true,
+ "is_async": false,
+ "execution_mode": "handler",
+ "run_policy": {
+  "timeout": 120,
+  "max_retries": 3,
+  "heartbeat": 30
+ },
+ "params_schema": {
+  "properties": {
+   "ansatz": {
+    "anyOf": [
+     {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object"
+     },
+     {
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ],
+    "default": null,
+    "description": "QASM3 ansatz circuits keyed by the number of qubits they act on.",
+    "title": "Ansatz"
+   },
+   "coupling_map": {
+    "anyOf": [
+     {
+      "items": {
+       "items": {
+        "type": "integer"
+       },
+       "type": "array"
+      },
+      "type": "array"
+     },
+     {
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ],
+    "default": null,
+    "description": "Optional coupling map edges, e.g. [[0, 1], [1, 2]].",
+    "title": "Coupling Map"
+   },
+   "machine": {
+    "default": "aer",
+    "description": "Backend to run on; see backend.MACHINES",
+    "title": "Machine",
+    "type": "string"
+   },
+   "n_qubits": {
+    "anyOf": [
+     {
+      "exclusiveMinimum": 0,
+      "type": "integer"
+     },
+     {
+      "type": "null"
+     }
+    ],
+    "default": null,
+    "description": "Number of qubits in the circuit; required unless the initial_circuit file input is given",
+    "title": "N Qubits"
+   },
+   "sample": {
+    "default": false,
+    "description": "Also run a shot-based sampler on the final circuit",
+    "title": "Sample",
+    "type": "boolean"
+   },
+   "seed": {
+    "anyOf": [
+     {
+      "minimum": 0,
+      "type": "integer"
+     },
+     {
+      "type": "null"
+     }
+    ],
+    "default": null,
+    "description": "RNG seed; a random one is drawn if omitted",
+    "title": "Seed"
+   },
+   "shots": {
+    "default": 1024,
+    "description": "Shot count used by both the estimator and the sampler",
+    "exclusiveMinimum": 0,
+    "title": "Shots",
+    "type": "integer"
+   },
+   "targets": {
+    "anyOf": [
+     {
+      "items": {
+       "anyOf": [
+        {
+         "additionalProperties": true,
+         "type": "object"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "array"
+     },
+     {
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     },
+     {
+      "type": "string"
+     }
+    ],
+    "description": "Ordered QDrive.target() calls; an empty/null entry calls update() instead. An expvals value may be a number, [value, certainty], or a measured[...]-style expression [[word, qubits, coefficient], ...] (optionally [terms, certainty]).",
+    "title": "Targets"
+   },
+   "tomography": {
+    "default": 0,
+    "description": "0: none, 1: single-qubit tomography, 2: two-qubit tomography",
+    "maximum": 2,
+    "minimum": 0,
+    "title": "Tomography",
+    "type": "integer"
+   },
+   "update_method": {
+    "default": "spectral",
+    "description": "QDrive.update() fitting method: one of ('spectral', 'direct', 'constrained')",
+    "title": "Update Method",
+    "type": "string"
+   }
+  },
+  "title": "Params",
+  "type": "object"
+ },
+ "credits_per_run": 1,
+ "enabled": true,
+ "registered_at": "2026-08-21T15:37:48Z",
+ "updated_at": "2026-09-01T14:11:25Z",
+ "description_md": "QDrive engine",
+ "code_samples": [
+  {
+   "lang": "Python",
+   "source": "import json\nimport requests\n\n# First job: no initial_circuit, just n_qubits + targets.\nr = requests.post(\n    \"https://api.mothquantum.com/v1/generation/qdrive-api-v1/process\",\n    headers={\"Authorization\": \"Bearer YOUR_KEY\"},\n    data={\"_params\": json.dumps({\"n_qubits\": 2, \"targets\": [{\"expvals\": {\"ZZ\": 1.0}, \"qubits\": [0, 1]}]})},\n)\njob_id = r.json()[\"job_id\"]\n\n# Chain a second job off the first one's circuit, by reference \u2014 no re-upload.\nr = requests.post(\n    \"https://api.mothquantum.com/v1/generation/qdrive-api-v1/process\",\n    headers={\"Authorization\": \"Bearer YOUR_KEY\"},\n    data={\"initial_circuit\": f\"job:{job_id}/circuit\", \"_params\": json.dumps({\"tomography\": 2})},\n)\nprint(r.json()[\"job_id\"])\n"
+  },
+  {
+   "lang": "curl",
+   "source": "curl -X POST https://api.mothquantum.com/v1/generation/qdrive-api-v1/process \\\n  -H \"Authorization: Bearer YOUR_KEY\" \\\n  -F 'initial_circuit=job:PRIOR_JOB_ID/circuit' \\\n  -F '_params={\"tomography\": 2}'\n"
+  }
+ ],
+ "error_codes": [
+  {
+   "type": "invalid_params",
+   "description": "params fail Params' own field validation (type/range)."
+  },
+  {
+   "type": "invalid_initial_circuit",
+   "description": "initial_circuit bytes aren't parseable QASM3."
+  },
+  {
+   "type": "n_qubits_mismatch",
+   "description": "n_qubits disagrees with initial_circuit's own qubit count."
+  },
+  {
+   "type": "invalid_coupling_map",
+   "description": "coupling_map isn't a list of 2-qubit edges."
+  },
+  {
+   "type": "coupling_map_out_of_range",
+   "description": "coupling_map references more qubits than n_qubits."
+  },
+  {
+   "type": "invalid_ansatz",
+   "description": "an ansatz key isn't an integer qubit count."
+  },
+  {
+   "type": "invalid_ansatz_qasm",
+   "description": "an ansatz value isn't parseable QASM3."
+  },
+  {
+   "type": "ansatz_width_mismatch",
+   "description": "an ansatz circuit's qubit count doesn't match its key."
+  },
+  {
+   "type": "unsupported_target_ansatz",
+   "description": "a target dict carries its own 'ansatz' key, which isn't supported \u2014 use the top-level ansatz parameter."
+  },
+  {
+   "type": "invalid_target",
+   "description": "a target is missing 'qubits', has duplicate/out-of-range qubits, or a non-mapping 'expvals'."
+  },
+  {
+   "type": "invalid_update_method",
+   "description": "update_method isn't one of spectral, direct, or constrained."
+  },
+  {
+   "type": "invalid_machine",
+   "description": "machine isn't a backend.get_backend() knows about."
+  }
+ ],
+ "banner_image_id": null,
+ "card_image_id": null,
+ "banner_image_tag": null,
+ "card_image_tag": null,
+ "has_estimate": false,
+ "estimate": null,
+ "has_estimate_fn": false,
+ "estimate_needs_container": false,
+ "sidecar_endpoint": null,
+ "has_validate_fn": false
+}

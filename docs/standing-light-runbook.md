@@ -2,6 +2,8 @@
 
 Written 1 Oct 2026. Companion to `standing-light-project-spec.md` (v3) and `standing-light-handoff.md`; where they differ, the handoff wins. This file covers handoff §14 days 4 to 5 and §10 (performance mode). **Nothing in it has been run on a real projector or a real bay window yet**: every number below that comes from a camera or a wall is a *synthetic* test of the tools, and each section says what is and is not verified.
 
+> **Scene note (the default window).** This runbook was written for the first build's three-panel bay window. The built-in window, and the default of every command below, is now **six panels**: three wall sections (left wing, centre, right wing) each holding two windows stacked on top of each other with a shared rail (`left_top`, `left_bottom`, `centre_top`, `centre_bottom`, `right_top`, `right_bottom`; three planes; a pane of glass in every window). Where a number below says "three panels", "15" or "19 qubits" it describes the first layout; the README's *The default scene* has the current ones (classical grid 4x4 = 20 qubits; per-panel relief 12 facet + 6 polarity = 18 simulated, 22 in the circuit; domain relief 64 + 64 = 128 qubits).
+
 ## 1. What was built
 
 | Area | Files | Verified how |
@@ -24,11 +26,11 @@ One local page walks the steps you used to run by hand, each one running the sam
 |---|---|---|
 | 1 Draw | `src.capture.pen_tool draw` (opens in your browser; press Save in it) | `labels.json`, `mask.png` |
 | 2 Targets | `src.targets.calibrate_from_mock` (optional grid and sweeps) | `calib/` (targets and both payloads) |
-| 3 Rehearse | `src.show --source oracle` (classical, no quantum calls) | `calibration.json` if you align |
+| 3 Rehearse | `src.show --source relief` (Superposed Relief, the quantum circuit simulated exactly here; no Moth call, no credits) | `calibration.json` if you align |
 | 4 Solve | `src.quantum.solver qdrive` or `graph-v1` | `solve/` |
-| 5 Perform | `src.show --source circuit` on the circuit step 4 returned | |
+| 5 Perform | `src.show --source circuit` on the circuit step 4 returned (the classical QDrive flow) | |
 
-The **Next** button does the right thing for the first step that is not done. A step is blocked until the one it needs is current: change the drawing and steps 2 to 5 say so (the studio remembers which drawing the targets came from, in `studio.json`). Stop ends a tool; Ctrl+C or closing the terminal stops everything the studio started. "Use the built-in demo scene" fills step 1 so the rest can be tried before anything is drawn.
+The **Next** button does the right thing for the first step that is not done. A step is blocked until the one it needs is current: change the drawing and steps 2 to 5 say so (the studio remembers which drawing the targets came from, in `studio.json`). Stop ends a tool; Ctrl+C or closing the terminal stops everything the studio started. "Use the built-in demo scene" fills step 1 with the six-pane bay window so the rest can be tried before anything is drawn.
 
 **Spending is unchanged and stricter, not looser.** Step 4 shows the payload hash and cost (a payload with a saved result is free and sends nothing) and the send button stays disabled unless the studio was started with `--allow-spend`; the confirm must repeat the hash and credits it showed. The show it opens is never given `--allow-spend`. Jobs that were submitted but have no saved result are listed in the plan, so a failed paid run is not forgotten. Tested with fake child processes (`tests/test_studio.py`) and once for real on the demo scene up to the refused spend; **no credits were sent through the studio**, and QDrive's behaviour on a real send is unchanged and still unverified.
 
@@ -37,12 +39,13 @@ The modules still run on their own with the same flags; the studio only supplies
 ## 2. Quick start (rehearsal, no projector needed)
 
 ```
-source mock/.venv/bin/activate        # or: mock/.venv/bin/python ...
-python -m src.show                    # the built-in bay window, classical rehearsal source
+source .venv/bin/activate             # or: .venv/bin/python -m ...   (run from the project folder)
+python -m src.show                    # the built-in six-pane bay window, Superposed Relief (section 7)
+python -m src.show --source oracle    # the classical rehearsal source instead
 ```
-It prints three URLs: the **operator panel** (`/`, this laptop only), the **projector window** (`/output`) and the **audience screen** (`/audience`). The header chip says `classical rehearsal (no quantum)` until a quantum-backed source is chosen; the audience screen says so too, in words.
+It prints three URLs: the **operator panel** (`/`, this laptop only), the **projector window** (`/output`) and the **audience screen** (`/audience`). The header chip says `local reference circuit` for the default relief source and `classical rehearsal (no quantum)` for the classical ones; the audience screen says so too, in words.
 
-Sources (`--source`): `oracle` (default; the mock's distribution as a state, classical), `mock` (Gibbs sampler), `complementary` (the experiment's stand-in state, UNTESTED), `circuit` (a QASM3 file, e.g. a QDrive circuit, simulated locally). Nothing is called a Moth result unless the circuit came from a Moth job.
+Sources (`--source`): `relief` (default: Superposed Relief, section 7), `oracle` (the mock's distribution as a state, classical), `mock` (Gibbs sampler), `complementary` (the experiment's stand-in state, UNTESTED), `circuit` (a QASM3 file, e.g. a QDrive circuit, simulated locally). Nothing is called a Moth result unless the circuit came from a Moth job.
 
 ## 3. The real bay window
 
@@ -121,7 +124,7 @@ The operator panel is the laptop's view: a live preview of exactly what the proj
 
 ### The five-minute demo (D)
 
-Seven steps, built from what is on disk and the current provenance: (1) the problem, independent noise then the correlated draw; (2) geometry and the black-glass rule (outline, then white-in-frame); (3) the qubit graph; (4) requested vs achieved; (5) the three knobs in turn, plus the complementary beat; (6) QDrive vs graph-v1 (it says plainly that QDrive has not returned a circuit); (7) an honest scorecard of what is and is not quantum-specific. Space or the arrows step through beats; each beat sets the projector, the knobs and the audience screen together.
+Seven steps, built from what is on disk and the current provenance: (1) the problem, independent noise then the correlated draw; (2) geometry and the black-glass rule (outline, then white-in-frame); (3) the qubit graph; (4) requested vs achieved; (5) the three knobs in turn, plus the complementary beat; (6) QDrive vs graph-v1 (it says plainly when QDrive has not returned a circuit for this scene); (7) an honest scorecard of what is and is not quantum-specific. Space or the arrows step through beats; each beat sets the projector, the knobs and the audience screen together.
 
 ## 5. The polarity-complementary experiment (UNTESTED)
 
@@ -129,20 +132,22 @@ Seven steps, built from what is on disk and the current provenance: (1) the prob
 python -m src.quantum.complementary --out runs/complementary --sweep      # ~25 s; add --circuit QDRIVE.qasm for a real circuit
 python -m src.show --source complementary                                  # see it on the wall
 ```
-**What it is.** Lamps uniform, patches Boltzmann given the lamps (the mock's distribution as a pure state), polarity qubits in |+> with a controlled phase to the lamp that governs their panel. Controlled phases are diagonal, so every lit/dark and lamp statistic is exactly the Z-only baseline's. **Read in Z, polarity is a fair coin; read in X, it is locked to its lamp** (correlation 1.00). This is a *stand-in*: QDrive has never returned a circuit (its one job failed on the target syntax and was not resent), so no Moth result is involved.
+**What it is.** Lamps uniform, patches Boltzmann given the lamps (the mock's distribution as a pure state), polarity qubits in |+> with a controlled phase to the lamp that governs their panel. Controlled phases are diagonal, so every lit/dark and lamp statistic is exactly the Z-only baseline's. **Read in Z, polarity is a fair coin; read in X, it is locked to its lamp** (correlation 1.00). This is a *stand-in*: no QDrive circuit for this state exists (at the time of writing QDrive's one job had failed on the target syntax; since then small jobs have run, see `qdrive-field-notes.md`), so no Moth result is involved.
 
-**What it found** (19 qubits, `runs/complementary/report.json`, `complementary_frames.png`, `complementary_witness.png`):
+**What it found** (on the first build's three-panel window, 19 qubits; the six-pane default is described below the list; the outputs are `runs/complementary/report.json`, `complementary_frames.png`, `complementary_witness.png`):
 - The witness is a Bell-type test needing no assumption about the circuit: the exact best CHSH value over all settings for every qubit pair (Horodecki), and a Mermin inequality for the lamp plus its polarity qubits. Checked against textbook states and against sampling.
 - Coupling all polarity qubits to L2: the 4-party Mermin value is **7.46 against a classical bound of 4** (maximum 8), 479 sigma with 20,000 shots per term. No *pair* shows it (every pairwise CHSH is exactly 2.00), because the other polarity qubits hold a copy of the lamp's phase.
 - Coupling by geometry (sides to L1, centre to L2): only the centre pair violates (CHSH 2.74). **The side panels' lamp L1 gives exactly 2.00 because the patches follow L1 strongly and so already hold a record of it.** This is a real trade-off: the more the lighting is coherent, the less a polarity qubit tied to that lamp can be non-classical; `--sweep` draws the curve.
 - The Z-only baseline's *statistics* are classical but its sqrt(P) *state* is not classical in other bases (one patch pair scores 2.35), so its S_max is reported for contrast, not as a "classical" label.
+- **On the six-pane default** every lamp is followed by two polarity qubits per wing (sides to L1: four panes; centre to L2: two), so each lamp is recorded twice over: *no* pane-lamp pair violates CHSH (every one is exactly 2.00), and only the many-party Mermin test over the lamp and its polarity qubits does (value 46.7 of a possible 64 at the default phase, `lamp2` coupling, seven parties). The centre pane's 2.74 above is a three-panel result; `tests/test_complementary.py` pins both.
 
 **What it does not show.** A violation says the *state* is non-classical; it is not a quantum-advantage claim (this whole script is classically simulable). The audience cannot see it in any single frame: it lives in statistics across measurement settings. It says nothing about what QDrive will return for these targets. `payload_qdrive_complementary.json` is built and validated locally (1 credit if sent) but **NOT SENT**, and the mixed-Pauli-word target syntax is unverified.
 
 ## 6. Tests
 
 ```
-for m in test_fast test_projector test_ui test_studio test_complementary test_pen_geom test_frames test_payloads test_moth_client test_relief test_moth_engines; do python -m unittest tests.$m; done
+python -m pytest tests -q                     # everything (about 7 minutes), or one module at a time with: python -m unittest tests.test_relief
+python -m unittest tests.test_moth_pipeline   # the whole Moth path against a fake server on localhost
 python -m tests.check_port_matches_mock       # the src port still reproduces the original mock exactly
 ```
 UI tests install a stub for the Moth solver and fail if anything reaches the real one.
@@ -157,7 +162,7 @@ python -m src.quantum.relief_report     # figures + report.json in runs/relief (
 python -m unittest tests.test_relief tests.test_moth_engines
 ```
 
-**What the wall is.** `src/geometry/facets.py` cuts every panel into facets, and **a facet is an orientation class, not a patch**: all pixels whose relief slopes the same way share one qubit (the outer-left bevel and the glass's right-hand bevel are one facet), because under a distant light they are lit identically. Per panel: 4 slope facets + 1 flat one, so 15 facets for the bay window. A facet's state is its surface normal, `b = (sin t cos p, sin t sin p, cos t)` in the panel's own frame. `src/quantum/relief_state.py` builds `|Psi> = 2^(-P/2) sum_s |s>_B (x) P^s |psi_f>` (H on a polarity qubit per panel, Ry/Rz per facet, optional couplings, CZ(B, facet)); 15 + 3 = 18 simulated qubits, 22 with the lamp (2) and observation (2) registers.
+**What the wall is.** `src/geometry/facets.py` cuts every panel into facets, and **a facet is an orientation class, not a patch**: all pixels whose relief slopes the same way share one qubit (the outer-left bevel and the glass's right-hand bevel are one facet), because under a distant light they are lit identically. Per panel: `--n-dirs` slope facets + 1 flat one (the default is the most that keeps the exact circuit within 20 qubits: 4 for three panels, **2 for the six panes of the default window**, 1 for eight), so 18 facets for the default window, 12 of them quantum. A facet's state is its surface normal, `b = (sin t cos p, sin t sin p, cos t)` in the panel's own frame. `src/quantum/relief_state.py` builds `|Psi> = 2^(-P/2) sum_s |s>_B (x) P^s |psi_f>` (H on a polarity qubit per panel, Ry/Rz per facet, optional couplings, CZ(B, facet)); 12 facets + 6 polarity = 18 simulated qubits, 22 with the lamp (2) and observation (2) registers (the plateau facets are classical and carry no qubit).
 
 **A frame is one run of the circuit.** The lamp register picks one of four lights and rotates every facet so measuring Z measures sigma.l (Lambert is the Born rule), the observation register picks gamma on each polarity qubit's depth sphere, everything is measured once, K photons deep. The polarity outcome is the depth decision; where gamma landed decides how definite it looks (pole: a bump or hollow; equator: **flat**; between: partial). Nothing in performance mode chooses a look: the lighting-world, relief-polarity and polarity-basis keys, buttons and actions exist only for the classical sources (`tests/test_relief.py::NoTogglesInPerformanceMode`).
 
@@ -174,10 +179,10 @@ python -m unittest tests.test_relief tests.test_moth_engines
 | Qiskit `prepare_state` of an exact vector, transpiled to u/cx, did not reproduce the state (fidelity 0.78); gate-by-gate circuits do. | Circuits are built gate by gate everywhere. |
 
 ### Verified how
-Reference numbers: the engine reproduces the handoff's check-4 table (contrast +.332 +.238 +.122 0 ..., P(outcome 0) .500 .603 .678 .706 ...). The Qiskit reference circuit equals the numpy state to 1e-10 with both coupling kinds; **the full circuit (lamp and observation registers inside) sampled by Aer matches the exact distribution** (total variation 0.013, sampling floor 0.020). 32 tests in `tests/test_relief.py`, 12 in `tests/test_moth_engines.py`.
+Reference numbers: the engine reproduces the handoff's check-4 table (contrast +.332 +.238 +.122 0 ..., P(outcome 0) .500 .603 .678 .706 ...). The Qiskit reference circuit equals the numpy state to 1e-10 with both coupling kinds; **the full circuit (lamp and observation registers inside) sampled by Aer matches the exact distribution** (total variation 0.013, sampling floor 0.020). the tests are in `tests/test_relief.py` and `tests/test_moth_engines.py` (their counts are in the README's Tests table).
 
 ### Not done
-No real projector, no Moth engine run on this design, QDrive returns no circuit yet, the studio's Solve/Perform steps are still the classical QDrive flow, and the lamp/observation registers are uniform draws (physical randomness only on a QPU).
+No real projector, no Moth engine run on this design, QDrive has returned circuits only for small jobs (never for a whole scene), the studio's Solve/Perform steps are still the classical QDrive flow, and the lamp/observation registers are uniform draws (physical randomness only on a QPU).
 
 ## 8. Moth engines for this project
 
@@ -200,7 +205,7 @@ No real projector, no Moth engine run on this design, QDrive returns no circuit 
 Built 2 Oct 2026; design, audit findings and results in `standing-light-v3-domain-relief-handoff.md`. **Local simulation only; nothing sent to Moth.**
 
 ```
-python -m src.show --engine domain                # 69 qubits as a matrix-product state; about 15 s to build, 0.06 s per frame
+python -m src.show --engine domain                # 128 qubits (six-pane window) as a matrix-product state; about 5 s to build, 0.07 s per frame
 python -m src.studio --engine domain              # step 3 opens it
 python -m src.quantum.relief_report --domain      # frames, certificate, contrast vs visibility
 python -m src.quantum.classical_baselines         # where classical simulation stops being cheap
@@ -213,6 +218,6 @@ In the operator panel everything of section 7 still applies (controls A and B, w
 - the overlay draws the domain graph (blue coplanar, orange crease), a ring per polarity qubit (yellow raised, red sunk this frame, +/- the lamp-lock sign);
 - captions and depth spheres speak of panels: each panel shows the mean over its domains.
 
-Added since: `G` toggles the **parity game** (some looks are rounds of a Mermin game between the lamp and three depth qubits; the tally against the classical 75% is in the science panel), `E` evolves the relief one kicked-Ising step (entanglement grows; the game falls below 75% by step 4), and `--seam-mix`, `--crease-coupling`, `--leaf-tau` set the seam regime (see the README). The lamp in X (`I`) now runs on this backend too.
+Added since: `G` toggles the **parity game** (some looks are rounds of a Mermin game between the lamp and three depth qubits, one leaf in each wing; the tally against the classical 75% is in the science panel), `E` evolves the relief one kicked-Ising step (entanglement grows; on the six-pane window the game's predicted win rate falls from 93% to 74% after two steps, see the README), and `--seam-mix`, `--crease-coupling`, `--leaf-tau` set the seam regime (see the README). The lamp in X (`I`) now runs on this backend too.
 
 The glass checks are unchanged (exact 0 on the glass after the warp; a sparse composer is used beyond 24 facets). The projector procedure of section 3 applies as is. **Not yet done: judging the domain relief by eye on the real wall.**

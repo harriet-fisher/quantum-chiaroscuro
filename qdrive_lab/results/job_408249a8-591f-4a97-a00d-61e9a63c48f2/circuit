@@ -1,0 +1,46 @@
+OPENQASM 3.0;
+include "stdgates.inc";
+gate rxx(p0) _gate_q_0, _gate_q_1 {
+  h _gate_q_0;
+  h _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  rz(p0) _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  h _gate_q_1;
+  h _gate_q_0;
+}
+gate sxdg _gate_q_0 {
+  s _gate_q_0;
+  h _gate_q_0;
+  s _gate_q_0;
+}
+gate ryy(p0) _gate_q_0, _gate_q_1 {
+  sxdg _gate_q_0;
+  sxdg _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  rz(p0) _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  sx _gate_q_0;
+  sx _gate_q_1;
+}
+gate rzz(p0) _gate_q_0, _gate_q_1 {
+  cx _gate_q_0, _gate_q_1;
+  rz(p0) _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+}
+qubit[2] q;
+rz(4.102478813454989) q[0];
+ry(0.4942824540562491) q[0];
+rz(-1.6130159093313738) q[0];
+rz(1.3616586193240587) q[1];
+ry(0.9071118232653915) q[1];
+rz(-0.07922311407229986) q[1];
+rxx(-0.6333559913605443) q[0], q[1];
+ryy(-0.34970346815551406) q[0], q[1];
+rzz(1.9623817456080679) q[0], q[1];
+rz(-1.0263590370296507) q[0];
+ry(-0.07076281613454638) q[0];
+rz(-1.0708568633149305) q[0];
+rz(-1.9222856612081916) q[1];
+ry(-0.9681694832138277) q[1];
+rz(1.1821337596421804) q[1];

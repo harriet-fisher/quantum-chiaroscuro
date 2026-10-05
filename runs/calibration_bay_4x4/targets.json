@@ -1,0 +1,639 @@
+{
+  "meta": {
+    "created": "2026-10-05T00:01:52+0100",
+    "seed": 7,
+    "sweeps": 200000,
+    "burn": 500,
+    "pol_draws": 20000,
+    "payload_source": "mc",
+    "grid": [4, 4],
+    "n_qubits": 20,
+    "qubit_map": {
+      "patches": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "lamps": [12, 13],
+      "polarity": [14, 15, 16, 17, 18, 19],
+      "n_qubits": 20
+    },
+    "payload_sha256": "55a34e0e4402efe456ae4edd3cd02b7cb477ca68c48ebbee0c40f8945615bee7",
+    "estimated_credits": 5,
+    "accuracy_vs_exact": {"n": 63, "max_abs_err": 0.0051, "max_z": 2.054746267703229, "rms_z": 0.9135257223255612},
+    "consistency": {
+      "ok": true,
+      "bound_violations": [],
+      "near_pinned": {
+        "threshold": 0.9,
+        "count": 15,
+        "of": 45,
+        "labels": [
+          "<ZZ> patch 5 - patch 9",
+          "<ZZ> lamp L1 - patch 5",
+          "<ZZ> lamp L1 - patch 9",
+          "<ZZ> patch 2 - patch 6",
+          "<ZZ> lamp L1 - patch 2",
+          "<ZZ> lamp L1 - patch 6",
+          "<ZZ> polarity 2 - polarity 3",
+          "<ZZ> patch 1 - patch 5",
+          "<ZZ> patch 9 - patch 11",
+          "<ZZ> patch 6 - patch 10",
+          "<ZZ> patch 0 - patch 2",
+          "<ZZ> lamp L1 - patch 1",
+          "<ZZ> lamp L1 - patch 11",
+          "<ZZ> lamp L1 - patch 10",
+          "<ZZ> lamp L1 - patch 0"
+        ]
+      },
+      "n_triangles": 28,
+      "violations": [],
+      "min_slack": 0.005930000000000102
+    },
+    "sampler": {"kh": 1.6, "kf": 1.3, "J_in": 0.9, "J_cross": 0.6, "J_pol": 0.9, "beta": 1.0},
+    "variant": "z-only baseline: every target is a Z-basis correlator, so a classical correlated sampler reproduces it exactly (spec \u00a72.3). It is NOT the quantum-specific variant: polarity is not complementary to lighting here and the polarity qubits are not entangled with the lamp/patch structure (spec \u00a73.6, handoff \u00a79.4).",
+    "quantum_specific": false,
+    "conventions": "Z=+1: lit patch / light from right (L1) / frontal (L2) / raised relief; bitstring bit '0' is Z=+1, qubit 0 leftmost",
+    "patch_cells": [
+      {"qubit": 0, "i": 0, "j": 0, "panel": 0, "plane_id": 0},
+      {"qubit": 1, "i": 3, "j": 0, "panel": 4, "plane_id": 2},
+      {"qubit": 2, "i": 0, "j": 1, "panel": 0, "plane_id": 0},
+      {"qubit": 3, "i": 1, "j": 1, "panel": 2, "plane_id": 1},
+      {"qubit": 4, "i": 2, "j": 1, "panel": 2, "plane_id": 1},
+      {"qubit": 5, "i": 3, "j": 1, "panel": 4, "plane_id": 2},
+      {"qubit": 6, "i": 0, "j": 2, "panel": 1, "plane_id": 0},
+      {"qubit": 7, "i": 1, "j": 2, "panel": 3, "plane_id": 1},
+      {"qubit": 8, "i": 2, "j": 2, "panel": 3, "plane_id": 1},
+      {"qubit": 9, "i": 3, "j": 2, "panel": 5, "plane_id": 2},
+      {"qubit": 10, "i": 0, "j": 3, "panel": 1, "plane_id": 0},
+      {"qubit": 11, "i": 3, "j": 3, "panel": 5, "plane_id": 2}
+    ]
+  },
+  "bloch": [
+    {
+      "qubit": 0,
+      "label": "<Z> patch 0 (cell 0,0, panel 0)",
+      "Z": 5.000000000002225e-05,
+      "mc": 5.000000000002225e-05,
+      "exact": -3.1086244689504383e-15,
+      "se": 0.0005422884709398552
+    },
+    {
+      "qubit": 1,
+      "label": "<Z> patch 1 (cell 3,0, panel 4)",
+      "Z": 0.0005449999999999899,
+      "mc": 0.0005449999999999899,
+      "exact": -6.106226635438361e-16,
+      "se": 0.0005385768756829502
+    },
+    {
+      "qubit": 2,
+      "label": "<Z> patch 2 (cell 0,1, panel 0)",
+      "Z": -0.0003625000000000156,
+      "mc": -0.0003625000000000156,
+      "exact": -5.551115123125783e-16,
+      "se": 0.0005831908839675544
+    },
+    {
+      "qubit": 3,
+      "label": "<Z> patch 3 (cell 1,1, panel 2)",
+      "Z": -0.00012749999999997486,
+      "mc": -0.00012749999999997486,
+      "exact": -1.942890293094024e-16,
+      "se": 0.002995961248250786
+    },
+    {
+      "qubit": 4,
+      "label": "<Z> patch 4 (cell 2,1, panel 2)",
+      "Z": -0.0016625000000000112,
+      "mc": -0.0016625000000000112,
+      "exact": 1.6653345369377348e-16,
+      "se": 0.0029873559866236774
+    },
+    {
+      "qubit": 5,
+      "label": "<Z> patch 5 (cell 3,1, panel 4)",
+      "Z": 0.0005474999999999786,
+      "mc": 0.0005474999999999786,
+      "exact": -2.220446049250313e-16,
+      "se": 0.0005852106937868186
+    },
+    {
+      "qubit": 6,
+      "label": "<Z> patch 6 (cell 0,2, panel 1)",
+      "Z": -0.0005600000000000049,
+      "mc": -0.0005600000000000049,
+      "exact": 7.771561172376096e-16,
+      "se": 0.0006338445618378601
+    },
+    {
+      "qubit": 7,
+      "label": "<Z> patch 7 (cell 1,2, panel 3)",
+      "Z": 0.00014750000000000874,
+      "mc": 0.00014750000000000874,
+      "exact": 2.220446049250313e-16,
+      "se": 0.0029833995427419125
+    },
+    {
+      "qubit": 8,
+      "label": "<Z> patch 8 (cell 2,2, panel 3)",
+      "Z": -0.0011049999999999949,
+      "mc": -0.0011049999999999949,
+      "exact": 2.498001805406602e-16,
+      "se": 0.002987586178417183
+    },
+    {
+      "qubit": 9,
+      "label": "<Z> patch 9 (cell 3,2, panel 5)",
+      "Z": 0.00020500000000001073,
+      "mc": 0.00020500000000001073,
+      "exact": 8.326672684688674e-17,
+      "se": 0.0005974343529815216
+    },
+    {
+      "qubit": 10,
+      "label": "<Z> patch 10 (cell 0,3, panel 1)",
+      "Z": -0.0006475000000000231,
+      "mc": -0.0006475000000000231,
+      "exact": -1.8318679906315083e-15,
+      "se": 0.000562344422929578
+    },
+    {
+      "qubit": 11,
+      "label": "<Z> patch 11 (cell 3,3, panel 5)",
+      "Z": 0.0001825000000000021,
+      "mc": 0.0001825000000000021,
+      "exact": -3.0808688933348094e-15,
+      "se": 0.0005506217496834736
+    },
+    {
+      "qubit": 12,
+      "label": "<Z> lamp L1",
+      "note": "0 by construction: lamps are drawn uniformly",
+      "Z": 0.0,
+      "mc": 0.0,
+      "exact": 0.0,
+      "se": 0.0
+    },
+    {
+      "qubit": 13,
+      "label": "<Z> lamp L2",
+      "note": "0 by construction: lamps are drawn uniformly",
+      "Z": 0.0,
+      "mc": 0.0,
+      "exact": 0.0,
+      "se": 0.0
+    },
+    {
+      "qubit": 14,
+      "label": "<Z> polarity panel 0",
+      "Z": 0.0009,
+      "mc": 0.0009,
+      "exact": 0.0,
+      "se": 0.007343871525264576
+    },
+    {
+      "qubit": 15,
+      "label": "<Z> polarity panel 1",
+      "Z": -0.0051,
+      "mc": -0.0051,
+      "exact": 0.0,
+      "se": 0.006831036614196252
+    },
+    {
+      "qubit": 16,
+      "label": "<Z> polarity panel 2",
+      "Z": 0.002,
+      "mc": 0.002,
+      "exact": 0.0,
+      "se": 0.007114228341707847
+    },
+    {
+      "qubit": 17,
+      "label": "<Z> polarity panel 3",
+      "Z": 0.0013,
+      "mc": 0.0013,
+      "exact": 0.0,
+      "se": 0.007123989366204579
+    },
+    {
+      "qubit": 18,
+      "label": "<Z> polarity panel 4",
+      "Z": 0.0037,
+      "mc": 0.0037,
+      "exact": 0.0,
+      "se": 0.008050617925326718
+    },
+    {
+      "qubit": 19,
+      "label": "<Z> polarity panel 5",
+      "Z": -0.0002,
+      "mc": -0.0002,
+      "exact": 0.0,
+      "se": 0.007483260230238515
+    }
+  ],
+  "relationships": [
+    {
+      "qubits": [0, 2],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 0 - patch 2",
+      "ZZ": 0.9217474999999999,
+      "mc": 0.9217474999999999,
+      "exact": 0.9227278380185051,
+      "se": 0.00047710903964847057
+    },
+    {
+      "qubits": [1, 5],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 1 - patch 5",
+      "ZZ": 0.9227325,
+      "mc": 0.9227325,
+      "exact": 0.9227278380185058,
+      "se": 0.000521288263901685
+    },
+    {
+      "qubits": [2, 3],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 2 - patch 3",
+      "ZZ": -0.18525000000000003,
+      "mc": -0.18525000000000003,
+      "exact": -0.18801449589479483,
+      "se": 0.0029238285199863745
+    },
+    {
+      "qubits": [2, 6],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 2 - patch 6",
+      "ZZ": 0.9442725,
+      "mc": 0.9442725,
+      "exact": 0.944638139088871,
+      "se": 0.00044625439459335044
+    },
+    {
+      "qubits": [3, 4],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 3 - patch 4",
+      "ZZ": 0.695515,
+      "mc": 0.695515,
+      "exact": 0.6962741398969782,
+      "se": 0.0011101456973693833
+    },
+    {
+      "qubits": [3, 7],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 3 - patch 7",
+      "ZZ": 0.839005,
+      "mc": 0.839005,
+      "exact": 0.8398041755471326,
+      "se": 0.0006906265640854015
+    },
+    {
+      "qubits": [4, 5],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 4 - patch 5",
+      "ZZ": -0.19188500000000003,
+      "mc": -0.19188500000000003,
+      "exact": -0.18801449589479485,
+      "se": 0.002883687274292822
+    },
+    {
+      "qubits": [4, 8],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 4 - patch 8",
+      "ZZ": 0.8391575,
+      "mc": 0.8391575,
+      "exact": 0.8398041755471326,
+      "se": 0.0007013095440179117
+    },
+    {
+      "qubits": [5, 9],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 5 - patch 9",
+      "ZZ": 0.9447075,
+      "mc": 0.9447075,
+      "exact": 0.9446381390888708,
+      "se": 0.0004712652585089966
+    },
+    {
+      "qubits": [6, 7],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 6 - patch 7",
+      "ZZ": -0.1860225,
+      "mc": -0.1860225,
+      "exact": -0.1880144958947954,
+      "se": 0.002865439449682355
+    },
+    {
+      "qubits": [6, 10],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 6 - patch 10",
+      "ZZ": 0.9222125,
+      "mc": 0.9222125,
+      "exact": 0.9227278380185052,
+      "se": 0.0004836464649526807
+    },
+    {
+      "qubits": [7, 8],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 7 - patch 8",
+      "ZZ": 0.6948624999999999,
+      "mc": 0.6948624999999999,
+      "exact": 0.6962741398969782,
+      "se": 0.0011999540276057855
+    },
+    {
+      "qubits": [8, 9],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 8 - patch 9",
+      "ZZ": -0.19240000000000002,
+      "mc": -0.19240000000000002,
+      "exact": -0.18801449589479494,
+      "se": 0.0028769864477275805
+    },
+    {
+      "qubits": [9, 11],
+      "kind": "patch-patch",
+      "label": "<ZZ> patch 9 - patch 11",
+      "ZZ": 0.9223874999999999,
+      "mc": 0.9223874999999999,
+      "exact": 0.9227278380185042,
+      "se": 0.0004801539665905648
+    },
+    {
+      "qubits": [0, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 0",
+      "ZZ": 0.919955,
+      "mc": 0.919955,
+      "exact": 0.9207345383531109,
+      "se": 0.0005422884709398552
+    },
+    {
+      "qubits": [1, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 1",
+      "ZZ": -0.92089,
+      "mc": -0.92089,
+      "exact": -0.9207345383531174,
+      "se": 0.0005385768756829502
+    },
+    {
+      "qubits": [2, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 2",
+      "ZZ": 0.9434825,
+      "mc": 0.9434825,
+      "exact": 0.944209809594106,
+      "se": 0.0005831908839675544
+    },
+    {
+      "qubits": [3, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 3",
+      "ZZ": -0.1350825,
+      "mc": -0.1350825,
+      "exact": -0.1384527462329363,
+      "se": 0.002995961248250786
+    },
+    {
+      "qubits": [4, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 4",
+      "ZZ": 0.1426825,
+      "mc": 0.1426825,
+      "exact": 0.13845274623293627,
+      "se": 0.0029873559866236774
+    },
+    {
+      "qubits": [5, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 5",
+      "ZZ": -0.9445375,
+      "mc": -0.9445375,
+      "exact": -0.9442098095941056,
+      "se": 0.0005852106937868186
+    },
+    {
+      "qubits": [6, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 6",
+      "ZZ": 0.943105,
+      "mc": 0.943105,
+      "exact": 0.9442098095941057,
+      "se": 0.0006338445618378601
+    },
+    {
+      "qubits": [7, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 7",
+      "ZZ": -0.13578250000000003,
+      "mc": -0.13578250000000003,
+      "exact": -0.13845274623293624,
+      "se": 0.0029833995427419125
+    },
+    {
+      "qubits": [8, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 8",
+      "ZZ": 0.14264,
+      "mc": 0.14264,
+      "exact": 0.138452746232936,
+      "se": 0.002987586178417183
+    },
+    {
+      "qubits": [9, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 9",
+      "ZZ": -0.94431,
+      "mc": -0.94431,
+      "exact": -0.9442098095941055,
+      "se": 0.0005974343529815216
+    },
+    {
+      "qubits": [10, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 10",
+      "ZZ": 0.9203175,
+      "mc": 0.9203175,
+      "exact": 0.9207345383531168,
+      "se": 0.000562344422929578
+    },
+    {
+      "qubits": [11, 12],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L1 - patch 11",
+      "ZZ": -0.9208475,
+      "mc": -0.9208475,
+      "exact": -0.9207345383531172,
+      "se": 0.0005506217496834736
+    },
+    {
+      "qubits": [0, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 0",
+      "ZZ": -0.02794499999999997,
+      "mc": -0.02794499999999997,
+      "exact": -0.02754328488070021,
+      "se": 0.0005422884709398552
+    },
+    {
+      "qubits": [1, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 1",
+      "ZZ": -0.026825000000000015,
+      "mc": -0.026825000000000015,
+      "exact": -0.02754328488070029,
+      "se": 0.0005385768756829502
+    },
+    {
+      "qubits": [2, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 2",
+      "ZZ": -0.03823750000000001,
+      "mc": -0.03823750000000001,
+      "exact": -0.038063025357832236,
+      "se": 0.0005831908839675544
+    },
+    {
+      "qubits": [3, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 3",
+      "ZZ": 0.4554225,
+      "mc": 0.4554225,
+      "exact": 0.45874859237258653,
+      "se": 0.002995961248250786
+    },
+    {
+      "qubits": [4, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 4",
+      "ZZ": 0.4555075,
+      "mc": 0.4555075,
+      "exact": 0.4587485923725871,
+      "se": 0.0029873559866236774
+    },
+    {
+      "qubits": [5, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 5",
+      "ZZ": -0.03723750000000001,
+      "mc": -0.03723750000000001,
+      "exact": -0.038063025357832125,
+      "se": 0.0005852106937868186
+    },
+    {
+      "qubits": [6, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 6",
+      "ZZ": -0.03839000000000001,
+      "mc": -0.03839000000000001,
+      "exact": -0.0380630253578321,
+      "se": 0.0006338445618378601
+    },
+    {
+      "qubits": [7, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 7",
+      "ZZ": 0.4557575,
+      "mc": 0.4557575,
+      "exact": 0.4587485923725865,
+      "se": 0.0029833995427419125
+    },
+    {
+      "qubits": [8, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 8",
+      "ZZ": 0.455835,
+      "mc": 0.455835,
+      "exact": 0.45874859237258725,
+      "se": 0.002987586178417183
+    },
+    {
+      "qubits": [9, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 9",
+      "ZZ": -0.03784499999999999,
+      "mc": -0.03784499999999999,
+      "exact": -0.03806302535783207,
+      "se": 0.0005974343529815216
+    },
+    {
+      "qubits": [10, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 10",
+      "ZZ": -0.027457500000000024,
+      "mc": -0.027457500000000024,
+      "exact": -0.027543284880700708,
+      "se": 0.000562344422929578
+    },
+    {
+      "qubits": [11, 13],
+      "kind": "lamp-patch",
+      "label": "<ZZ> lamp L2 - patch 11",
+      "ZZ": -0.02716750000000004,
+      "mc": -0.02716750000000004,
+      "exact": -0.027543284880700264,
+      "se": 0.0005506217496834736
+    },
+    {
+      "qubits": [14, 15],
+      "kind": "polarity-polarity",
+      "label": "<ZZ> polarity 0 - polarity 1",
+      "ZZ": 0.8826,
+      "mc": 0.8826,
+      "exact": 0.8792567433798993,
+      "se": 0.003354071543418143
+    },
+    {
+      "qubits": [14, 16],
+      "kind": "polarity-polarity",
+      "label": "<ZZ> polarity 0 - polarity 2",
+      "ZZ": 0.8793,
+      "mc": 0.8793,
+      "exact": 0.8792567433798993,
+      "se": 0.003997473692016917
+    },
+    {
+      "qubits": [15, 17],
+      "kind": "polarity-polarity",
+      "label": "<ZZ> polarity 1 - polarity 3",
+      "ZZ": 0.8754,
+      "mc": 0.8754,
+      "exact": 0.8792567433798993,
+      "se": 0.0034753945598937097
+    },
+    {
+      "qubits": [16, 17],
+      "kind": "polarity-polarity",
+      "label": "<ZZ> polarity 2 - polarity 3",
+      "ZZ": 0.9363,
+      "mc": 0.9363,
+      "exact": 0.9316977022988113,
+      "se": 0.002248854583732681
+    },
+    {
+      "qubits": [16, 18],
+      "kind": "polarity-polarity",
+      "label": "<ZZ> polarity 2 - polarity 4",
+      "ZZ": 0.8781,
+      "mc": 0.8781,
+      "exact": 0.8792567433798993,
+      "se": 0.0033499619248521613
+    },
+    {
+      "qubits": [17, 19],
+      "kind": "polarity-polarity",
+      "label": "<ZZ> polarity 3 - polarity 5",
+      "ZZ": 0.8767,
+      "mc": 0.8767,
+      "exact": 0.8792567433798993,
+      "se": 0.00331234549119823
+    },
+    {
+      "qubits": [18, 19],
+      "kind": "polarity-polarity",
+      "label": "<ZZ> polarity 4 - polarity 5",
+      "ZZ": 0.8791,
+      "mc": 0.8791,
+      "exact": 0.8792567433798993,
+      "se": 0.0037679908574784035
+    }
+  ]
+}

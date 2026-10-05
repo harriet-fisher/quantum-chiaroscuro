@@ -1,5 +1,7 @@
 # Standing Light v3: Domain Relief
 
+> **Scene note.** This document describes the first build's **three-panel** bay window (left, centre, right). The built-in window, and the default of the code, is now **six panels**: each wing holds two windows stacked on top of each other with a shared rail (`left_top`, `left_bottom`, `centre_top`, `centre_bottom`, `right_top`, `right_bottom`; three planes). Counts and numbers below that say three panels, 15 or 19 qubits, or 3 polarity qubits are the three-panel ones; the README's *The default scene* has the current ones.
+
 > **Superseded in part.** The defaults and results below are those of the first domain relief (69 qubits). The current defaults (one facet per depth qubit, weak boundaries, strong seams: 92 qubits), the parity game, the seam regime, the kicked-Ising dynamics and the corrections to this document (control B on the matrix-product backend, the site-order argument, the two lamp semantics) are in the repository README, section "Domain Relief". The audit in section 0 and the decisions in section 4 still stand.
 
 Written 2 Oct 2026, after an audit of the v2 code against the project's own claim (quantum superposition and entanglement *between edges*, graph-structured, projected onto a wall). Read `standing-light-v2-superposed-relief-handoff.md` first; this file extends it and says where the code departs from it. Everything below is a **local simulation**; nothing has been run on a Moth engine and no credits were spent.

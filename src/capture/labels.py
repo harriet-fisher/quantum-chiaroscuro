@@ -23,7 +23,8 @@ computed at (polygons are scaled to it, uniformly, when a Scene is built).
     }
 
 angle_deg is the yaw of the plane's normal about the vertical axis; positive tilts the normal toward +x
-(image right). A bay window's left wing seen from inside is +35, the centre 0, the right wing -35.
+(image right). A bay window's left wing seen from inside is +35, the centre 0, the right wing -35. A wing with two windows stacked above
+each other is TWO panels with the same plane_id (the built-in bay window has six panels in three planes).
 Panels sharing a plane_id are coplanar (must share an angle). Glass and off_limits are impenetrable.
 window_near / window_far / depth_x are optional; defaults come from bounds.windows.default_window.
 """
@@ -44,25 +45,47 @@ def canvas_for(image_w, image_h, canvas_w=CANVAS_WIDTH):
     return {"width": int(canvas_w), "height": max(1, round(canvas_w * image_h / image_w))}
 
 
-def bay_window_labels(glass_scale=0.45):
-    """The synthetic bay window from mock/standing_light_mock.py, as a labels dict."""
-    polys = {
-        "left":   [(70, 70), (420, 150), (420, 560), (70, 640)],
-        "centre": [(420, 150), (780, 150), (780, 560), (420, 560)],
-        "right":  [(780, 150), (1130, 70), (1130, 640), (780, 560)],
-    }
-    angles = {"left": 35.0, "centre": 0.0, "right": -35.0}
+BAY_WINDOW_GRID = {"nx": 4, "ny": 4, "min_cover": 0.30}      # 12 projectable patches: 12 + 2 lamps + 6 polarity = 20 qubits, the graph-v1 cap
+DEFAULT_CALIB_DIR = "runs/calibration_bay_4x4"                # targets.json and the Moth payloads made for the built-in bay window (src.targets.calibrate_from_mock)
+DEFAULT_RUN_DIR = "runs/bay_run"                              # where the Moth results for those payloads are saved
+# runs/calibration_5x4 and runs/first_run are the first build's three-panel scene and its paid results: kept as a record, no longer the defaults.
+BAY_RAIL_Y = 355                                              # the horizontal rail shared by the top and bottom window of every wall section
+
+
+def bay_window_labels(glass_scale=0.45, stacked=True):
+    """The built-in bay window, as a labels dict.
+
+    stacked=True (the default, the layout of the real window): three wall sections (left wing +35, centre 0, right wing -35 degrees), and each
+    section holds TWO windows stacked on top of each other with one shared rail between them, so there are SIX panels, ids in this order:
+    left_top, left_bottom, centre_top, centre_bottom, right_top, right_bottom. The two windows of a section share a plane_id (they are
+    coplanar, so the rail between them is a coplanar edge, not a crease) and one glass pane sits in each window (six panes). The only creases
+    are the two vertical edges between the sections.
+
+    stacked=False: the three undivided panels (left, centre, right) of mock/standing_light_mock.py, kept only so that src.run_mock and
+    tests/check_port_matches_mock.py can reproduce the original classical look test exactly."""
+    y = BAY_RAIL_Y
+    sections = [                                                        # (name, angle_deg, polygon of the whole section = top window + bottom window)
+        ("left", 35.0, [(70, 70), (420, 150), (420, 560), (70, 640)], [(70, y), (420, y)]),
+        ("centre", 0.0, [(420, 150), (780, 150), (780, 560), (420, 560)], [(420, y), (780, y)]),
+        ("right", -35.0, [(780, 150), (1130, 70), (1130, 640), (780, 560)], [(780, y), (1130, y)]),
+    ]
     panels = []
-    for k, (name, poly) in enumerate(polys.items()):
-        p = dict(id=k, name=name, plane_id=k, angle_deg=angles[name], polygon=[[float(x), float(y)] for x, y in poly])
-        p.update(default_window(p["angle_deg"], p["polygon"]))
-        panels.append(p)
+    for plane_id, (name, angle, poly, rail) in enumerate(sections):
+        if stacked:
+            (tl, tr, br, bl) = poly
+            parts = [(f"{name}_top", [tl, tr, rail[1], rail[0]]), (f"{name}_bottom", [rail[0], rail[1], br, bl])]
+        else:
+            parts = [(name, poly)]
+        for part_name, part in parts:
+            p = dict(id=len(panels), name=part_name, plane_id=plane_id, angle_deg=angle, polygon=[[float(x), float(y_)] for x, y_ in part])
+            p.update(default_window(p["angle_deg"], p["polygon"]))
+            panels.append(p)
     return {
         "schema": SCHEMA,
         "source": "synthetic",
         "image": {"file": None, "width": 1200, "height": 700},
         "canvas": {"width": 1200, "height": 700},
-        "grid": dict(GRID_DEFAULT),
+        "grid": dict(BAY_WINDOW_GRID if stacked else GRID_DEFAULT),
         "panels": panels,
         "glass": [{"polygon": [list(pt) for pt in scale_poly(p["polygon"], glass_scale)]} for p in panels],
         "off_limits": [],

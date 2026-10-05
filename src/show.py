@@ -3,7 +3,7 @@
 
     python -m src.show                                       # the built-in bay window, Superposed Relief (local reference circuit)
     python -m src.show --labels runs/scene/labels.json       # shapes drawn with the pen tool (projector space, no warp needed)
-    python -m src.show --source relief --circuit FACETS.qasm # a Moth QDrive circuit for the 15 facet qubits; polarity lifted locally
+    python -m src.show --source relief --circuit FACETS.qasm # a Moth QDrive circuit for the facet qubits; polarity lifted locally
     python -m src.show --source oracle                       # CLASSICAL rehearsal (the older pool-based sources: oracle, mock, circuit, complementary)
 
 In the relief source nothing chooses a look: the light, each panel's depth and the observation axis are drawn inside the circuit. The
@@ -19,7 +19,7 @@ import sys
 import threading
 import webbrowser
 
-from src.capture.labels import load_labels
+from src.capture.labels import DEFAULT_CALIB_DIR, DEFAULT_RUN_DIR, load_labels
 from src.ui.operator_panel import make_server
 from src.ui.session import SOURCES, Session
 
@@ -40,14 +40,14 @@ def main(argv=None):
     ap.add_argument("--source", choices=SOURCES, default="relief")
     ap.add_argument("--circuit", help="QASM3 file: for --source relief the FACET register (one qubit per facet); for --source circuit a whole classical-family register")
     ap.add_argument("--kappa", type=float, default=1.0, help="relief tilt budget per panel: sum of tau^2 = kappa^2 (visibility ~ exp(-kappa^2/2))")
-    ap.add_argument("--n-dirs", type=int, default=4, help="relief: slope-orientation facets per panel (4 gives 5 facets, 15 qubits for the bay window)")
+    ap.add_argument("--n-dirs", type=int, default=None, help="relief: slope-orientation facets per panel (default: the most that keeps facets + panels within 20 exact qubits, at most 4: 4 for three panels, 2 for the six panes of the built-in bay window, 1 for eight)")
     ap.add_argument("--entangle", type=float, default=0.8, help="relief: strength of the diagonal facet couplings (0 = product relief)")
     ap.add_argument("--contrast", type=float, default=1.15, help="relief: projection tone, a stretch of the lit field about mid-grey")
     ap.add_argument("--observations", default=None, help="relief: the four (gamma, chi) observation axes on each polarity qubit's depth sphere: 'ring' (default for the panel engine; the domain engine with --lock keeps its own four, built for the parity game: "
                     "decided, between at chi 0 and 90, undecided at chi 180), 'line' (the original gamma 0/30/60/90 at chi 0), or 'g,c;g,c;g,c;g,c' in degrees")
     ap.add_argument("--lamp-mode", choices=["z", "x"], default="z", help="relief: z draws a light world per look; x reads the lamp register in X so the light directions interfere (the experiment key)")
     ap.add_argument("--engine", choices=["panel", "domain"], default="panel",
-                    help="relief engine: panel (one polarity qubit per panel, exact, 12 facet qubits) or domain (one per depth domain, coupled along the geometry graph; "
+                    help="relief engine: panel (one polarity qubit per panel, exact: facets + panels = 18 qubits for the six-pane bay window) or domain (one per depth domain, coupled along the geometry graph; "
                          "dozens of qubits as a matrix-product state; --source relief only)")
     ap.add_argument("--seg-len", type=float, default=150.0, help="domain engine: facet length along a polygon edge, px (smaller: more qubits)")
     ap.add_argument("--group-size", type=int, default=1, help="domain engine: facets sharing one polarity qubit (tilt budget per domain; 1 keeps V = cos(tau), the most coherent)")
@@ -69,8 +69,8 @@ def main(argv=None):
     ap.add_argument("--backend", choices=["auto", "exact", "mps"], default="auto", help="domain engine: exact statevector up to 20 qubits, else matrix-product state")
     ap.add_argument("--polarity-basis", choices=["z", "x"], help="basis polarity is read in (default: x for complementary, else z)")
     ap.add_argument("--coupling", choices=["hub", "lamp1", "lamp2"], default="lamp2", help="complementary stand-in: which lamp each polarity qubit follows")
-    ap.add_argument("--run", default="runs/first_run", help="run directory with engine results (for the demo slides and re-solve)")
-    ap.add_argument("--calib", default="runs/calibration_5x4", help="directory with targets.json and the engine payloads")
+    ap.add_argument("--run", default=DEFAULT_RUN_DIR, help="run directory with engine results (for the demo slides and re-solve)")
+    ap.add_argument("--calib", default=DEFAULT_CALIB_DIR, help="directory with targets.json and the engine payloads")
     ap.add_argument("--out", help="where calibration.json and photo-test snapshots go (default: next to --labels, else runs/show)")
     ap.add_argument("--projector-size", help="initial projector pixel size WxH; the output window reports its real size once open")
     ap.add_argument("--pool", type=int, default=60000, help="measurement outcomes drawn once and reused")
@@ -82,15 +82,9 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     labels = load_labels(a.labels) if a.labels else None
-    if labels is None:                                    # the built-in bay window, on the grid the calibration targets were made for (19 qubits, under the 20 cap)
-        import json
+    if labels is None:                                    # the built-in bay window: six panes (three wall sections, two stacked windows each) on its own 4x4 grid (20 qubits)
         from src.capture.labels import bay_window_labels
         labels = bay_window_labels()
-        try:
-            with open(os.path.join(a.calib, "targets.json")) as f:
-                labels["grid"]["nx"], labels["grid"]["ny"] = json.load(f)["meta"]["grid"]
-        except (OSError, KeyError, ValueError):
-            pass
     out = a.out or (os.path.dirname(os.path.abspath(a.labels)) if a.labels else "runs/show")
     from src.projector.calibrate import load_calibration
     cal = load_calibration(a.calibration) if a.calibration else None

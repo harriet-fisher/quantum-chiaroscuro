@@ -117,6 +117,24 @@ class InvalidPayload(MothError):
     pass
 
 
+def _is_uuid(v):
+    import uuid
+    try:
+        uuid.UUID(str(v))
+        return True
+    except ValueError:
+        return False
+
+
+def output_asset_id(result, slot="circuit"):
+    """The asset UUID of a job's output slot, from the raw result envelope. This (not 'job:<id>/<slot>') is what a chained QDrive job's
+    initial_circuit must be [VERIFIED, lab trials T06/T09]. None when the envelope has no such output."""
+    for o in (result or {}).get("outputs") or []:
+        if o.get("slot") == slot and o.get("output_asset_id"):
+            return o["output_asset_id"]
+    return None
+
+
 def estimate_credits(engine_id):
     """Credits for one run of engine_id, or None when the price is not known."""
     return CREDITS.get(engine_id)
@@ -158,6 +176,12 @@ class PreparedJob:
             out.append("this client never sends IBM credentials; run hardware jobs from the Moth dashboard with your own token")
         if self.engine_id in ("otoc-echo-v1",) and self.params.get("machine", "aer") != "aer":
             out.append("otoc-echo-v1: only machine 'aer' is supported by this client (IBM backends need your own token)")
+        if self.engine_id == "qdrive-api-v1" and self.input_files:
+            bad = [k for k, v in self.input_files.items() if k != "initial_circuit" or not _is_uuid(v)]
+            if bad:
+                out.append("QDrive input_files may only hold initial_circuit, as an ASSET UUID (a 'job:<id>/circuit' reference is rejected with 422)")
+            if self.params.get("n_qubits") is not None:
+                out.append("n_qubits must be left out when initial_circuit is given (the circuit carries its width)")
         if self.engine_id == "qdrive-api-v1" and len(self.params.get("targets") or []) > QDRIVE_TARGETS_BLOCK:
             out.append(f"{len(self.params['targets'])} QDrive targets in one job: the two jobs of 201 both died with engine_timeout; keep a job under "
                        f"{QDRIVE_TARGETS_BLOCK} (ideally {QDRIVE_TARGETS_WARN}) and chain with initial_circuit")
@@ -198,8 +222,8 @@ class MothClient:
         self.timeout = timeout
 
     # -- request building (no key, no network)
-    def prepare(self, engine_id, params):
-        return PreparedJob(engine_id, params)
+    def prepare(self, engine_id, params, input_files=None):
+        return PreparedJob(engine_id, params, input_files)
 
     def _headers(self):
         key = (self._api_key or load_key()[0] or "").strip()
@@ -291,7 +315,7 @@ class MothClient:
             saved[o["slot"]] = path
         return saved
 
-    def run(self, engine_id, params, *, approved=False, out_dir=None):
+    def run(self, engine_id, params, *, approved=False, out_dir=None, input_files=None):
         """prepare -> submit -> wait -> result (-> download).
 
         Result envelope [VERIFIED]: file engines return {"outputs": [{"slot", "url", ...}], "result": null}; inline engines
@@ -299,7 +323,7 @@ class MothClient:
         With out_dir, the job id is written before polling and the raw envelope before anything is parsed, so nothing
         that was paid for can be lost to a later bug.
         """
-        job = self.prepare(engine_id, params)
+        job = self.prepare(engine_id, params, input_files)
         job_id = self.submit(job, approved=approved)
         if out_dir:
             os.makedirs(out_dir, exist_ok=True)

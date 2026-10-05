@@ -39,6 +39,7 @@ class DomainSet:
     edges: list                                 # [(a, b, kind, touching_px)] kind "coplanar" | "crease"
     lock_sign: np.ndarray                       # (n_domains,) -1, 0 or +1: the crater gauge of the domain
     params: dict = field(default_factory=dict)
+    domain_plane: list = None                   # plane_id of each domain's panel: the two stacked windows of one bay-window wing are one plane
 
     @property
     def n_quantum(self):
@@ -225,7 +226,8 @@ def build_domains(scene, seg_len=220.0, group_size=4, tau=0.5, band_frac=0.12, b
         facing[d] = float(np.arctan2(v[1], v[0]))
         lock[d] = 0.0 if abs(v[0]) < 0.35 * max(sum(f.tau for f in mine), 1e-9) * 0.5 else float(np.sign(v[0]))
     return DomainSet(fs, nd, domain_of, dom_panel, dom_loop, cen, facing, dedges, lock,
-                     dict(seg_len=seg_len, group_size=group_size, tau=tau, crease_sign=crease_sign, touch_px=touch_px))
+                     dict(seg_len=seg_len, group_size=group_size, tau=tau, crease_sign=crease_sign, touch_px=touch_px),
+                     domain_plane=[int(plane[k]) for k in dom_panel])
 
 
 def frustration(ds, lock=False, locked=None):

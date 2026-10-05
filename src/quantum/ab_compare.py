@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A/B figures: graph-v1 vs QDrive vs the classical mock vs independent noise (handoff §6.2, spec §11).
 
-    python -m src.quantum.ab_compare --run runs/first_run [--labels labels.json] [--out runs/first_run/ab]
+    python -m src.quantum.ab_compare --run runs/bay_run [--labels labels.json] [--out runs/bay_run/ab]
 
 Reads what the solver wrote (graph_v1/state.json, qdrive/circuit.qasm, both requested_vs_achieved.json) and writes
   ab_requested_vs_achieved.png   achieved vs requested <Z>, <ZZ> per engine, with rms error
@@ -27,7 +27,7 @@ import numpy as np
 
 from src.baseline.coherence import coherence_metrics
 from src.baseline.independent import IndependentNoise
-from src.capture.labels import bay_window_labels, fill_defaults, load_labels, validate
+from src.capture.labels import DEFAULT_CALIB_DIR, DEFAULT_RUN_DIR, bay_window_labels, fill_defaults, load_labels, validate
 from src.geometry.planes import build_scene
 from src.graph.allocate_qubits import allocate
 from src.quantum import sampler_local as sl
@@ -120,8 +120,8 @@ def fig_coherence(metrics, out, stamp):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--run", default="runs/first_run")
-    ap.add_argument("--calib", default="runs/calibration_5x4")
+    ap.add_argument("--run", default=DEFAULT_RUN_DIR)
+    ap.add_argument("--calib", default=DEFAULT_CALIB_DIR)
     ap.add_argument("--labels")
     ap.add_argument("--out")
     ap.add_argument("--pool", type=int, default=60000)

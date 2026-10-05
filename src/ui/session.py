@@ -21,13 +21,14 @@ import numpy as np
 from PIL import Image
 
 from src.baseline.coherence import coherence_metrics
-from src.capture.labels import bay_window_labels, fill_defaults, validate
+from src.capture.labels import DEFAULT_CALIB_DIR, DEFAULT_RUN_DIR, bay_window_labels, fill_defaults, validate
 from src.geometry.planes import build_scene
 from src.graph.allocate_qubits import allocate, budget, format_budget
 from src.projector import calibrate as cal_mod
 from src.projector import patterns
 from src.projector.output_window import FrameHub
 from src.projector.warp import GlassLeak, Warper
+from src.quantum import qdrive_rounds
 from src.quantum import sampler_local as sl
 from src.quantum.sampler_mock import Sampler
 from src.ui import caption as caption_mod
@@ -118,9 +119,9 @@ def _clean(o):
 
 class Session:
     def __init__(self, labels=None, calibration=None, *, source="relief", pol_basis=None, circuit=None, coupling="lamp2",
-                 calib_dir="runs/calibration_5x4", run_dir="runs/first_run", out_dir="runs/show", projector_size=None, seed=2026,
+                 calib_dir=DEFAULT_CALIB_DIR, run_dir=DEFAULT_RUN_DIR, out_dir="runs/show", projector_size=None, seed=2026,
                  pool_size=60000, hub=None, allow_spend=False, solve_fn=None, log=None, complementary_report="runs/complementary/report.json",
-                 kappa=1.0, n_dirs=4, entangle=0.8, contrast=1.15, engine="panel", domain=None, game=False, game_fraction=0.5, lamp_mode="z", observations=None):
+                 kappa=1.0, n_dirs=None, entangle=0.8, contrast=1.15, engine="panel", domain=None, game=False, game_fraction=0.5, lamp_mode="z", observations=None):
         self.labels = validate(fill_defaults(labels if labels is not None else bay_window_labels()))
         self.scene = build_scene(self.labels)
         g = self.labels["grid"]
@@ -183,6 +184,9 @@ class Session:
         self.set_source(source, pol_basis, circuit, announce=False)
         if self.budget["over_cap"]:
             self.say(f"WARNING: {format_budget(self.budget)}")
+        mismatch = self.calibration_mismatch()
+        if mismatch:
+            self.say(f"WARNING: {mismatch}")
         self._new_look()
         self._notify()
 
@@ -241,10 +245,13 @@ class Session:
                                          leaf_tau=dp["leaf_tau"], leaf_prefer=dp["leaf_prefer"], observations=self.observations, floquet=(dp["floquet_steps"], dp["floquet_zz"], dp["floquet_x"]))
                 self._rel = dict(facets=ds.facets, spec=spec, composer=make_composer(self.scene, ds.facets), ds=ds)
             else:
-                from src.geometry.facets import build_facets
+                from src.geometry.facets import EXACT_QUBITS_MAX, auto_n_dirs, build_facets
                 from src.quantum.relief_state import spec_from_facets
                 fs = build_facets(self.scene, n_dirs=rp["n_dirs"], kappa=rp["kappa"])
                 spec = spec_from_facets(fs, self.scene, entangle=rp["entangle"], observations=self.observations)
+                if spec.n_sim > EXACT_QUBITS_MAX:
+                    raise ValueError(f"the per-panel engine would simulate {spec.n_sim} qubits exactly ({spec.F} facets + {spec.P} panels), more than the {EXACT_QUBITS_MAX} it "
+                                     f"attempts; use a smaller --n-dirs (the default for {self.scene.n_panels} panels is {auto_n_dirs(self.scene.n_panels)}) or --engine domain")
                 self._rel = dict(facets=fs, spec=spec, composer=make_composer(self.scene, fs), ds=None)
         return self._rel
 
@@ -353,8 +360,10 @@ class Session:
             raise ValueError(f"{circuit} has {nq} qubits but this scene's facet register has {spec.F}")
         folder = os.path.dirname(os.path.abspath(circuit))
         synthetic = any(os.path.exists(os.path.join(d, "SYNTHETIC")) for d in (folder, os.path.dirname(folder)))
-        from_moth = any(f.startswith("job_") for f in os.listdir(folder)) and not synthetic
-        label = ("SYNTHETIC self-test circuit (not a Moth result)" if synthetic else "Moth QDrive circuit for the facet register, polarity lifted locally" if from_moth
+        rounds = None if synthetic else qdrive_rounds.circuit_provenance(circuit)
+        from_moth = rounds["from_moth"] if rounds else any(f.startswith("job_") for f in os.listdir(folder)) and not synthetic
+        label = ("SYNTHETIC self-test circuit (not a Moth result)" if synthetic else rounds["label"] + " (facet register, polarity lifted locally)" if rounds
+                 else "Moth QDrive circuit for the facet register, polarity lifted locally" if from_moth
                  else "circuit file of unknown origin for the facet register, polarity lifted locally")
         return ReliefState(spec, psi, label=label), dict(label=label, quantum_backed=True, from_moth=from_moth, untested=not from_moth, synthetic=synthetic)
 
@@ -382,9 +391,10 @@ class Session:
             folder = os.path.dirname(os.path.abspath(circuit))
             synthetic = any(os.path.exists(os.path.join(d, "SYNTHETIC")) for d in (folder, os.path.dirname(folder)))
             job = [f for f in os.listdir(folder) if f.startswith("job_")]
-            from_moth = bool(job) and not synthetic
-            label = ("SYNTHETIC self-test circuit (not a Moth result)" if synthetic else "QDrive circuit, simulated locally" if from_moth
-                     else "circuit file of unknown origin, simulated locally")
+            rounds = None if synthetic else qdrive_rounds.circuit_provenance(circuit)
+            from_moth = rounds["from_moth"] if rounds else bool(job) and not synthetic
+            label = ("SYNTHETIC self-test circuit (not a Moth result)" if synthetic else rounds["label"] if rounds
+                     else "QDrive circuit, simulated locally" if from_moth else "circuit file of unknown origin, simulated locally")
             return pool, dict(label=label, quantum_backed=True, from_moth=from_moth, untested=not from_moth, synthetic=synthetic)
         raise ValueError(f"unknown source {kind!r}; choose from {SOURCES}")
 
@@ -839,7 +849,7 @@ class Session:
     # ------------------------------------------------------------------ the parity game and the Floquet dynamics (domain engine)
     def _require_domain(self, name):
         if self.family != "relief" or self.relief_params["engine"] != "domain":
-            raise ValueError(f"unknown action {name!r}")
+            raise ValueError(f"{name} needs the domain engine (launch the show with --engine domain)")
 
     def _game_obj(self):
         """The ParityGame on this state (built once: it optimises the Mermin frames, about a second). It needs the lock and the matrix-product backend."""
@@ -847,8 +857,14 @@ class Session:
             from src.quantum.parity_game import ParityGame
             if getattr(self.rstate, "backend", "exact") != "mps":
                 raise ValueError("the parity game needs the matrix-product backend: restart with --backend mps")
-            if self.relief()["spec"].lock_array() is None:
+            spec = self.relief()["spec"]
+            if spec.lock_array() is None:
+                if self.relief_params["domain"]["lock"]:
+                    raise ValueError("the parity game needs leaf domains that face left or right, and no domain does with these facets: use a smaller --group-size "
+                                     "(1 or 2) or --seg-len, so that a domain holds one stretch of bevel rather than a whole loop")
                 raise ValueError("the parity game needs the lamp locked to the depth qubits (--lock > 0)")
+            if len(spec.leaves or []) < 2:
+                raise ValueError(f"the parity game needs at least two leaf domains besides the lamp (one per plane, up to three); this wall has {len(spec.leaves or [])}")
             self._game = ParityGame(self.rstate, restarts=8)
             self._game_for = self.rstate
             self.say(f"parity game ready: Mermin value {self._game.M:.2f}, predicted win rate {100 * self._game.predicted:.1f}% against a classical maximum of 75%")
@@ -865,7 +881,11 @@ class Session:
                 self.knobs.game_fraction = float(np.clip(fraction, 0.0, 1.0))
             self.knobs.game = bool(on)
             if on:
-                self._game_obj()
+                try:
+                    self._game_obj()
+                except ValueError:                                           # a game that cannot be built must not stay on: every look would raise
+                    self.knobs.game = False
+                    raise
             self._new_look()
             self._notify()
 
@@ -1077,10 +1097,27 @@ class Session:
                     steps=[s.title for _, _, s, b in self._flat if b is s.beats[0]], step_index=si)
 
     # ------------------------------------------------------------------ re-solve (never spends without an explicit, matching confirm)
+    def calibration_mismatch(self):
+        """None when the targets in calib_dir were made for THIS scene's patch grid (same cells, same panel of each cell), else a sentence saying
+        how they differ. The payloads are built from those targets, so sending them for another scene would pay for the wrong state."""
+        from src.targets.consistency import scene_problem
+        try:
+            with open(os.path.join(self.calib_dir, "targets.json")) as f:
+                meta = json.load(f)["meta"]
+        except (OSError, KeyError, ValueError):
+            return None                                                    # no targets: nothing to compare
+        why = scene_problem(meta, self.sampler.cells, (self.NX, self.NY), self.scene.n_panels)
+        if why is None:
+            return None
+        return f"{why}; folder {self.calib_dir}: run studio step 2 for this drawing, or point --calib at the matching folder"
+
     def resolve_plan(self, engine="qdrive"):
         from src.quantum.moth_client import estimate_credits
         from src.store.cache import cached_result
         from src.targets.payloads import payload_sha256
+        mismatch = self.calibration_mismatch()
+        if mismatch:
+            raise ValueError(mismatch)
         fname, eid = dict(qdrive=("payload_qdrive.json", "qdrive-api-v1"), graph_v1=("payload_graph_v1.json", "graph-v1"))[engine]
         path = os.path.join(self.calib_dir, fname)
         with open(path) as f:

@@ -6,8 +6,8 @@
 The claim to test (spec §3.6): lit/dark is read in Z and raised/hollow in X, so the room cannot have a definite light state and a
 definite relief state at once, and with entanglement in both bases no assignment of pre-existing classical values reproduces the
 joint statistics. graph-v1 only returns Z-basis bitstrings, so this runs on a state simulated LOCALLY: a QDrive circuit when one
-exists (--circuit), otherwise the stand-in below. As of this writing QDrive has never returned a circuit (its one job failed on
-the target syntax and has not been resent), so everything below uses the stand-in and says so in every output.
+exists (--circuit), otherwise the stand-in below. As of this writing QDrive has returned no circuit for this scene (small lab jobs
+have run, see docs/qdrive-field-notes.md), so everything below uses the stand-in and says so in every output.
 
 What the stand-in is.  Take the classical mock's distribution as a pure state (src.quantum.sampler_local.oracle_state without its
 polarity chain): lamps uniform, patches Boltzmann given the lamps. Put each panel's polarity qubit in |+> and apply a
@@ -53,7 +53,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from src.baseline.coherence import coherence_metrics
-from src.capture.labels import bay_window_labels, fill_defaults, load_labels, validate
+from src.capture.labels import DEFAULT_CALIB_DIR, bay_window_labels, fill_defaults, load_labels, validate
 from src.geometry.planes import build_scene
 from src.graph.allocate_qubits import allocate
 from src.quantum import sampler_local as sl
@@ -391,7 +391,7 @@ def write_payload_preview(a, layout, sampler, report):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default="runs/complementary")
-    ap.add_argument("--calib", default="runs/calibration_5x4", help="directory with targets.json (grid)")
+    ap.add_argument("--calib", default=DEFAULT_CALIB_DIR, help="directory with targets.json (grid)")
     ap.add_argument("--labels")
     ap.add_argument("--circuit", help="a QDrive QASM3 circuit to analyse in place of / beside the stand-in")
     ap.add_argument("--coupling", choices=COUPLINGS, default="hub")

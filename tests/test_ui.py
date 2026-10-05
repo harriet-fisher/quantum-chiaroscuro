@@ -13,7 +13,7 @@ import unittest
 import numpy as np
 from PIL import Image
 
-from src.capture.labels import bay_window_labels
+from src.capture.labels import DEFAULT_CALIB_DIR, bay_window_labels
 from src.projector import calibrate as cal
 from src.projector import patterns
 from src.texture.frames import FrameDraw
@@ -27,9 +27,8 @@ SESSION = None
 
 def setUpModule():
     global SESSION
-    labels = bay_window_labels()
-    labels["grid"].update(nx=5, ny=4)                     # 19 qubits, as the app runs it (the 6x4 default is over the 20-qubit cap)
-    SESSION = Session(labels, out_dir=os.path.join(TMP.name, "show"), pool_size=8000, run_dir=os.path.join(TMP.name, "run"), calib_dir="runs/calibration_5x4",
+    labels = bay_window_labels()                          # the default scene: six panes on a 4x4 grid, 12 + 2 + 6 = 20 qubits, exactly as the app runs it
+    SESSION = Session(labels, out_dir=os.path.join(TMP.name, "show"), pool_size=8000, run_dir=os.path.join(TMP.name, "run"), calib_dir=DEFAULT_CALIB_DIR,
                       projector_size=(1280, 720), complementary_report=os.path.join(TMP.name, "none.json"))
 
 
@@ -116,7 +115,7 @@ class SessionLooks(unittest.TestCase):
         s.hold_pol_all(1)
         for _ in range(10):
             s.next_new()
-            self.assertEqual((s.current.draw.lamp, s.current.draw.pol), ((1, -1), (1, 1, 1)))
+            self.assertEqual((s.current.draw.lamp, s.current.draw.pol), ((1, -1), (1,) * 6))
         s.release_lamp()
         s.hold_pol(1, -1)
         seen = set()
@@ -424,7 +423,7 @@ class Server(unittest.TestCase):
         self.assertIn(self.token.encode(), page)
         code, data = self.req("GET", "/api/state")
         st = json.loads(data)
-        self.assertEqual(st["scene"]["panels"], ["left", "centre", "right"])
+        self.assertEqual(st["scene"]["panels"], ["left_top", "left_bottom", "centre_top", "centre_bottom", "right_top", "right_bottom"])
         code, png = self.req("GET", "/api/latest.png")
         self.assertEqual(code, 200)
         self.assertEqual(png[:8], b"\x89PNG\r\n\x1a\n")

@@ -62,7 +62,7 @@ KNOBS = [
     ("backend", "choice", "auto", ("auto", "exact", "mps"), ("preview",), "domain", "Show"),
     ("lamp_mode", "choice", "z", ("z", "x"), ("preview",), "relief", "Show"),
     ("kappa", "float", 1.0, (0.01, 8.0), ("preview",), "relief", "Relief"),
-    ("n_dirs", "int", 4, (1, 16), ("preview",), "relief", "Relief"),
+    ("n_dirs", "int", None, (1, 16), ("preview",), "relief", "Relief"),
     ("entangle", "float", 0.8, (0.0, PI), ("preview",), "relief", "Relief"),
     ("contrast", "float", 1.15, (0.1, 5.0), ("preview",), "relief", "Relief"),
     ("observations", "choice", "", ("ring", "line"), ("preview",), "relief", "Relief"),
@@ -221,6 +221,16 @@ class Studio:
     def targets_ready(self):
         return all(os.path.exists(os.path.join(self.calib, n)) for n in ("targets.json", "payload_graph_v1.json", "payload_qdrive.json"))
 
+    def rounds_state(self):
+        """provenance.json of a QDrive built in rounds (python -m src.quantum.qdrive_rounds), or None. The studio does not send rounds itself
+        (each is its own spend decision); it recognises the finished result so that step 5 can perform with it."""
+        try:
+            with open(os.path.join(self.solve, "qdrive", "provenance.json")) as f:
+                d = json.load(f)
+            return d if d.get("kind") == "qdrive-rounds" else None
+        except (OSError, ValueError):
+            return None
+
     def circuit_path(self):
         p = os.path.join(self.solve, "qdrive", "circuit.qasm")
         return p if os.path.exists(p) else None
@@ -286,7 +296,14 @@ class Studio:
                     continue
                 results[eng] = dict(cached=p["cached"], orphans=p["orphans"])
             q = results.get("qdrive")
-            if q and q["cached"]:
+            rs = self.rounds_state()
+            if rs and rs.get("complete") and self.circuit_path():
+                jobs = sum(len(p.get("jobs", [])) for p in rs["pieces"])
+                v.update(status="done", note=f"QDrive was built in rounds: {jobs} chained job(s)" + (f" plus {len(rs['local_pieces'])} locally prepared component(s)" if rs.get("local_pieces") else "") + ".")
+                results["qdrive"] = dict(results.get("qdrive") or dict(orphans=[]), cached=True, rounds=True)
+            elif rs and not rs.get("complete") and not (q and q["cached"]):
+                v["warn"] = "QDrive rounds are unfinished: python -m src.quantum.qdrive_rounds run (see --help). Only circuit_partial.qasm exists, and the show does not use it."
+            elif q and q["cached"]:
                 v.update(status="done", note="QDrive has a saved result for exactly this payload.")
             elif q and q["orphans"]:
                 v["warn"] = (f"{len(q['orphans'])} QDrive job(s) were submitted for this project but no result was saved ({', '.join(o[:8] for o in q['orphans'])}). "
@@ -512,14 +529,13 @@ class Studio:
             j.stop()
 
     def use_demo_scene(self):
-        """Start from the built-in bay window (5x4 grid, 19 qubits) so every step can be tried before anything is drawn."""
+        """Start from the built-in bay window (three wall sections, two stacked windows each: six panels; 4x4 grid, 20 qubits) so every step can be
+        tried before anything is drawn."""
         with self.lock:
             if os.path.exists(self.labels_path):
                 raise StageError("this project already has a drawing; it will not be overwritten")
             from src.capture.labels import bay_window_labels, fill_defaults, save_labels
-            labels = fill_defaults(bay_window_labels())
-            labels["grid"].update(nx=5, ny=4)
-            save_labels(labels, self.labels_path)
+            save_labels(fill_defaults(bay_window_labels()), self.labels_path)
 
     # ------------------------------------------------------------------ solve: plan, then an explicit matching confirm
     def plan(self, engine):
@@ -658,7 +674,7 @@ def main(argv=None):
     ap.add_argument("--project", default="runs/studio", help="folder for this scene's drawing, targets and results (default runs/studio)")
     ap.add_argument("--allow-spend", action="store_true", help="let step 4 submit to Moth (still shows the cost and asks first)")
     ap.add_argument("--port", type=int, default=0, help="default: any free port")
-    ap.add_argument("--engine", choices=["panel", "domain"], default="panel", help="relief engine step 3 opens: panel (exact, 12 facet qubits) or domain (one polarity qubit per depth domain)")
+    ap.add_argument("--engine", choices=["panel", "domain"], default="panel", help="relief engine step 3 opens: panel (exact: facets + one polarity qubit per panel, 18 qubits for the six-pane bay window) or domain (one polarity qubit per depth domain)")
     ap.add_argument("--no-browser", action="store_true")
     a = ap.parse_args(argv)
     os.chdir(ROOT)

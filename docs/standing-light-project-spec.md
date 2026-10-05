@@ -1,5 +1,7 @@
 # Standing Light — Quantum Chiaroscuro
 
+> **Scene note.** This document describes the first build's **three-panel** bay window (left, centre, right). The built-in window, and the default of the code, is now **six panels**: each wing holds two windows stacked on top of each other with a shared rail (`left_top`, `left_bottom`, `centre_top`, `centre_bottom`, `right_top`, `right_bottom`; three planes). Counts and numbers below that say three panels, 15 or 19 qubits, or 3 polarity qubits are the three-panel ones; the README's *The default scene* has the current ones.
+
 *Project specification v3 · a height-illusion projection instrument whose shading is drawn by quantum measurement, built on Moth Atlas.*
 
 Author: Harriet Fisher · Updated: 1 Oct 2026 · Status: pre-build concept spec. A classical look-test mock exists (`mock/`); nothing has been run on a Moth engine yet and no credits have been spent.

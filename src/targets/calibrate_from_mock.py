@@ -2,7 +2,7 @@
 """Estimate <Z> and <ZZ> targets from the mock's classical sampler and build the graph-v1 payload (handoff §6.2).
 
     python -m src.targets.calibrate_from_mock [--labels labels.json] [--grid NX NY] [--sweeps 200000] [--seed 7]
-                                              [--use mc|exact] [--out runs/calibration]
+                                              [--use mc|exact] [--out DIR]
 
 NO Moth call is made. It writes targets.json and payload_graph_v1.json, prints the payload head, the estimated credit
 cost and the estimator accuracy, then stops. Send with `python -m src.quantum.moth_client send ...` only after review.
@@ -25,9 +25,9 @@ import time
 
 import numpy as np
 
-from src.capture.labels import bay_window_labels, fill_defaults, load_labels, validate
+from src.capture.labels import DEFAULT_CALIB_DIR, bay_window_labels, fill_defaults, load_labels, validate
 from src.geometry.planes import build_scene
-from src.graph.allocate_qubits import allocate, format_budget, budget
+from src.graph.allocate_qubits import allocate, budget, format_budget, suggest_grids
 from src.graph.edges import patch_edges
 from src.quantum.moth_client import MothClient
 from src.quantum.sampler_mock import Sampler
@@ -168,11 +168,12 @@ def main(argv=None):
     ap.add_argument("--j-in", type=float, default=0.9, help="coplanar patch coupling (mock default 0.9); lower it to unpin targets")
     ap.add_argument("--j-cross", type=float, default=0.6, help="crease coupling magnitude (mock default 0.6)")
     ap.add_argument("--j-pol", type=float, default=0.9, help="polarity chain coupling (mock default 0.9)")
-    ap.add_argument("--out", default="runs/calibration")
+    ap.add_argument("--out", default=None, help=f"output directory (default: {DEFAULT_CALIB_DIR} for the built-in bay window, runs/calibration for --labels)")
     ap.add_argument("--head", type=int, default=12, help="operations to show when printing the payload")
     args = ap.parse_args(argv)
 
     labels = load_labels(args.labels) if args.labels else validate(fill_defaults(bay_window_labels()))
+    args.out = args.out or ("runs/calibration" if args.labels else DEFAULT_CALIB_DIR)
     NX, NY = args.grid or (labels["grid"]["nx"], labels["grid"]["ny"])
     scene = build_scene(labels)
     sampler = Sampler(scene, NX, NY, kh=args.kh, kf=args.kf, J_in=args.j_in, J_cross=args.j_cross, J_pol=args.j_pol,
@@ -234,7 +235,8 @@ def main(argv=None):
     print(f"sha256 {meta['payload_sha256'][:16]}...   files: {args.out}/targets.json, {args.out}/payload_graph_v1.json")
     for j in (job, qjob):
         for prob in j.problems():
-            print(f"NOT SENDABLE ({j.engine_id}): {prob}" + ("  -> re-run with --grid 5 4" if j.engine_id == "graph-v1" else ""))
+            fits = suggest_grids(scene, min_cover=labels["grid"]["min_cover"]) if j.engine_id == "graph-v1" else []
+            print(f"NOT SENDABLE ({j.engine_id}): {prob}" + (f"  -> re-run with --grid {fits[0]['nx']} {fits[0]['ny']}" if fits else ""))
     print("\n" + "=" * 78 + f"\nQDRIVE PAYLOAD (qdrive-api-v1, NOT SENT), {qjob.credits} credit\n" + "=" * 78)
     t = qd["params"]["targets"]
     print(f"{len(t)} target entries = {args.qd_rounds} rounds x ({len(bloch)} single + {len(rel)} pair + 1 update), "

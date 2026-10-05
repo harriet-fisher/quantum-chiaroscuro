@@ -1,0 +1,165 @@
+{
+ "label": "T03_bell_3rounds",
+ "http": 202,
+ "body_sent": {
+  "params": {
+   "machine": "aer",
+   "n_qubits": 2,
+   "seed": 7,
+   "shots": 1024,
+   "update_method": "spectral",
+   "tomography": 0,
+   "sample": false,
+   "targets": [
+    {
+     "qubits": [
+      0
+     ],
+     "expvals": {
+      "Z": 0.0
+     }
+    },
+    {
+     "qubits": [
+      1
+     ],
+     "expvals": {
+      "Z": 0.0
+     }
+    },
+    {
+     "qubits": [
+      0,
+      1
+     ],
+     "expvals": {
+      "ZZ": 1.0
+     }
+    },
+    null,
+    {
+     "qubits": [
+      0
+     ],
+     "expvals": {
+      "Z": 0.0
+     }
+    },
+    {
+     "qubits": [
+      1
+     ],
+     "expvals": {
+      "Z": 0.0
+     }
+    },
+    {
+     "qubits": [
+      0,
+      1
+     ],
+     "expvals": {
+      "ZZ": 1.0
+     }
+    },
+    null,
+    {
+     "qubits": [
+      0
+     ],
+     "expvals": {
+      "Z": 0.0
+     }
+    },
+    {
+     "qubits": [
+      1
+     ],
+     "expvals": {
+      "Z": 0.0
+     }
+    },
+    {
+     "qubits": [
+      0,
+      1
+     ],
+     "expvals": {
+      "ZZ": 1.0
+     }
+    },
+    null
+   ]
+  }
+ },
+ "job_id": "8dbe4f12-4df8-49c0-b988-742cc162b522",
+ "status": "completed",
+ "secs": 17.1,
+ "progress": {
+  "detail": "Processing target 9/12",
+  "step": "run"
+ },
+ "status_warnings": [],
+ "outputs": [
+  {
+   "slot": "circuit",
+   "output_asset_id": "2559ec5c-802e-4fb4-9ada-15158dddf4e2",
+   "expires_at": "2026-10-04T21:25:20.4295781Z",
+   "content_type": "text/plain",
+   "filename": "qdrive-api-v1-8dbe4f12.brf",
+   "size_bytes": 2514
+  }
+ ],
+ "result_inline": null,
+ "files": {
+  "circuit": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_8dbe4f12-4df8-49c0-b988-742cc162b522/circuit"
+ },
+ "circuit_path": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_8dbe4f12-4df8-49c0-b988-742cc162b522/circuit",
+ "score": {
+  "rows": [
+   {
+    "qubits": [
+     0
+    ],
+    "word": "Z",
+    "want": 0.0,
+    "got": -0.3554
+   },
+   {
+    "qubits": [
+     1
+    ],
+    "word": "Z",
+    "want": 0.0,
+    "got": -0.3429
+   },
+   {
+    "qubits": [
+     0,
+     1
+    ],
+    "word": "ZZ",
+    "want": 1.0,
+    "got": 0.8316
+   },
+   {
+    "qubits": [
+     0,
+     1
+    ],
+    "word": "XX",
+    "want": 1.0,
+    "got": -0.7511
+   }
+  ],
+  "rms": 0.9136,
+  "n_qubits": 2,
+  "ops": {
+   "rz": 36,
+   "ry": 18,
+   "rxx": 3,
+   "ryy": 3,
+   "rzz": 3
+  }
+ }
+}

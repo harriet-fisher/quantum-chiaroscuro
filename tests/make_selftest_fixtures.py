@@ -1,13 +1,13 @@
 """Write SYNTHETIC engine results to runs/selftest/ in the real on-disk format, so solver + A/B run offline.
 
     python -m tests.make_selftest_fixtures
-    python -m src.quantum.solver graph-v1 --calib runs/calibration_5x4 --out runs/selftest     # cache hit: 0 credits, no network
-    python -m src.quantum.solver qdrive   --calib runs/calibration_5x4 --out runs/selftest
+    python -m src.quantum.solver graph-v1 --out runs/selftest     # cache hit: 0 credits, no network (default calibration: the six-pane bay window)
+    python -m src.quantum.solver qdrive   --out runs/selftest
     python -m src.quantum.ab_compare --run runs/selftest
 
 Nothing here comes from Moth. The graph-v1 response is the exact moments of the classical oracle state, shrunk and jittered to
 look like an engine that misses some targets; its shape is a GUESS at the undocumented fields (the parser accepts several).
-The QDrive circuit is an arbitrary hand-built 19-qubit circuit (hub-controlled rotations), not a solution to the targets.
+The QDrive circuit is an arbitrary hand-built circuit on every qubit of the scene (20 for the built-in bay window) (hub-controlled rotations), not a solution to the targets.
 A file named SYNTHETIC in the run directory stamps every figure.
 """
 import json
@@ -16,7 +16,7 @@ import sys
 
 import numpy as np
 
-from src.capture.labels import bay_window_labels, fill_defaults, validate
+from src.capture.labels import DEFAULT_CALIB_DIR, bay_window_labels, fill_defaults, validate
 from src.geometry.planes import build_scene
 from src.graph.allocate_qubits import allocate
 from src.quantum import sampler_local as sl
@@ -25,7 +25,24 @@ from src.store.cache import save_payload
 from src.targets.payloads import payload_sha256
 
 
-def build(calib="runs/calibration_5x4", out="runs/selftest", seed=5):
+def selftest_circuit(sampler, layout):
+    """An arbitrary circuit on every qubit of the scene (hub-controlled rotations, neighbour couplings, a GHZ chain on the polarity qubits): NOT a solution."""
+    from qiskit import QuantumCircuit
+    qc = QuantumCircuit(layout["n_qubits"])
+    L1, L2 = layout["lamps"]
+    qc.h(L1); qc.h(L2)
+    for p in range(sampler.n):
+        qc.cry(1.5 * sampler.hub1[p], L1, p); qc.cry(1.5 * sampler.hub2[p], L2, p)
+    for a, b in zip(*np.nonzero(np.triu(sampler.J))):
+        qc.cry(0.9 * np.sign(sampler.J[a, b]) * 0.8, int(a), int(b))
+    pol = layout["polarity"]
+    qc.h(pol[0])
+    for a, b in zip(pol[:-1], pol[1:]):
+        qc.cx(a, b)
+    return qc
+
+
+def build(calib=DEFAULT_CALIB_DIR, out="runs/selftest", seed=5):
     rng = np.random.default_rng(seed)
     with open(os.path.join(calib, "targets.json")) as f:
         targets = json.load(f)
@@ -58,18 +75,8 @@ def build(calib="runs/calibration_5x4", out="runs/selftest", seed=5):
     json.dump({"outputs": None, "result": inline}, open(os.path.join(d, "raw_result_selftest.json"), "w"))
 
     # ---- QDrive: an arbitrary circuit with hub-controlled rotations and neighbour couplings (NOT a solution)
-    from qiskit import QuantumCircuit, qasm3
-    qc = QuantumCircuit(n)
-    L1, L2 = layout["lamps"]
-    qc.h(L1); qc.h(L2)
-    for p in range(sampler.n):
-        qc.cry(1.5 * sampler.hub1[p], L1, p); qc.cry(1.5 * sampler.hub2[p], L2, p)
-    for a, b in zip(*np.nonzero(np.triu(sampler.J))):
-        qc.cry(0.9 * np.sign(sampler.J[a, b]) * 0.8, int(a), int(b))
-    pol = layout["polarity"]
-    qc.h(pol[0])
-    for a, b in zip(pol[:-1], pol[1:]):
-        qc.cx(a, b)
+    from qiskit import qasm3
+    qc = selftest_circuit(sampler, layout)
     d = os.path.join(out, "qdrive")
     with open(os.path.join(calib, "payload_qdrive.json")) as f:
         qparams = json.load(f)["params"]

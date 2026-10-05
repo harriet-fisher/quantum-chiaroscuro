@@ -8,7 +8,7 @@ import unittest
 
 import numpy as np
 
-from src.capture.labels import bay_window_labels, fill_defaults, validate
+from src.capture.labels import DEFAULT_CALIB_DIR, bay_window_labels, fill_defaults, validate
 from src.geometry.domains import build_domains, frustration
 from src.geometry.planes import build_scene
 from src.quantum import complementary as comp
@@ -82,13 +82,43 @@ class Geometry(unittest.TestCase):
         self.assertEqual(sorted(b.site_order), list(range(b.n_sim)))
         self.assertEqual(a.site_order, SPEC.site_order)                     # the default is the sweep
 
-    def test_one_leaf_domain_per_panel_with_a_nonzero_lock_sign(self):
+    def test_one_leaf_domain_per_plane_with_a_nonzero_lock_sign(self):
+        """Six panes, three planes: the lamp's Mermin group is the lamp and ONE leaf per wing (left, centre, right), not one per pane."""
         leaves = leaf_domains(DS)
-        self.assertEqual(len(leaves), SCENE.n_panels)
-        self.assertEqual(sorted(DS.domain_panel[d] for d in leaves), list(range(SCENE.n_panels)))
+        self.assertEqual(SCENE.n_panels, 6)
+        self.assertEqual(len(leaves), 3)
+        self.assertEqual([DS.domain_plane[d] for d in leaves], [0, 1, 2])
+        self.assertEqual(len({DS.domain_panel[d] for d in leaves}), 3)                  # three different panes
         self.assertTrue(all(DS.lock_sign[d] != 0 for d in leaves))
         lk = SPEC.lock_array()
-        self.assertEqual(sorted(int(d) for d in np.nonzero(lk)[0]), sorted(leaves))
+        self.assertEqual(sorted(int(d) for d in np.nonzero(lk)[0]), sorted(leaves))     # the lamp is locked to the leaves and to nothing else
+        self.assertEqual(sorted(SPEC.leaves), sorted(leaves))
+
+    def test_more_than_three_planes_give_three_leaves_spread_across_the_wall(self):
+        """The living room has five planes: the game still has the lamp and three leaves, the left-most, the middle and the right-most."""
+        import copy
+        labels = copy.deepcopy(SCENE.labels)
+        for p, plane in zip(labels["panels"], [0, 1, 2, 3, 4, 5]):                       # every pane its own plane (angles distinct per plane)
+            p["plane_id"], p["angle_deg"] = plane, [35.0, 30.0, 5.0, -5.0, -30.0, -35.0][plane]
+        sc = build_scene(validate(fill_defaults(labels)))
+        ds = build_domains(sc, seg_len=150, group_size=2)
+        leaves = leaf_domains(ds)
+        self.assertEqual(len(leaves), 3)
+        xs = [ds.domain_centroid[d][0] for d in leaves]
+        self.assertEqual(xs, sorted(xs))
+        self.assertLess(xs[0], 400)
+        self.assertGreater(xs[-1], 700)
+        spec = spec_from_domains(ds, sc, lock=1.5708)
+        self.assertEqual(int((spec.lock_array() != 0).sum()), 3)
+        self.assertEqual(sorted(dw.default_leaves(spec)), sorted(leaves))
+
+    def test_the_default_scene_has_two_creases_between_the_wings_and_coplanar_rails_inside_them(self):
+        kinds = {(DS.domain_plane[a], DS.domain_plane[b]) for a, b, kind, _ in DS.edges if kind == "crease"}
+        self.assertEqual(kinds, {(0, 1), (1, 2)})                                       # left|centre and centre|right, never left|right
+        rail = [(a, b) for a, b, kind, _ in DS.edges if kind == "coplanar" and DS.domain_panel[a] != DS.domain_panel[b]]
+        self.assertTrue(rail)                                                           # the shared rail between a wing's two windows
+        for a, b in rail:
+            self.assertEqual(DS.domain_plane[a], DS.domain_plane[b])
 
     def test_the_sparse_composer_matches_the_dense_one_and_keeps_glass_black(self):
         from src.texture.relief_compose import ReliefComposer, SparseReliefComposer
@@ -425,7 +455,7 @@ class SeamsAndDynamics(unittest.TestCase):
         self.assertLess(cr["seams"]["seam_facet_entropy"], 0.5)
         self.assertLess(max(abs(r["visibility"]) for r in ce["seams"]["domain_stabilizers"]), 5e-3)     # no interference (to the MPS truncation noise)...
         self.assertGreater(min(r["stabilizer"] for r in ce["seams"]["domain_stabilizers"]), 0.3)        # ...yet the GHZ stabilizer is intact
-        self.assertGreater(abs(1 - equator.prep().norm2()), 2 * abs(1 - relief.prep().norm2()))        # same chi 32: the classical stand-in is worse
+        self.assertGreater(abs(1 - equator.prep().norm2()), 1.2 * abs(1 - relief.prep().norm2()))      # same chi 32: the classical stand-in is worse (2.5e-2 against 1.8e-2)
 
     def test_floquet_circuit_equals_the_numpy_state_and_the_mps_equals_the_exact_probabilities(self):
         sp = toy(rx=None)
@@ -446,7 +476,8 @@ class SeamsAndDynamics(unittest.TestCase):
             M, _, _ = game_frames(MPSReliefState(spec_from_domains(ds1, SCENE, floquet=(T, 0.7, 0.5), **self.KW)), restarts=6)
             wins.append(0.5 * (1 + M / 8))
         self.assertGreater(wins[0], 0.88)
-        self.assertLess(wins[1], 0.76)
+        self.assertLess(wins[1], wins[0] - 0.1)                              # on the six-pane default: 93% static, about 78% after four steps (73.7% after two)
+        self.assertLess(wins[1], 0.8)
 
     def test_entanglement_grows_with_the_kicked_ising_steps_and_so_does_the_classical_error(self):
         ds1 = build_domains(SCENE, seg_len=150, group_size=1)
@@ -455,7 +486,7 @@ class SeamsAndDynamics(unittest.TestCase):
             m = MPSReliefState(spec_from_domains(ds1, SCENE, floquet=(T, 0.7, 0.5), **self.KW)).prep()
             out.append((float(np.mean(m.entropies())), abs(1 - m.norm2())))
         self.assertGreater(out[2][0], out[0][0] + 0.5)
-        self.assertGreater(out[2][1], 10 * out[0][1])
+        self.assertGreater(out[2][1], 3 * out[0][1])                          # 1.8e-2 -> 7.6e-2 on the six-pane default (the static state is already 1.8e-2 off at chi 32)
 
 
 class Witnesses(unittest.TestCase):
@@ -503,6 +534,36 @@ class Witnesses(unittest.TestCase):
         self.assertEqual(len(dw.describe_domain_certificate(cert, DS, SPEC)) >= 6, True)
 
 
+class LampLock(unittest.TestCase):
+    KW = dict(lock=1.5708, pol_coupling=0.3, crease_coupling=1.0, seam_coupling=1.0, leaf_tau=0.3)
+
+    def test_locking_the_lamp_to_every_domain_loses_the_mermin_violation_that_three_leaves_keep(self):
+        """Monogamy on the default six-pane window: the lamp's coherence with a leaf is spent on the records the other locked domains hold of it."""
+        ds1 = build_domains(SCENE, seg_len=150, group_size=1)
+        mermin = {}
+        for which in ("leaves", "all"):
+            sp = spec_from_domains(ds1, SCENE, lock_domains=which, **self.KW)
+            c = dw.domain_certificate(make_state(sp), mermin=True, lamp=True)
+            mermin[which] = c["lamp"]["mermin"]["value"]
+            self.assertEqual(sorted(dw.default_leaves(sp)), sorted(leaf_domains(ds1)))       # the same three leaves either way
+        self.assertGreater(mermin["leaves"], 6.0)
+        self.assertLess(mermin["all"], 4.0)                                                  # below the local bound
+
+    def test_a_game_that_cannot_be_built_says_why_and_does_not_stay_switched_on(self):
+        from src.ui.session import Session
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ValueError) as cm:                                        # four facets to a domain: no domain faces one way
+                Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir=DEFAULT_CALIB_DIR, engine="domain", game=True,
+                        domain=dict(seg_len=300, group_size=3))
+            self.assertIn("group-size", str(cm.exception))
+            s = Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir=DEFAULT_CALIB_DIR, engine="domain",
+                        domain=dict(seg_len=300, group_size=3))
+            with self.assertRaises(ValueError):
+                s.game_set(True)
+            self.assertFalse(s.knobs.game)                                                   # every later look would have raised otherwise
+            s._new_look()
+
+
 class GroundState(unittest.TestCase):
     def test_classical_ground_states_are_counted_two_per_component_for_a_balanced_graph(self):
         g = gs.classical_ground(6, [(0, 1, 1.0), (1, 2, -1.0), (3, 4, 1.0)], 1.0)          # components {0,1,2}, {3,4}, {5}: 2^3 ground states
@@ -519,7 +580,12 @@ class GroundState(unittest.TestCase):
         self.assertLess(rep["energy"], gs.energy(sp.P, gs.signed_edges(ds), gs.layers_for(gs.signed_edges(ds), 1.0, [0.0], [0.0], sp.P), 1.0, 0.5))
         self.assertGreaterEqual(rep["energy"], rep["exact_energy"] - 1e-9)
         self.assertGreater(rep["fidelity_to_exact"], 0.3)
-        self.assertEqual(rep["classical"]["degeneracy"], 2 ** 4)
+        parent = list(range(sp.P))
+        find = lambda x: x if parent[x] == x else find(parent[x])
+        for a, b, _ in gs.signed_edges(ds):
+            parent[find(a)] = find(b)
+        components = len({find(d) for d in range(sp.P)})
+        self.assertEqual(rep["classical"]["degeneracy"], 2 ** components)                    # balanced graph: two ground states per connected component
         a, b = statevector_of(reference_circuit(new)) if new.n_sim <= 14 else (None, None)
         self.assertEqual(len(new.pol_layers), 2)
 
@@ -612,8 +678,8 @@ class SessionDomainEngine(unittest.TestCase):
     def setUpClass(cls):
         from src.ui.session import Session
         cls.tmp = tempfile.TemporaryDirectory()
-        cls.s = Session(bay_window_labels(), out_dir=cls.tmp.name, run_dir=cls.tmp.name, projector_size=(1280, 720), calib_dir="runs/calibration_5x4", engine="domain",
-                        domain=dict(seg_len=300, group_size=3, lock=1.5708))
+        cls.s = Session(bay_window_labels(), out_dir=cls.tmp.name, run_dir=cls.tmp.name, projector_size=(1280, 720), calib_dir=DEFAULT_CALIB_DIR, engine="domain",
+                        domain=dict(seg_len=300, group_size=2, lock=1.5708))
 
     @classmethod
     def tearDownClass(cls):
@@ -690,7 +756,7 @@ class SessionDomainEngine(unittest.TestCase):
         s.game_set(False)
         self.assertFalse(s.knobs.game)
         with tempfile.TemporaryDirectory() as tmp:
-            p = Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir="runs/calibration_5x4")
+            p = Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir=DEFAULT_CALIB_DIR)
             for a in ("game_toggle", "evolve_step"):
                 with self.assertRaises(ValueError):
                     p.dispatch(a)
@@ -713,7 +779,7 @@ class SessionDomainEngine(unittest.TestCase):
     def test_a_circuit_file_is_refused_by_the_domain_engine(self):
         from src.ui.session import Session
         with tempfile.TemporaryDirectory() as tmp, self.assertRaises(ValueError):
-            Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir="runs/calibration_5x4", engine="domain", circuit=__file__,
+            Session(bay_window_labels(), out_dir=tmp, run_dir=tmp, projector_size=(1280, 720), calib_dir=DEFAULT_CALIB_DIR, engine="domain", circuit=__file__,
                     domain=dict(seg_len=500, group_size=4))
 
 

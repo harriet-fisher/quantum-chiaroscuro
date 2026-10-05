@@ -1,0 +1,13 @@
+{
+ "label": "T06_chain_by_job_ref",
+ "http": 422,
+ "body_sent": {
+  "params": {
+   "tomography": 2
+  },
+  "input_files": {
+   "initial_circuit": "job:9d96016d-429d-499e-bccd-a274ec2f7806/circuit"
+  }
+ },
+ "error_body": "{\"title\": \"Unprocessable Entity\", \"status\": 422, \"detail\": \"input files do not match the engine's requirements\", \"errors\": [{\"message\": \"must be an asset UUID\", \"location\": \"body.input_files.initial_circuit\"}]}"
+}

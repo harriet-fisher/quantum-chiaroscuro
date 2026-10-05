@@ -25,6 +25,16 @@ from scipy import ndimage as ndi
 from src.mask.masked_blur import gauss
 
 TAU_MAX = 1.1            # radians: no facet is tilted further than this (about 63 degrees)
+EXACT_QUBITS = 20        # the per-panel engine simulates facets + one polarity qubit per panel as an exact statevector; this many is the working size
+EXACT_QUBITS_MAX = 22    # and this many is the most it will attempt (a few hundred MB per frame table); beyond it, use the domain engine
+N_DIRS_MAX = 4           # slope-orientation facets per panel: the four sides of a window pane
+
+
+def auto_n_dirs(n_panels, max_qubits=EXACT_QUBITS, cap=N_DIRS_MAX):
+    """The largest number of orientation facets per panel (at most `cap`) for which the per-panel engine still fits `max_qubits`: every panel
+    brings n_dirs facet qubits and one polarity qubit, so n_dirs <= max_qubits / n_panels - 1. Three panels get 4 (15 qubits); the six panes of the
+    built-in bay window get 2 (18 qubits, a 22-qubit circuit with the lamp and observe registers); eight panels get 1."""
+    return int(max(1, min(cap, max_qubits // max(1, n_panels) - 1)))
 
 
 @dataclass
@@ -167,7 +177,7 @@ def _kmeans_dirs(vecs, m, iters=16):
     return out
 
 
-def build_facets(scene, n_dirs=4, band_frac=0.12, bevel_slope=0.7, dome_slope=0.0, flat_frac=0.5, kappa=1.0, min_pixels=40, interior="drop"):
+def build_facets(scene, n_dirs=None, band_frac=0.12, bevel_slope=0.7, dome_slope=0.0, flat_frac=0.5, kappa=1.0, min_pixels=40, interior="drop"):
     """Cut every panel into n_dirs orientation facets (the sloping surface) and one flat facet, and give each a tilt.
 
     interior="drop" (default): the flat plateau of a panel has tilt ~0, so its qubit would be a constant |0> that nothing couples to
@@ -176,8 +186,11 @@ def build_facets(scene, n_dirs=4, band_frac=0.12, bevel_slope=0.7, dome_slope=0.
 
     A pixel is 'sloping' when |slope| >= flat_frac * the steepest slope in its panel; sloping pixels are clustered by slope
     direction into n_dirs classes. Every projectable pixel ends up in exactly one facet; pieces smaller than min_pixels are merged
-    into the nearest facet of the same panel. n_dirs = 4 gives 5 facets (qubits) per panel, 15 for the bay window.
+    into the nearest facet of the same panel. n_dirs=None (default) picks auto_n_dirs(scene.n_panels): 4 for three panels, 2 for the six panes of the
+    built-in bay window, 1 for eight. With n_dirs = 2 the bay window has 12 band facets (qubits) and 6 classical plateau facets.
     """
+    if n_dirs is None:
+        n_dirs = auto_n_dirs(scene.n_panels)
     h, dist, widths = height_field(scene, band_frac, bevel_slope, dome_slope)
     sx, sy = slope_field(scene, h)
     mag = np.hypot(sx, sy)

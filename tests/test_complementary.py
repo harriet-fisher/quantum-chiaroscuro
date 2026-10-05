@@ -106,7 +106,7 @@ class StandIn(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.scene = build_scene(validate(fill_defaults(bay_window_labels())))
-        cls.sampler = Sampler(cls.scene, 5, 4)
+        cls.sampler = Sampler(cls.scene, 4, 4)                                 # the default scene: 12 patches + 2 lamps + 6 polarity = 20 qubits
         cls.layout = allocate(cls.sampler.n, cls.sampler.n_panels)
         cls.psi = c.complementary_state(cls.sampler, cls.layout, "hub")
         cls.n = cls.layout["n_qubits"]
@@ -114,7 +114,9 @@ class StandIn(unittest.TestCase):
     def test_normalised_and_geometry_picks_the_partner_lamp(self):
         self.assertAlmostEqual(float(np.linalg.norm(self.psi)), 1.0, places=9)
         L1, L2 = self.layout["lamps"]
-        self.assertEqual(c.partners(self.sampler, self.layout, "hub"), [[L1], [L2], [L1]])     # sides follow L1, flat centre follows L2
+        want = [[L2] if abs(p.angle_deg) < 0.5 else [L1] for p in self.scene.panels]
+        self.assertEqual(c.partners(self.sampler, self.layout, "hub"), want)                   # the wings follow L1, the flat centre follows L2
+        self.assertEqual(want, [[L1], [L1], [L2], [L2], [L1], [L1]])                           # six panes: two per wing
 
     def test_z_statistics_of_lighting_are_exactly_the_baseline_and_polarity_is_a_fair_coin(self):
         base = sl.oracle_state(self.sampler, self.layout)
@@ -134,7 +136,7 @@ class StandIn(unittest.TestCase):
             pool = c.make_pool(self.psi, L, basis, 40000, rng)
             corr = c.polarity_lamp_correlation(pool)
             part = c.partners(self.sampler, L, "hub")
-            for k in range(3):
+            for k in range(self.scene.n_panels):
                 j = part[k][0] - L["lamps"][0]
                 self.assertAlmostEqual(corr[k, j], want, delta=0.03, msg=f"panel {k} read in {basis}")
 
@@ -146,13 +148,33 @@ class StandIn(unittest.TestCase):
             self.assertAlmostEqual(c.bloch_length(psi, self.n, q), 1.0, places=9)           # pure |+>: definite in X
 
     def test_witnesses_on_the_stand_in(self):
+        """Six panes: the two centre panes both follow L2 and the four wing panes both follow L1, so each lamp is recorded by two polarity qubits
+        (and L1 also by the patches): no single pane-lamp pair violates CHSH any more (monogamy), but the many-party Mermin test over the lamp and its
+        partners does."""
         L = self.layout
-        pair = chsh_of(self.psi, self.n, L["polarity"][1], L["lamps"][1])
-        self.assertGreater(pair, 2.5)                                    # centre polarity with L2: violates
-        self.assertAlmostEqual(chsh_of(self.psi, self.n, L["polarity"][0], L["lamps"][0]), 2.0, places=3)   # L1 is recorded by the patches
+        for k in range(self.scene.n_panels):
+            lamp = L["lamps"][0 if abs(self.scene.panels[k].angle_deg) > 0.5 else 1]
+            self.assertAlmostEqual(chsh_of(self.psi, self.n, L["polarity"][k], lamp), 2.0, places=3, msg=f"panel {k}")
         psi2 = c.complementary_state(self.sampler, self.layout, "lamp2")
         g = c.lamp_groups(L, c.partners(self.sampler, L, "lamp2"))[0]
+        self.assertEqual(len(g["group"]), 1 + self.scene.n_panels)                                  # L2 and one polarity qubit per pane
         m = c.mermin_exact(psi2, self.n, g["group"], g["axes"])
+        bound, top = c.mermin_bounds(len(g["group"]))
+        self.assertGreater(m, bound + 1)                                 # the Mermin test beats the local bound
+        self.assertLessEqual(m, top + 1e-9)
+
+    def test_one_pane_per_wing_violates_chsh_with_its_lamp_as_the_first_build_found(self):
+        """The three-panel window the first build used: the flat centre panel is alone on L2, so its pair with L2 is not diluted by a second record."""
+        scene = build_scene(validate(fill_defaults(bay_window_labels(stacked=False))))
+        sampler = Sampler(scene, 5, 4)
+        layout = allocate(sampler.n, sampler.n_panels)
+        psi = c.complementary_state(sampler, layout, "hub")
+        n = layout["n_qubits"]
+        self.assertGreater(chsh_of(psi, n, layout["polarity"][1], layout["lamps"][1]), 2.5)           # centre polarity with L2: violates
+        self.assertAlmostEqual(chsh_of(psi, n, layout["polarity"][0], layout["lamps"][0]), 2.0, places=3)   # L1 is recorded by the patches
+        psi2 = c.complementary_state(sampler, layout, "lamp2")
+        g = c.lamp_groups(layout, c.partners(sampler, layout, "lamp2"))[0]
+        m = c.mermin_exact(psi2, n, g["group"], g["axes"])
         self.assertGreater(m, c.mermin_bounds(4)[0] + 1)                 # four-party Mermin beats the local bound of 4
         self.assertLessEqual(m, c.mermin_bounds(4)[1] + 1e-9)
 

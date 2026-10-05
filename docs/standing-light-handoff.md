@@ -1,5 +1,7 @@
 # Standing Light — Project Handoff and Reference
 
+> **Scene note.** This document describes the first build's **three-panel** bay window (left, centre, right). The built-in window, and the default of the code, is now **six panels**: each wing holds two windows stacked on top of each other with a shared rail (`left_top`, `left_bottom`, `centre_top`, `centre_bottom`, `right_top`, `right_bottom`; three planes). Counts and numbers below that say three panels, 15 or 19 qubits, or 3 polarity qubits are the three-panel ones; the README's *The default scene* has the current ones.
+
 *Quantum chiaroscuro: a height-illusion projection instrument whose shading is drawn by quantum measurement, built on Moth Atlas.*
 
 Author: Harriet Fisher · Written: 1 Oct 2026 · Brief context: Moth Quantum asked for something built on the Atlas platform (they specifically pointed to **QDrive** and **Tessa Image**; if a case can be made that an engine does not suit the project, that is acceptable). Ideas and thought process matter more than a polished prototype. About 5 days remained on 1 Oct.

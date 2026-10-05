@@ -7,7 +7,7 @@
   "seam_coupling": 1.0,
   "leaf_tau": 0.3
  },
- "max_seconds": 150.0,
+ "max_seconds": 120.0,
  "seam_sweep": [
   {
    "kind": "bay",
@@ -17,23 +17,23 @@
    ],
    "seam_mix": 0.0,
    "leaf_prefer": "visible",
-   "qubits": 92,
-   "deficit": 0.0013071718742112548,
-   "mean_entropy": 0.9928372952175194,
-   "crease_negativity": 0.25888156137947615,
-   "creases_entangled": 6,
-   "creases": 6,
-   "seam_facet_entropy": 0.3098224118729256,
-   "other_facet_entropy": 0.3090119428324393,
-   "seam_stabilizer": 0.4984945916240677,
-   "mermin": 6.568063909627677,
-   "predicted_win": 0.9105039943517298,
+   "qubits": 128,
+   "deficit": 0.017624964422177314,
+   "mean_entropy": 1.2087639041820526,
+   "crease_negativity": 0.27855482410428745,
+   "creases_entangled": 4,
+   "creases": 4,
+   "seam_facet_entropy": 0.28751758988087583,
+   "other_facet_entropy": 0.2848173576261724,
+   "seam_stabilizer": 0.5109533777584254,
+   "mermin": 6.941396523709833,
+   "predicted_win": 0.9338372827318646,
    "leaves": [
-    14,
+    8,
     29,
-    42
+    50
    ],
-   "seconds": 0.8097147941589355
+   "seconds": 2.4360010623931885
   },
   {
    "kind": "bay",
@@ -43,23 +43,23 @@
    ],
    "seam_mix": 0.0,
    "leaf_prefer": "seam",
-   "qubits": 92,
-   "deficit": 0.0011615021261728309,
-   "mean_entropy": 0.9939988652738437,
-   "crease_negativity": 0.3139824709834771,
-   "creases_entangled": 6,
-   "creases": 6,
-   "seam_facet_entropy": 0.27021496068607737,
-   "other_facet_entropy": 0.3257484266053983,
-   "seam_stabilizer": 0.497038714571633,
-   "mermin": 4.037025180378907,
-   "predicted_win": 0.7523140737736818,
+   "qubits": 128,
+   "deficit": 0.017007290705933764,
+   "mean_entropy": 1.2075224710241697,
+   "crease_negativity": 0.3220017866197602,
+   "creases_entangled": 4,
+   "creases": 4,
+   "seam_facet_entropy": 0.2281254259867053,
+   "other_facet_entropy": 0.29270302830357486,
+   "seam_stabilizer": 0.5103988971308635,
+   "mermin": 4.208976464668445,
+   "predicted_win": 0.7630610290417779,
    "leaves": [
-    3,
-    24,
-    39
+    13,
+    37,
+    59
    ],
-   "seconds": 0.8204779624938965
+   "seconds": 2.440868854522705
   },
   {
    "kind": "bay",
@@ -69,23 +69,23 @@
    ],
    "seam_mix": 0.25,
    "leaf_prefer": "visible",
-   "qubits": 92,
-   "deficit": 0.0033624567185190912,
-   "mean_entropy": 1.0967783347297548,
-   "crease_negativity": 0.156711160240214,
-   "creases_entangled": 6,
-   "creases": 6,
-   "seam_facet_entropy": 0.5473459624380838,
-   "other_facet_entropy": 0.30288623526071395,
-   "seam_stabilizer": 0.5070446254372011,
-   "mermin": 6.569139832244662,
-   "predicted_win": 0.9105712395152914,
+   "qubits": 128,
+   "deficit": 0.01960584735474047,
+   "mean_entropy": 1.251322782010287,
+   "crease_negativity": 0.17474567069507585,
+   "creases_entangled": 4,
+   "creases": 4,
+   "seam_facet_entropy": 0.5368280715978742,
+   "other_facet_entropy": 0.28019718293369145,
+   "seam_stabilizer": 0.5147792352696807,
+   "mermin": 7.0009196800628875,
+   "predicted_win": 0.9375574800039305,
    "leaves": [
-    14,
+    8,
     29,
-    42
+    50
    ],
-   "seconds": 0.8220248222351074
+   "seconds": 2.442284107208252
   },
   {
    "kind": "bay",
@@ -95,23 +95,23 @@
    ],
    "seam_mix": 0.25,
    "leaf_prefer": "seam",
-   "qubits": 92,
-   "deficit": 0.003109426321980635,
-   "mean_entropy": 1.092691551669082,
-   "crease_negativity": 0.21838714735065567,
-   "creases_entangled": 6,
-   "creases": 6,
-   "seam_facet_entropy": 0.5154142295505482,
-   "other_facet_entropy": 0.31986727458607,
-   "seam_stabilizer": 0.5052722276330223,
-   "mermin": 3.4583388577924037,
-   "predicted_win": 0.7161461786120252,
+   "qubits": 128,
+   "deficit": 0.01880469228145043,
+   "mean_entropy": 1.252146640789675,
+   "crease_negativity": 0.22726064197114565,
+   "creases_entangled": 4,
+   "creases": 4,
+   "seam_facet_entropy": 0.4825867661527347,
+   "other_facet_entropy": 0.28772141780672716,
+   "seam_stabilizer": 0.5148935772998899,
+   "mermin": 3.613232791963372,
+   "predicted_win": 0.7258270494977108,
    "leaves": [
-    3,
-    24,
-    39
+    13,
+    37,
+    59
    ],
-   "seconds": 0.8213560581207275
+   "seconds": 2.465826988220215
   },
   {
    "kind": "bay",
@@ -121,23 +121,23 @@
    ],
    "seam_mix": 0.5,
    "leaf_prefer": "visible",
-   "qubits": 92,
-   "deficit": 0.007606065529564443,
-   "mean_entropy": 1.2016185599862763,
-   "crease_negativity": 0.03147298715918424,
-   "creases_entangled": 6,
-   "creases": 6,
-   "seam_facet_entropy": 0.7630596999860529,
-   "other_facet_entropy": 0.29441240630125803,
-   "seam_stabilizer": 0.5233083705058152,
-   "mermin": 6.570937110995516,
-   "predicted_win": 0.9106835694372197,
+   "qubits": 128,
+   "deficit": 0.022824717591259036,
+   "mean_entropy": 1.2969248666599145,
+   "crease_negativity": 0.03403295804531305,
+   "creases_entangled": 4,
+   "creases": 4,
+   "seam_facet_entropy": 0.7754532217724753,
+   "other_facet_entropy": 0.27612991094779565,
+   "seam_stabilizer": 0.5197495787139141,
+   "mermin": 7.0375513502872575,
+   "predicted_win": 0.9398469593929536,
    "leaves": [
-    14,
+    8,
     29,
-    42
+    50
    ],
-   "seconds": 0.8119542598724365
+   "seconds": 2.4714598655700684
   },
   {
    "kind": "bay",
@@ -147,23 +147,23 @@
    ],
    "seam_mix": 0.5,
    "leaf_prefer": "seam",
-   "qubits": 92,
-   "deficit": 0.007204336229043484,
-   "mean_entropy": 1.2029353475534437,
-   "crease_negativity": 0.0803407058420055,
-   "creases_entangled": 6,
-   "creases": 6,
-   "seam_facet_entropy": 0.7439788044392103,
-   "other_facet_entropy": 0.31104823464510156,
-   "seam_stabilizer": 0.521662244900758,
-   "mermin": 2.642338384559097,
-   "predicted_win": 0.6651461490349435,
+   "qubits": 128,
+   "deficit": 0.021937885867999052,
+   "mean_entropy": 1.301132716960171,
+   "crease_negativity": 0.07614513201073955,
+   "creases_entangled": 4,
+   "creases": 4,
+   "seam_facet_entropy": 0.7436999711529833,
+   "other_facet_entropy": 0.2832409221172599,
+   "seam_stabilizer": 0.5190619730935461,
+   "mermin": 2.6584238832020244,
+   "predicted_win": 0.6661514927001265,
    "leaves": [
-    3,
-    24,
-    39
+    13,
+    37,
+    59
    ],
-   "seconds": 0.8150887489318848
+   "seconds": 2.443000078201294
   },
   {
    "kind": "bay",
@@ -173,23 +173,23 @@
    ],
    "seam_mix": 0.75,
    "leaf_prefer": "visible",
-   "qubits": 92,
-   "deficit": 0.012757552398494632,
-   "mean_entropy": 1.2739100920340796,
+   "qubits": 128,
+   "deficit": 0.024911543823257887,
+   "mean_entropy": 1.3394013874409618,
    "crease_negativity": -0.0,
    "creases_entangled": 0,
-   "creases": 6,
-   "seam_facet_entropy": 0.9276761426734947,
-   "other_facet_entropy": 0.28731711957140654,
-   "seam_stabilizer": 0.5402431247408889,
-   "mermin": 6.572523295109672,
-   "predicted_win": 0.9107827059443545,
+   "creases": 4,
+   "seam_facet_entropy": 0.9410970558181881,
+   "other_facet_entropy": 0.2734718226365441,
+   "seam_stabilizer": 0.5224553038180757,
+   "mermin": 7.070037425523804,
+   "predicted_win": 0.9418773390952377,
    "leaves": [
-    14,
+    8,
     29,
-    42
+    50
    ],
-   "seconds": 0.8112680912017822
+   "seconds": 2.4217841625213623
   },
   {
    "kind": "bay",
@@ -199,23 +199,23 @@
    ],
    "seam_mix": 0.75,
    "leaf_prefer": "seam",
-   "qubits": 92,
-   "deficit": 0.012716341642087015,
-   "mean_entropy": 1.2841968129316723,
+   "qubits": 128,
+   "deficit": 0.024630700100501945,
+   "mean_entropy": 1.3487668439722416,
    "crease_negativity": -0.0,
    "creases_entangled": 0,
-   "creases": 6,
-   "seam_facet_entropy": 0.9214093697239959,
-   "other_facet_entropy": 0.3030758477512143,
-   "seam_stabilizer": 0.5391106019827088,
-   "mermin": 1.765322707279299,
-   "predicted_win": 0.6103326692049562,
+   "creases": 4,
+   "seam_facet_entropy": 0.9316728861307445,
+   "other_facet_entropy": 0.2803022204223332,
+   "seam_stabilizer": 0.5240557606511222,
+   "mermin": 1.694214688470042,
+   "predicted_win": 0.6058884180293777,
    "leaves": [
-    3,
-    24,
-    39
+    13,
+    37,
+    59
    ],
-   "seconds": 0.8090670108795166
+   "seconds": 2.4534730911254883
   },
   {
    "kind": "bay",
@@ -225,23 +225,23 @@
    ],
    "seam_mix": 1.0,
    "leaf_prefer": "visible",
-   "qubits": 92,
-   "deficit": 0.015692791577879728,
-   "mean_entropy": 1.2962082193693483,
+   "qubits": 128,
+   "deficit": 0.024672322066279673,
+   "mean_entropy": 1.3563583817111542,
    "crease_negativity": -0.0,
    "creases_entangled": 0,
-   "creases": 6,
-   "seam_facet_entropy": 0.9999996683207494,
-   "other_facet_entropy": 0.2844013269855822,
-   "seam_stabilizer": 0.5645541786737635,
-   "mermin": 6.572323992679367,
-   "predicted_win": 0.9107702495424604,
+   "creases": 4,
+   "seam_facet_entropy": 0.9999992858986958,
+   "other_facet_entropy": 0.2725884388257999,
+   "seam_stabilizer": 0.5240906887559176,
+   "mermin": 7.070014836088067,
+   "predicted_win": 0.9418759272555042,
    "leaves": [
-    14,
+    8,
     29,
-    42
+    50
    ],
-   "seconds": 0.7898221015930176
+   "seconds": 2.4566121101379395
   },
   {
    "kind": "bay",
@@ -251,23 +251,23 @@
    ],
    "seam_mix": 1.0,
    "leaf_prefer": "seam",
-   "qubits": 92,
-   "deficit": 0.01583426080912509,
-   "mean_entropy": 1.3090112506009,
+   "qubits": 128,
+   "deficit": 0.023528354962751852,
+   "mean_entropy": 1.3642145399756433,
    "crease_negativity": -0.0,
    "creases_entangled": 0,
-   "creases": 6,
-   "seam_facet_entropy": 0.9999990459934943,
-   "other_facet_entropy": 0.30009951990184763,
-   "seam_stabilizer": 0.5651927722760363,
-   "mermin": 1.0593927289319647,
-   "predicted_win": 0.5662120455582478,
+   "creases": 4,
+   "seam_facet_entropy": 0.9999994555078421,
+   "other_facet_entropy": 0.27926767219077664,
+   "seam_stabilizer": 0.5256692359048465,
+   "mermin": 1.0211933714778154,
+   "predicted_win": 0.5638245857173635,
    "leaves": [
-    3,
-    24,
-    39
+    13,
+    37,
+    59
    ],
-   "seconds": 0.7996180057525635
+   "seconds": 2.4197888374328613
   }
  ],
  "tiled": [
@@ -285,7 +285,7 @@
    "max_bond": 15,
    "deficit": 8.881784197001252e-16,
    "mean_entropy": 0.41800511832734877,
-   "seconds": 0.13659000396728516
+   "seconds": 0.15100383758544922
   },
   {
    "kind": "tiled",
@@ -299,9 +299,9 @@
    "facets": 40,
    "seam_facets": 16,
    "max_bond": 32,
-   "deficit": 0.00829624495800152,
-   "mean_entropy": 1.3195059550077408,
-   "seconds": 1.3282721042633057
+   "deficit": 0.008133397800640596,
+   "mean_entropy": 1.3205405272695094,
+   "seconds": 1.2557399272918701
   },
   {
    "kind": "tiled",
@@ -315,9 +315,9 @@
    "facets": 100,
    "seam_facets": 48,
    "max_bond": 32,
-   "deficit": 0.03696115153994173,
-   "mean_entropy": 1.570687735985544,
-   "seconds": 10.032659769058228
+   "deficit": 0.035815182162285186,
+   "mean_entropy": 1.5895393439070464,
+   "seconds": 9.624689102172852
   },
   {
    "kind": "tiled",
@@ -331,9 +331,9 @@
    "facets": 184,
    "seam_facets": 96,
    "max_bond": 32,
-   "deficit": 0.022616046782115484,
-   "mean_entropy": 1.6691096288872518,
-   "seconds": 37.712419748306274
+   "deficit": 0.025749583220396666,
+   "mean_entropy": 1.6653917483459078,
+   "seconds": 36.42650294303894
   },
   {
    "kind": "tiled",
@@ -349,7 +349,7 @@
    "max_bond": 15,
    "deficit": 8.881784197001252e-16,
    "mean_entropy": 0.41800511832734877,
-   "seconds": 0.14827823638916016
+   "seconds": 0.1412348747253418
   },
   {
    "kind": "tiled",
@@ -363,9 +363,9 @@
    "facets": 40,
    "seam_facets": 16,
    "max_bond": 32,
-   "deficit": 0.04407502159424781,
-   "mean_entropy": 2.2028029567626977,
-   "seconds": 1.292525053024292
+   "deficit": 0.04349065222014237,
+   "mean_entropy": 2.206216505289502,
+   "seconds": 1.2237110137939453
   },
   {
    "kind": "tiled",
@@ -379,9 +379,9 @@
    "facets": 100,
    "seam_facets": 48,
    "max_bond": 32,
-   "deficit": 0.07034365606794268,
-   "mean_entropy": 2.4745468032791202,
-   "seconds": 10.000372171401978
+   "deficit": 0.09876407747592708,
+   "mean_entropy": 2.4695894123519118,
+   "seconds": 9.303574085235596
   },
   {
    "kind": "tiled",
@@ -395,9 +395,9 @@
    "facets": 184,
    "seam_facets": 96,
    "max_bond": 32,
-   "deficit": 0.02643095479177382,
-   "mean_entropy": 2.460234678717395,
-   "seconds": 36.71410608291626
+   "deficit": 0.07551615053983007,
+   "mean_entropy": 2.4498325612581935,
+   "seconds": 36.3062629699707
   }
  ],
  "floquet": [
@@ -411,12 +411,12 @@
    "steps": 0,
    "theta_zz": 0.7,
    "theta_x": 0.5,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.0013071718742112548,
-   "mean_entropy": 0.9928372952175194,
-   "max_entropy": 2.585859487310702,
-   "seconds": 0.8457920551300049
+   "deficit": 0.017624964422177314,
+   "mean_entropy": 1.2087639041820526,
+   "max_entropy": 1.8992540764891876,
+   "seconds": 2.4379868507385254
   },
   {
    "kind": "floquet",
@@ -428,12 +428,12 @@
    "steps": 1,
    "theta_zz": 0.7,
    "theta_x": 0.5,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.00280721855075039,
-   "mean_entropy": 1.1185304736078263,
-   "max_entropy": 2.662046100026557,
-   "seconds": 1.4006381034851074
+   "deficit": 0.02151450112840525,
+   "mean_entropy": 1.2820041285278867,
+   "max_entropy": 1.9634582295500966,
+   "seconds": 4.4431798458099365
   },
   {
    "kind": "floquet",
@@ -445,12 +445,12 @@
    "steps": 2,
    "theta_zz": 0.7,
    "theta_x": 0.5,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.00517620417046305,
-   "mean_entropy": 1.2991142485968012,
-   "max_entropy": 2.631459644831689,
-   "seconds": 1.734645128250122
+   "deficit": 0.027326293286240366,
+   "mean_entropy": 1.338384016388999,
+   "max_entropy": 2.061390644253097,
+   "seconds": 5.904662847518921
   },
   {
    "kind": "floquet",
@@ -462,12 +462,12 @@
    "steps": 3,
    "theta_zz": 0.7,
    "theta_x": 0.5,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.02070396236165828,
-   "mean_entropy": 1.7417405890320743,
-   "max_entropy": 3.0153035376455426,
-   "seconds": 1.8529162406921387
+   "deficit": 0.03924999313526634,
+   "mean_entropy": 1.8059315040580315,
+   "max_entropy": 2.716911446022948,
+   "seconds": 7.0401599407196045
   },
   {
    "kind": "floquet",
@@ -479,12 +479,12 @@
    "steps": 4,
    "theta_zz": 0.7,
    "theta_x": 0.5,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.037874561808306506,
-   "mean_entropy": 2.0656584806132487,
-   "max_entropy": 3.2533831151367454,
-   "seconds": 1.9208409786224365
+   "deficit": 0.06218302084807803,
+   "mean_entropy": 2.1843095490822497,
+   "max_entropy": 3.316538038114132,
+   "seconds": 7.719114065170288
   },
   {
    "kind": "floquet",
@@ -496,12 +496,12 @@
    "steps": 6,
    "theta_zz": 0.7,
    "theta_x": 0.5,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.06855404186924252,
-   "mean_entropy": 2.331732595880157,
-   "max_entropy": 3.7024639778751616,
-   "seconds": 2.1398768424987793
+   "deficit": 0.07533271989160917,
+   "mean_entropy": 2.312639734941436,
+   "max_entropy": 3.66434058868077,
+   "seconds": 8.468616008758545
   },
   {
    "kind": "floquet",
@@ -513,12 +513,12 @@
    "steps": 8,
    "theta_zz": 0.7,
    "theta_x": 0.5,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.0721056118421739,
-   "mean_entropy": 2.4348713227560337,
-   "max_entropy": 3.933358266902184,
-   "seconds": 2.359884023666382
+   "deficit": 0.07567023609802215,
+   "mean_entropy": 2.37423155876666,
+   "max_entropy": 3.4239844185745216,
+   "seconds": 9.34072208404541
   },
   {
    "kind": "floquet",
@@ -530,12 +530,12 @@
    "steps": 12,
    "theta_zz": 0.7,
    "theta_x": 0.5,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.08731627165607536,
-   "mean_entropy": 2.398324626566364,
-   "max_entropy": 3.9589599605162027,
-   "seconds": 2.9074349403381348
+   "deficit": 0.08372414709651843,
+   "mean_entropy": 2.2693696586941043,
+   "max_entropy": 3.0695970357214564,
+   "seconds": 10.817434310913086
   },
   {
    "kind": "floquet",
@@ -547,12 +547,12 @@
    "steps": 0,
    "theta_zz": 1.0,
    "theta_x": 0.9,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.0013071718742112548,
-   "mean_entropy": 0.9928372952175194,
-   "max_entropy": 2.585859487310702,
-   "seconds": 0.8452420234680176
+   "deficit": 0.017624964422177314,
+   "mean_entropy": 1.2087639041820526,
+   "max_entropy": 1.8992540764891876,
+   "seconds": 2.473255157470703
   },
   {
    "kind": "floquet",
@@ -564,12 +564,12 @@
    "steps": 1,
    "theta_zz": 1.0,
    "theta_x": 0.9,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.0035353782332945283,
-   "mean_entropy": 1.205430120266589,
-   "max_entropy": 2.6746338865922095,
-   "seconds": 1.4037692546844482
+   "deficit": 0.02467960008024872,
+   "mean_entropy": 1.2933310308088606,
+   "max_entropy": 2.0433306091480836,
+   "seconds": 4.474420785903931
   },
   {
    "kind": "floquet",
@@ -581,12 +581,12 @@
    "steps": 2,
    "theta_zz": 1.0,
    "theta_x": 0.9,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.02260252920399819,
-   "mean_entropy": 1.8277049445101488,
-   "max_entropy": 3.191000584337244,
-   "seconds": 1.6670820713043213
+   "deficit": 0.04546906198552536,
+   "mean_entropy": 2.0001303616131607,
+   "max_entropy": 3.1614310892451503,
+   "seconds": 5.896657705307007
   },
   {
    "kind": "floquet",
@@ -598,12 +598,12 @@
    "steps": 3,
    "theta_zz": 1.0,
    "theta_x": 0.9,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.04781370606188129,
-   "mean_entropy": 2.3873905154539314,
-   "max_entropy": 3.785025376355285,
-   "seconds": 1.719649076461792
+   "deficit": 0.07037647200067276,
+   "mean_entropy": 2.5773644067687993,
+   "max_entropy": 3.925349430264929,
+   "seconds": 7.08837890625
   },
   {
    "kind": "floquet",
@@ -615,12 +615,12 @@
    "steps": 4,
    "theta_zz": 1.0,
    "theta_x": 0.9,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.08347017557300851,
-   "mean_entropy": 2.616668107538625,
-   "max_entropy": 4.000079554110668,
-   "seconds": 1.8685779571533203
+   "deficit": 0.10793516119623314,
+   "mean_entropy": 2.738485829661029,
+   "max_entropy": 4.190053069765339,
+   "seconds": 8.220874071121216
   },
   {
    "kind": "floquet",
@@ -632,12 +632,12 @@
    "steps": 6,
    "theta_zz": 1.0,
    "theta_x": 0.9,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.12857822347973924,
-   "mean_entropy": 2.633284400185822,
-   "max_entropy": 4.116704542185488,
-   "seconds": 2.081911087036133
+   "deficit": 0.14854059140601428,
+   "mean_entropy": 2.701437386919337,
+   "max_entropy": 3.7636678643912314,
+   "seconds": 8.853169202804565
   },
   {
    "kind": "floquet",
@@ -649,12 +649,12 @@
    "steps": 8,
    "theta_zz": 1.0,
    "theta_x": 0.9,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.13679858489095276,
-   "mean_entropy": 2.6212450238157725,
-   "max_entropy": 4.138563495525252,
-   "seconds": 2.2866098880767822
+   "deficit": 0.13789568110445338,
+   "mean_entropy": 2.8184297842151915,
+   "max_entropy": 4.004319954857012,
+   "seconds": 9.590358018875122
   },
   {
    "kind": "floquet",
@@ -666,12 +666,12 @@
    "steps": 12,
    "theta_zz": 1.0,
    "theta_x": 0.9,
-   "qubits": 92,
+   "qubits": 128,
    "max_bond": 32,
-   "deficit": 0.08535299577407907,
-   "mean_entropy": 2.6037914986113737,
-   "max_entropy": 4.0336893064709685,
-   "seconds": 2.6876778602600098
+   "deficit": 0.12862295766960496,
+   "mean_entropy": 2.8527441090993135,
+   "max_entropy": 4.245926527253641,
+   "seconds": 10.670154094696045
   }
  ]
 }

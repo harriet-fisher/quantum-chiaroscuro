@@ -1,0 +1,74 @@
+{
+ "label": "T01_official_sample",
+ "http": 202,
+ "body_sent": {
+  "params": {
+   "n_qubits": 2,
+   "targets": [
+    {
+     "expvals": {
+      "ZZ": 1.0
+     },
+     "qubits": [
+      0,
+      1
+     ]
+    }
+   ]
+  }
+ },
+ "job_id": "408249a8-591f-4a97-a00d-61e9a63c48f2",
+ "status": "completed",
+ "secs": 10.0,
+ "progress": {
+  "detail": "Building circuit",
+  "step": "run"
+ },
+ "status_warnings": [],
+ "outputs": [
+  {
+   "slot": "circuit",
+   "output_asset_id": "90416c88-f883-4f5b-8c66-c573e352bbc6",
+   "expires_at": "2026-10-04T21:24:53.058957259Z",
+   "content_type": "text/plain",
+   "filename": "qdrive-api-v1-408249a8.brf",
+   "size_bytes": 1050
+  }
+ ],
+ "result_inline": null,
+ "files": {
+  "circuit": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_408249a8-591f-4a97-a00d-61e9a63c48f2/circuit"
+ },
+ "circuit_path": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_408249a8-591f-4a97-a00d-61e9a63c48f2/circuit",
+ "score": {
+  "rows": [
+   {
+    "qubits": [
+     0,
+     1
+    ],
+    "word": "ZZ",
+    "want": 1.0,
+    "got": 0.9976
+   },
+   {
+    "qubits": [
+     0,
+     1
+    ],
+    "word": "XX",
+    "want": 1.0,
+    "got": 0.0318
+   }
+  ],
+  "rms": 0.6846,
+  "n_qubits": 2,
+  "ops": {
+   "rz": 8,
+   "ry": 4,
+   "rxx": 1,
+   "ryy": 1,
+   "rzz": 1
+  }
+ }
+}

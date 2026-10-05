@@ -9,6 +9,8 @@ from src.mask.masked_blur import gauss
 
 
 def polarity_map(scene, pol):
+    if len(pol) != scene.n_panels:
+        raise ValueError(f"polarity has {len(pol)} entries but the scene has {scene.n_panels} panels")
     pol_map = np.zeros((scene.H, scene.W))
     for k in range(scene.n_panels):
         pol_map[scene.region == k] = pol[k]

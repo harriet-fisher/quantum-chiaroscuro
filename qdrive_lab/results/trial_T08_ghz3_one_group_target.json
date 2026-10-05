@@ -1,0 +1,138 @@
+{
+ "label": "T08_ghz3_one_group_target",
+ "http": 202,
+ "body_sent": {
+  "params": {
+   "machine": "aer",
+   "n_qubits": 3,
+   "seed": 7,
+   "shots": 1024,
+   "update_method": "spectral",
+   "tomography": 0,
+   "sample": false,
+   "targets": [
+    {
+     "qubits": [
+      0,
+      1,
+      2
+     ],
+     "expvals": {
+      "ZZI": 1.0,
+      "IZZ": 1.0,
+      "XXX": 1.0
+     }
+    },
+    null,
+    {
+     "qubits": [
+      0,
+      1,
+      2
+     ],
+     "expvals": {
+      "ZZI": 1.0,
+      "IZZ": 1.0,
+      "XXX": 1.0
+     }
+    },
+    null
+   ]
+  }
+ },
+ "job_id": "6d5c10c5-7064-4f14-8bea-03247a5ede06",
+ "status": "completed",
+ "secs": 12.5,
+ "progress": {
+  "detail": "Processing target 3/4",
+  "step": "run"
+ },
+ "status_warnings": [],
+ "outputs": [
+  {
+   "slot": "circuit",
+   "output_asset_id": "9a21440c-1650-42d0-abac-22dafa320149",
+   "expires_at": "2026-10-04T21:26:55.551743217Z",
+   "content_type": "text/plain",
+   "filename": "qdrive-api-v1-6d5c10c5.brf",
+   "size_bytes": 1169
+  }
+ ],
+ "result_inline": null,
+ "files": {
+  "circuit": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_6d5c10c5-7064-4f14-8bea-03247a5ede06/circuit"
+ },
+ "circuit_path": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_6d5c10c5-7064-4f14-8bea-03247a5ede06/circuit",
+ "score": {
+  "rows": [
+   {
+    "qubits": [
+     0
+    ],
+    "word": "Z",
+    "want": 0.0,
+    "got": 0.0017
+   },
+   {
+    "qubits": [
+     1
+    ],
+    "word": "Z",
+    "want": 0.0,
+    "got": 0.0019
+   },
+   {
+    "qubits": [
+     2
+    ],
+    "word": "Z",
+    "want": 0.0,
+    "got": 0.0018
+   },
+   {
+    "qubits": [
+     0,
+     1
+    ],
+    "word": "ZZ",
+    "want": 1.0,
+    "got": 0.999
+   },
+   {
+    "qubits": [
+     1,
+     2
+    ],
+    "word": "ZZ",
+    "want": 1.0,
+    "got": 0.9989
+   },
+   {
+    "qubits": [
+     0,
+     2
+    ],
+    "word": "ZZ",
+    "want": 1.0,
+    "got": 0.9992
+   },
+   {
+    "qubits": [
+     0,
+     1,
+     2
+    ],
+    "word": "XXX",
+    "want": 1.0,
+    "got": 0.9987
+   }
+  ],
+  "rms": 0.0014,
+  "n_qubits": 3,
+  "ops": {
+   "ry": 12,
+   "rz": 12,
+   "rzz": 8
+  }
+ }
+}

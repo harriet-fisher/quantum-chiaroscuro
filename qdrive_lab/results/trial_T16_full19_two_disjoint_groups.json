@@ -1,0 +1,353 @@
+{
+ "label": "T16_full19_two_disjoint_groups",
+ "http": 202,
+ "body_sent": {
+  "params": {
+   "machine": "aer",
+   "n_qubits": 19,
+   "seed": 7,
+   "shots": 1024,
+   "update_method": "spectral",
+   "tomography": 0,
+   "sample": false,
+   "coupling_map": [
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     9
+    ],
+    [
+     0,
+     10
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     9
+    ],
+    [
+     1,
+     10
+    ],
+    [
+     2,
+     4
+    ],
+    [
+     2,
+     9
+    ],
+    [
+     2,
+     10
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     3,
+     9
+    ],
+    [
+     3,
+     10
+    ],
+    [
+     4,
+     6
+    ],
+    [
+     4,
+     9
+    ],
+    [
+     4,
+     10
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     9
+    ],
+    [
+     5,
+     10
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     9
+    ],
+    [
+     6,
+     10
+    ],
+    [
+     7,
+     9
+    ],
+    [
+     7,
+     10
+    ],
+    [
+     8,
+     9
+    ],
+    [
+     8,
+     10
+    ],
+    [
+     11,
+     12
+    ],
+    [
+     11,
+     13
+    ],
+    [
+     12,
+     13
+    ],
+    [
+     13,
+     14
+    ],
+    [
+     13,
+     15
+    ],
+    [
+     14,
+     15
+    ],
+    [
+     14,
+     16
+    ],
+    [
+     15,
+     16
+    ],
+    [
+     16,
+     17
+    ],
+    [
+     16,
+     18
+    ],
+    [
+     17,
+     18
+    ]
+   ],
+   "targets": [
+    {
+     "qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+     ],
+     "expvals": {
+      "ZIIIIIIIIII": 0.0012,
+      "IZIIIIIIIII": 0.0042,
+      "IIZIIIIIIII": -0.0038,
+      "IIIZIIIIIII": 0.0018,
+      "IIIIZIIIIII": 0.0052,
+      "IIIIIZIIIII": 0.0024,
+      "IIIIIIZIIII": 0.0044,
+      "IIIIIIIZIII": 0.0033,
+      "IIIIIIIIZII": 0.0043,
+      "IIIIIIIIIZI": 0.0,
+      "IIIIIIIIIIZ": 0.0,
+      "ZZIIIIIIIII": 0.7184,
+      "ZIIZIIIIIII": 0.7177,
+      "IIIZIZIIIII": 0.7175,
+      "IIIIZIZIIII": 0.7174,
+      "IIIIIZIZIII": 0.7165,
+      "IIIIIIZIZII": 0.7159,
+      "IIZIIIIIIZI": 0.7084,
+      "IZZIIIIIIII": -0.5437,
+      "IIZIZIIIIII": -0.5422,
+      "IZIIIIIIIZI": -0.3795,
+      "IIIIZIIIIZI": -0.3791,
+      "ZIIIIIIIIZI": -0.2712,
+      "IIIIIIZIIZI": -0.2694,
+      "IIIZIIIIIZI": -0.1921,
+      "IIIIIIIIZZI": -0.1921,
+      "IIZIIIIIIIZ": -0.1375,
+      "IIIIIZIIIZI": -0.1361,
+      "IZIIIIIIIIZ": 0.1294,
+      "ZIIIIIIIIIZ": 0.1256,
+      "IIIZIIIIIIZ": 0.1193,
+      "IIIIZIIIIIZ": 0.1172,
+      "IIIIIZIIIIZ": 0.1082,
+      "IIIIIIZIIIZ": 0.1075,
+      "IIIIIIIZIZI": -0.0981,
+      "IIIIIIIIZIZ": 0.0916,
+      "IIIIIIIZIIZ": 0.09
+     }
+    },
+    {
+     "qubits": [
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
+     ],
+     "expvals": {
+      "ZIIIIIII": -0.0096,
+      "IZIIIIII": -0.0087,
+      "IIZIIIII": -0.0073,
+      "IIIZIIII": -0.0071,
+      "IIIIZIII": -0.008,
+      "IIIIIZII": -0.007,
+      "IIIIIIZI": -0.0066,
+      "IIIIIIIZ": -0.0088,
+      "IIIZZIII": 0.9673,
+      "IIIZIZII": 0.9335,
+      "IIIIZZII": 0.9314,
+      "IIZIZIII": 0.9287,
+      "IIZZIIII": 0.9278,
+      "ZIZIIIII": 0.9037,
+      "ZZIIIIII": 0.9033,
+      "IZZIIIII": 0.903,
+      "IIIIIZZI": 0.9004,
+      "IIIIIIZZ": 0.8996,
+      "IIIIIZIZ": 0.8986
+     }
+    },
+    null,
+    {
+     "qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+     ],
+     "expvals": {
+      "ZIIIIIIIIII": 0.0012,
+      "IZIIIIIIIII": 0.0042,
+      "IIZIIIIIIII": -0.0038,
+      "IIIZIIIIIII": 0.0018,
+      "IIIIZIIIIII": 0.0052,
+      "IIIIIZIIIII": 0.0024,
+      "IIIIIIZIIII": 0.0044,
+      "IIIIIIIZIII": 0.0033,
+      "IIIIIIIIZII": 0.0043,
+      "IIIIIIIIIZI": 0.0,
+      "IIIIIIIIIIZ": 0.0,
+      "ZZIIIIIIIII": 0.7184,
+      "ZIIZIIIIIII": 0.7177,
+      "IIIZIZIIIII": 0.7175,
+      "IIIIZIZIIII": 0.7174,
+      "IIIIIZIZIII": 0.7165,
+      "IIIIIIZIZII": 0.7159,
+      "IIZIIIIIIZI": 0.7084,
+      "IZZIIIIIIII": -0.5437,
+      "IIZIZIIIIII": -0.5422,
+      "IZIIIIIIIZI": -0.3795,
+      "IIIIZIIIIZI": -0.3791,
+      "ZIIIIIIIIZI": -0.2712,
+      "IIIIIIZIIZI": -0.2694,
+      "IIIZIIIIIZI": -0.1921,
+      "IIIIIIIIZZI": -0.1921,
+      "IIZIIIIIIIZ": -0.1375,
+      "IIIIIZIIIZI": -0.1361,
+      "IZIIIIIIIIZ": 0.1294,
+      "ZIIIIIIIIIZ": 0.1256,
+      "IIIZIIIIIIZ": 0.1193,
+      "IIIIZIIIIIZ": 0.1172,
+      "IIIIIZIIIIZ": 0.1082,
+      "IIIIIIZIIIZ": 0.1075,
+      "IIIIIIIZIZI": -0.0981,
+      "IIIIIIIIZIZ": 0.0916,
+      "IIIIIIIZIIZ": 0.09
+     }
+    },
+    {
+     "qubits": [
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
+     ],
+     "expvals": {
+      "ZIIIIIII": -0.0096,
+      "IZIIIIII": -0.0087,
+      "IIZIIIII": -0.0073,
+      "IIIZIIII": -0.0071,
+      "IIIIZIII": -0.008,
+      "IIIIIZII": -0.007,
+      "IIIIIIZI": -0.0066,
+      "IIIIIIIZ": -0.0088,
+      "IIIZZIII": 0.9673,
+      "IIIZIZII": 0.9335,
+      "IIIIZZII": 0.9314,
+      "IIZIZIII": 0.9287,
+      "IIZZIIII": 0.9278,
+      "ZIZIIIII": 0.9037,
+      "ZZIIIIII": 0.9033,
+      "IZZIIIII": 0.903,
+      "IIIIIZZI": 0.9004,
+      "IIIIIIZZ": 0.8996,
+      "IIIIIZIZ": 0.8986
+     }
+    },
+    null
+   ]
+  }
+ },
+ "job_id": "ddb6c2b2-b9b4-4fc7-9097-a69d0c7ef8fa",
+ "status": "failed",
+ "secs": 63.0,
+ "progress": {},
+ "status_warnings": [],
+ "error": {
+  "message": "The engine did not respond in time \u2014 retry the job",
+  "retryable": true,
+  "type": "engine_timeout"
+ }
+}

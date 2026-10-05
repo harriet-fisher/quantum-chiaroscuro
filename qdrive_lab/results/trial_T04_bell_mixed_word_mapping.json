@@ -1,0 +1,109 @@
+{
+ "label": "T04_bell_mixed_word_mapping",
+ "http": 202,
+ "body_sent": {
+  "params": {
+   "machine": "aer",
+   "n_qubits": 2,
+   "seed": 7,
+   "shots": 1024,
+   "update_method": "spectral",
+   "tomography": 0,
+   "sample": false,
+   "targets": [
+    {
+     "qubits": [
+      0,
+      1
+     ],
+     "expvals": {
+      "ZZ": 1.0,
+      "XX": 1.0
+     }
+    },
+    null,
+    {
+     "qubits": [
+      0,
+      1
+     ],
+     "expvals": {
+      "ZZ": 1.0,
+      "XX": 1.0
+     }
+    },
+    null
+   ]
+  }
+ },
+ "job_id": "4e77a23b-e63c-45ad-8271-492dcd2ca95b",
+ "status": "completed",
+ "secs": 12.4,
+ "progress": {
+  "detail": "Processing target 3/4",
+  "step": "run"
+ },
+ "status_warnings": [],
+ "outputs": [
+  {
+   "slot": "circuit",
+   "output_asset_id": "661b93ef-784b-478c-ae91-9f23ff05bcf2",
+   "expires_at": "2026-10-04T21:25:34.042278428Z",
+   "content_type": "text/plain",
+   "filename": "qdrive-api-v1-4e77a23b.brf",
+   "size_bytes": 1503
+  }
+ ],
+ "result_inline": null,
+ "files": {
+  "circuit": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_4e77a23b-e63c-45ad-8271-492dcd2ca95b/circuit"
+ },
+ "circuit_path": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_4e77a23b-e63c-45ad-8271-492dcd2ca95b/circuit",
+ "score": {
+  "rows": [
+   {
+    "qubits": [
+     0
+    ],
+    "word": "Z",
+    "want": 0.0,
+    "got": -0.0118
+   },
+   {
+    "qubits": [
+     1
+    ],
+    "word": "Z",
+    "want": 0.0,
+    "got": -0.0121
+   },
+   {
+    "qubits": [
+     0,
+     1
+    ],
+    "word": "ZZ",
+    "want": 1.0,
+    "got": 0.9997
+   },
+   {
+    "qubits": [
+     0,
+     1
+    ],
+    "word": "XX",
+    "want": 1.0,
+    "got": 0.9996
+   }
+  ],
+  "rms": 0.0085,
+  "n_qubits": 2,
+  "ops": {
+   "rz": 16,
+   "ry": 8,
+   "rxx": 2,
+   "ryy": 2,
+   "rzz": 2
+  }
+ }
+}

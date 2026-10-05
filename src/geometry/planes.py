@@ -49,12 +49,15 @@ class Scene:
         return len(self.panels)
 
     def panel_adjacency(self, touch_px=6):
-        """Pairs (a, b), a < b, of panels whose regions come within touch_px of each other (polarity-qubit chain)."""
+        """Pairs (a, b), a < b, of panels that share an edge: their regions come within touch_px of each other along a boundary at least about
+        3 * touch_px pixels long (polarity-qubit chain). A corner where four panes meet (the middle of a bay-window wing's rail meets the edge
+        between two wings) is a point, not an edge, and does not join the two panels that only touch there diagonally."""
         pairs = []
+        need = 3 * touch_px * touch_px                      # a contact strip touch_px wide and 3 * touch_px long; a diagonal corner overlaps about touch_px**2 / 2
         for a in range(self.n_panels):
             grown = ndi.binary_dilation(self.region == a, iterations=touch_px)
             for b in range(a + 1, self.n_panels):
-                if (grown & (self.region == b)).any():
+                if int((grown & (self.region == b)).sum()) >= need:
                     pairs.append((a, b))
         return pairs
 

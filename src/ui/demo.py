@@ -2,7 +2,7 @@
 (`actions`, the same names Session.dispatch() takes) and says what the audience screen shows.
 
 Honesty rule: slides are built from what is actually on disk and from the current provenance. A slide about the QDrive comparison
-says so when QDrive has never returned a circuit; the "quantum" wording follows the source's provenance (ui.caption), and the
+says so when QDrive has not returned a circuit for the scene; the "quantum" wording follows the source's provenance (ui.caption), and the
 closing slide states what is NOT quantum-specific as plainly as what is.
 """
 from dataclasses import dataclass, field
@@ -152,7 +152,7 @@ def build_steps(ctx):
         Step("6. QDrive vs graph-v1", [
             Beat(slide("The case for or against each engine",
                        _engine_lines(ab) + ([] if ctx.get("qdrive_circuit") else
-                                            ["QDrive has not returned a circuit yet (its one job failed on the target syntax and has not been resent), so there is no QDrive frame source to compare."]),
+                                            ["QDrive has not returned a circuit for this scene yet (small jobs have run, but no whole-scene job has finished), so there is no QDrive frame source to compare."]),
                        image="ab_frames" if ab and ctx.get("ab_images") else None,
                        footnote="graph-v1 returns exact tomography and the top 20 outcomes; QDrive returns a circuit that can be sampled for unlimited frames."),
                  [("auto_set", dict(on=True, seconds=4.0))], "Credits: graph-v1 5, QDrive 1."),

@@ -111,6 +111,7 @@ class ReliefSpec:
     pol_kinds: list = None                            # "coplanar" | "crease" for every edge of pol_graph (geometry labels, used by the witnesses)
     seam_pairs: list = None                           # facet pairs (i, j) that touch across a crease
     seam_facets: list = None                          # facets on a crease
+    leaves: list = None                               # domain relief: the polarity qubits that play the parity game with the lamp (one per plane, at most three)
 
     def __post_init__(self):
         self.tau = np.asarray(self.tau, float)

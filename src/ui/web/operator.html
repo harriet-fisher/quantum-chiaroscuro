@@ -226,7 +226,7 @@ function render(s) {
   $('blend').value = k.blend; $('blendV').textContent = k.blend; $('gain').value = k.gain; $('gainV').textContent = k.gain; $('fade').value = k.fade_ms; $('fadeV').textContent = k.fade_ms;
   $('source').value = s.source;
   $('srcNote').textContent = p.label + (p.untested ? ' (untested against any Moth circuit)' : '') + '.';
-  $('blackout').classList.toggle('on', k.blackout); $('noise').classList.toggle('on', k.noise); $('ctlA').classList.toggle('on', k.noise); $('ctlB').classList.toggle('on', !!k.dephased); $('ctlI').classList.toggle('on', !!k.light_interference); $('ctlG').classList.toggle('on', !!k.game); $('overlayBtn').classList.toggle('on', s.ui.overlay); $('demoBtn').classList.toggle('on', !!s.demo);
+  $('blackout').classList.toggle('on', k.blackout); $('noise').classList.toggle('on', k.noise); $('ctlA').classList.toggle('on', k.noise); $('ctlB').classList.toggle('on', !!k.dephased); $('ctlI').classList.toggle('on', !!k.light_interference); $('ctlG').classList.toggle('on', !!k.game); const dom = !!(s.science && s.science.engine && s.science.engine.name === 'domain'); ['ctlG', 'gameReset', 'ctlE', 'evolve0'].forEach(id => { $(id).disabled = !dom; $(id).title = dom ? '' : 'needs the domain engine (launch with --engine domain)'; }); $('overlayBtn').classList.toggle('on', s.ui.overlay); $('demoBtn').classList.toggle('on', !!s.demo);
   // overlay
   $('overlay').hidden = !s.ui.overlay;
   const gs = $('gaps'); if (gs.options.length !== 1 + s.engine_results.length) { const cur = gs.value; gs.innerHTML = '<option value="source">this source</option>' + s.engine_results.map(e => `<option value="${e}">${e === 'graph_v1' ? 'graph-v1 result' : 'QDrive result'}</option>`).join(''); gs.value = cur || 'source'; }
@@ -376,7 +376,8 @@ addEventListener('keydown', e => {
     if (d) { post('align_nudge', { index: S.align.selected, dx: d[0], dy: d[1] }); e.preventDefault(); return; }
   }
   const demo = !!(S && S.demo);
-  const cands = INIT.keys.filter(b => (b.family === 'both' || !S || b.family === S.family) && b.keys.some(k => k.toLowerCase() === e.key.toLowerCase()));
+  const domainOnly = ['game_toggle', 'evolve_step'], dom = !!(S && S.science && S.science.engine && S.science.engine.name === 'domain');
+  const cands = INIT.keys.filter(b => (!domainOnly.includes(b.action) || dom) && (b.family === 'both' || !S || b.family === S.family) && b.keys.some(k => k.toLowerCase() === e.key.toLowerCase()));
   const b = cands.find(x => x.demo === demo) || cands.find(x => !x.demo);
   if (!b || (b.demo && !demo)) return;
   e.preventDefault();

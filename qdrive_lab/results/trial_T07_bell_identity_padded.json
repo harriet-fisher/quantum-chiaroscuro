@@ -1,0 +1,90 @@
+{
+ "label": "T07_bell_identity_padded",
+ "http": 202,
+ "body_sent": {
+  "params": {
+   "machine": "aer",
+   "n_qubits": 2,
+   "seed": 7,
+   "shots": 1024,
+   "update_method": "spectral",
+   "tomography": 0,
+   "sample": false,
+   "targets": [
+    {
+     "qubits": [
+      0,
+      1
+     ],
+     "expvals": {
+      "ZI": 0.0,
+      "IZ": 0.0,
+      "ZZ": 1.0
+     }
+    },
+    null
+   ]
+  }
+ },
+ "job_id": "27dd8027-7520-4e62-a855-963cda8a7541",
+ "status": "completed",
+ "secs": 8.1,
+ "progress": {
+  "detail": "Building circuit",
+  "step": "run"
+ },
+ "status_warnings": [],
+ "outputs": [
+  {
+   "slot": "circuit",
+   "output_asset_id": "0b43728b-fa0d-4f41-9f33-92ed2cedf92a",
+   "expires_at": "2026-10-04T21:26:41.620965329Z",
+   "content_type": "text/plain",
+   "filename": "qdrive-api-v1-27dd8027.brf",
+   "size_bytes": 1047
+  }
+ ],
+ "result_inline": null,
+ "files": {
+  "circuit": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_27dd8027-7520-4e62-a855-963cda8a7541/circuit"
+ },
+ "circuit_path": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_27dd8027-7520-4e62-a855-963cda8a7541/circuit",
+ "score": {
+  "rows": [
+   {
+    "qubits": [
+     0
+    ],
+    "word": "Z",
+    "want": 0.0,
+    "got": 0.0293
+   },
+   {
+    "qubits": [
+     1
+    ],
+    "word": "Z",
+    "want": 0.0,
+    "got": 0.0292
+   },
+   {
+    "qubits": [
+     0,
+     1
+    ],
+    "word": "ZZ",
+    "want": 1.0,
+    "got": 0.9994
+   }
+  ],
+  "rms": 0.0239,
+  "n_qubits": 2,
+  "ops": {
+   "rz": 8,
+   "ry": 4,
+   "rxx": 1,
+   "ryy": 1,
+   "rzz": 1
+  }
+ }
+}

@@ -1,0 +1,98 @@
+{
+ "label": "T09_chain_from_output_asset",
+ "http": 202,
+ "body_sent": {
+  "params": {
+   "machine": "aer",
+   "seed": 7,
+   "targets": [
+    {
+     "qubits": [
+      0,
+      1
+     ],
+     "expvals": {
+      "ZZ": 1.0,
+      "XX": 1.0
+     }
+    },
+    null
+   ]
+  },
+  "input_files": {
+   "initial_circuit": "0370b00d-d8b2-4932-b1b9-8b92bfa4c770"
+  }
+ },
+ "job_id": "d4d7c270-fd9b-4554-be90-20ab80e637d3",
+ "status": "completed",
+ "secs": 7.7,
+ "progress": {
+  "detail": "Building circuit",
+  "step": "run"
+ },
+ "status_warnings": [],
+ "outputs": [
+  {
+   "slot": "circuit",
+   "output_asset_id": "b1e201e1-11e6-4b42-b88c-6a01dce39d96",
+   "expires_at": "2026-10-04T21:27:04.677901588Z",
+   "content_type": "text/plain",
+   "filename": "qdrive-api-v1-d4d7c270.brf",
+   "size_bytes": 1570
+  }
+ ],
+ "result_inline": null,
+ "files": {
+  "circuit": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_d4d7c270-fd9b-4554-be90-20ab80e637d3/circuit"
+ },
+ "circuit_path": "/Users/harrietfisher/Moth_Application/chiaroscuro/qdrive_lab/results/job_d4d7c270-fd9b-4554-be90-20ab80e637d3/circuit",
+ "score": {
+  "rows": [
+   {
+    "qubits": [
+     0
+    ],
+    "word": "Z",
+    "want": 0.0,
+    "got": 0.011
+   },
+   {
+    "qubits": [
+     1
+    ],
+    "word": "Z",
+    "want": 0.0,
+    "got": 0.0109
+   },
+   {
+    "qubits": [
+     0,
+     1
+    ],
+    "word": "ZZ",
+    "want": 1.0,
+    "got": 0.9992
+   },
+   {
+    "qubits": [
+     0,
+     1
+    ],
+    "word": "XX",
+    "want": 1.0,
+    "got": 0.9993
+   }
+  ],
+  "rms": 0.0078,
+  "n_qubits": 2,
+  "ops": {
+   "u": 8,
+   "rz": 8,
+   "ry": 4,
+   "cx": 3,
+   "rxx": 1,
+   "ryy": 1,
+   "rzz": 1
+  }
+ }
+}

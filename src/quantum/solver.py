@@ -2,9 +2,10 @@
 """solve(graph, targets): run the calibrated targets on a Moth engine and score what came back (spec §8.2, handoff §6.2).
 
     # preview only: no key, no network, no credits (add --approve-credits N to actually send)
-    python -m src.quantum.solver graph-v1 --calib runs/calibration_5x4 --out runs/first_run
-    python -m src.quantum.solver graph-v1 --calib runs/calibration_5x4 --out runs/first_run --approve-credits 5
-    python -m src.quantum.solver qdrive   --calib runs/calibration_5x4 --out runs/first_run --approve-credits 1
+    python -m src.quantum.solver graph-v1                     # --calib runs/calibration_bay_4x4 --out runs/bay_run, the built-in bay window
+    python -m src.quantum.solver graph-v1 --approve-credits 5
+    python -m src.quantum.solver qdrive   --approve-credits 1
+    # QDrive in small chained rounds (what to use when one big job stalls): python -m src.quantum.qdrive_rounds --help
 
 graph-v1  -> <out>/graph_v1/state.json, requested_vs_achieved.{json,csv}   (tomography is exact; no state or circuit comes back)
 qdrive    -> <out>/qdrive/circuit.qasm, state.json, requested_vs_achieved.{json,csv}   (circuit simulated locally with Aer)
@@ -19,6 +20,7 @@ import time
 
 import numpy as np
 
+from src.capture.labels import DEFAULT_CALIB_DIR, DEFAULT_RUN_DIR
 from src.quantum import sampler_local as sl
 from src.quantum.moth_client import MothClient
 from src.store.cache import cached_result, save_payload
@@ -232,11 +234,42 @@ def solve_qdrive(calib, out, approve_credits=None):
     return state
 
 
+def finish_rounds(rp, base, targets, local_fill=False):
+    """Assemble whatever the QDrive rounds have delivered under `base` (= <solve>/qdrive) and, when every component is there, write the same
+    files solve_qdrive writes (circuit.qasm, state.json, requested_vs_achieved.*) so the show and the studio need nothing else.
+    Returns the provenance dict. An incomplete assembly goes to circuit_partial.qasm and is scored against the targets for information only."""
+    from src.quantum import qdrive_rounds as qr
+    asm = qr.assemble(rp, base, local_fill=local_fill)
+    prov = qr.write_assembled(asm, rp, base)
+    for p in asm["pieces"]:
+        extra = f", TV {p['tv']} fidelity {p['fidelity']}" if p.get("tv") is not None else ""
+        print(f"  component {p['component']} (qubits {p['qubits'][0]}-{p['qubits'][-1]}): {p['source']}, {p['steps_done']}/{p['steps_total']} rounds{extra}")
+    if asm["text"] is None:
+        print("nothing finished yet: no circuit written")
+        return prov
+    layout = targets["meta"]["qubit_map"] | dict(n_qubits=targets["meta"]["n_qubits"])
+    rows, src = qdrive_achieved(asm["text"], targets, layout)
+    summary = score(rows)
+    name = "circuit.qasm" if asm["complete"] else "circuit_partial.qasm"
+    state = dict(engine="qdrive-api-v1 (rounds)", circuit=name, complete=asm["complete"], n_qubits=src.n, qubit_map=targets["meta"]["qubit_map"],
+                 summary=summary, pieces=asm["pieces"], plan_sha=rp.sha,
+                 jobs=[j for p in asm["pieces"] for j in p.get("jobs", [])], credits=sum(len(p.get("jobs", [])) for p in asm["pieces"]),
+                 evaluation="exact Z moments of the merged circuit, simulated locally with Aer (qiskit-qasm3-import)")
+    if asm["complete"]:
+        write_report(base, rows, summary, state)
+    else:
+        with open(os.path.join(base, "partial_state.json"), "w") as f:
+            json.dump(dict(state, summary=summary), f, indent=1)
+    print_summary("QDrive rounds (circuit simulated locally)" + ("" if asm["complete"] else " - PARTIAL, unfinished components in |0>"), summary)
+    print(f"wrote {os.path.join(base, name)}" + (" and state.json, requested_vs_achieved.csv" if asm["complete"] else "") + f"; provenance: {prov['from_moth'] and 'Moth' or 'not pure Moth'}")
+    return prov
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("engine", choices=["graph-v1", "qdrive"])
-    ap.add_argument("--calib", default="runs/calibration_5x4", help="directory with targets.json and the payload files")
-    ap.add_argument("--out", default="runs/first_run")
+    ap.add_argument("--calib", default=DEFAULT_CALIB_DIR, help="directory with targets.json and the payload files")
+    ap.add_argument("--out", default=DEFAULT_RUN_DIR)
     ap.add_argument("--approve-credits", type=int, default=None, help="must equal the estimated credits; omit to preview only")
     a = ap.parse_args(argv)
     (solve_graph_v1 if a.engine == "graph-v1" else solve_qdrive)(a.calib, a.out, a.approve_credits)

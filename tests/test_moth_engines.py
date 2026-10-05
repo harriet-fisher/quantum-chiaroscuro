@@ -64,7 +64,8 @@ class QDrive(unittest.TestCase):
         big = dict(targets=[{"qubits": [0], "expvals": {"Z": 0}}] * 201, n_qubits=19)
         self.assertTrue(any("engine_timeout" in p for p in MothClient().prepare("qdrive-api-v1", big).problems()))
         jobs = me.qdrive_facet_payloads(SPEC, per_job=24)
-        self.assertEqual(len(me.qdrive_facet_targets(SPEC)), 64)          # 12 quantum facets: the 3 constant plateaus are classical now
+        self.assertEqual(len(me.qdrive_facet_targets(SPEC)), 3 * SPEC.F + 2 * len(SPEC.edges))          # X, Y, Z of each of the 12 quantum facets (the 6 plateaus are classical) and XX, YY of each coupling
+        self.assertEqual(SPEC.F, 12)
         for j in jobs:
             self.assertLessEqual(len(j["params"]["targets"]), 26)
             self.assertEqual(MothClient().prepare("qdrive-api-v1", j["params"]).problems(), [])

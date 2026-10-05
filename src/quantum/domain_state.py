@@ -35,23 +35,38 @@ def seam_facets(ds):
     return sorted({i for p in pairs for i in p}), pairs
 
 
-def leaf_domains(ds, panels=None, prefer="visible"):
-    """One crater-gauge-signed domain per panel. prefer='visible': the most visible one, the one nearest the panel's middle on a tie. prefer='seam': the one
-    with the most facets on a crease (then the most visible), so the game is played on the seam graph. A lamp locked to every domain is decohered by the
-    records the others hold of it (monogamy), so the lock goes to these only."""
+MAX_LEAVES = 3          # the parity game is the four-party Mermin game: the lamp and three leaf domains
+
+
+def leaf_domains(ds, prefer="visible", candidates=None, max_leaves=MAX_LEAVES):
+    """The leaf domains: ONE crater-gauge-signed domain per PLANE (a bay-window wing is one plane even when it is two stacked window panes), at most
+    `max_leaves` of them. prefer='visible': the most visible domain of the plane, the one nearest the plane's middle on a tie. prefer='seam': the one with
+    the most facets on a crease (then the most visible), so the game is played on the seam graph. A lamp locked to every domain is decohered by the
+    records the others hold of it (monogamy), so the lock goes to these only. Of more than `max_leaves` planes the leaves are spread across the wall
+    (the left-most, the middle and the right-most by x). `candidates` restricts the domains considered (default: all). Returned in plane order.
+
+    Per plane and not per panel: the six panes of the built-in bay window give the three leaves left, centre and right, as the three-panel scene
+    always did; one leaf per pane would lock the lamp to six qubits and the Mermin violation would be gone."""
     seam, _ = seam_facets(ds)
     seam = set(seam)
+    planes = ds.domain_plane if ds.domain_plane is not None else ds.domain_panel
+    allowed = set(range(ds.n_domains) if candidates is None else (int(c) for c in candidates))
     out = []
-    for k in (range(max(ds.domain_panel) + 1) if panels is None else panels):
-        cand = [d for d in range(ds.n_domains) if ds.domain_panel[d] == k and ds.lock_sign[d] != 0]
+    for plane in sorted(set(planes)):
+        mine = [d for d in range(ds.n_domains) if planes[d] == plane]
+        cand = [d for d in mine if d in allowed and ds.lock_sign[d] != 0]
         if not cand:
             continue
-        pc = np.mean([ds.domain_centroid[d] for d in range(ds.n_domains) if ds.domain_panel[d] == k], axis=0)
+        pc = np.mean([ds.domain_centroid[d] for d in mine], axis=0)
         near = lambda d: -float(np.hypot(*(np.array(ds.domain_centroid[d]) - pc)))
         if prefer == "seam":
             out.append(max(cand, key=lambda d: (sum(1 for i in ds.facets_of(d) if i in seam), round(ds.visibility(d), 6), near(d))))
         else:
             out.append(max(cand, key=lambda d: (round(ds.visibility(d), 6), near(d))))
+    if len(out) > max_leaves:
+        by_x = sorted(out, key=lambda d: ds.domain_centroid[d][0])
+        keep = {by_x[i] for i in np.unique(np.round(np.linspace(0, len(by_x) - 1, max_leaves)).astype(int))}
+        out = [d for d in out if d in keep]
     return out
 
 
@@ -63,7 +78,7 @@ def spec_from_domains(ds, scene, entangle=0.8, pol_coupling=0.8, lock=0.0, tau_m
     entangle      theta of the ZZ couplings between touching facets (+ coplanar, - across a crease); 0 leaves the facets a product state
     pol_coupling  theta of the Ising layer on the polarity qubits (sign: + coplanar, ds.params['crease_sign'] across a crease)
     lock          theta of the lamp-L1 -- polarity coupling, times each domain's crater-gauge sign (0: the lamp is a plain coin)
-    lock_domains  "leaves" (one domain per panel, see leaf_domains), "all", or a list of domain indices
+    lock_domains  "leaves" (one domain per plane, at most three: see leaf_domains), "all", or a list of domain indices
     tau_mix       0..1: tau_i -> (1 - mix) tau_i + mix pi/2, the facets move toward the equator (the graph-state regime; V_d falls toward 0)
     pol_field     transverse field angle on every polarity qubit after the Ising layer (0: none, which keeps the circuit IQP-shaped)
     pol_layers    replaces the layer built from the arguments above (used by the ground-state preparation)
@@ -118,16 +133,17 @@ def spec_from_domains(ds, scene, entangle=0.8, pol_coupling=0.8, lock=0.0, tau_m
     obs = observations or (DOMAIN_OBSERVATIONS if lock else DEFAULT_OBSERVATIONS)
     classical = [f.panel for f in fs.facets[nq:]]
     panel_of_facet = np.array([f.panel for f in fs.facets[:nq]], int)
-    lock_vec = 0.0
+    lock_vec, leaves = 0.0, None
     if lock:
         chosen = leaf_domains(ds, prefer=leaf_prefer) if lock_domains == "leaves" else (range(ds.n_domains) if lock_domains == "all" else list(lock_domains))
         lock_vec = np.zeros(ds.n_domains)
         for d in chosen:
             lock_vec[d] = float(lock) * ds.lock_sign[d]
+        leaves = leaf_domains(ds, prefer=leaf_prefer, candidates=chosen)
     spec = ReliefSpec(tau, phi, ds.domain_of, [p.angle_deg for p in scene.panels], edges, rig or LightRig(), list(obs),
                       [f"d{ds.domain_of[i]}.{i}" for i in range(nq)], n_classical=len(classical), classical_panel=classical,
                       n_groups=ds.n_domains, facet_panel=panel_of_facet, pol_graph=graph, pol_layers=pol_layers,
-                      lamp_lock=lock_vec, pol_kinds=kinds, seam_pairs=seam_pairs, seam_facets=seam)
+                      lamp_lock=lock_vec, pol_kinds=kinds, seam_pairs=seam_pairs, seam_facets=seam, leaves=leaves)
     if floquet and floquet[0]:
         spec.floquet = dict(steps=int(floquet[0]), theta_zz=float(floquet[1]), theta_x=float(floquet[2]))
     order_ = []

@@ -2,13 +2,13 @@
 
 **Quantum chiaroscuro, projected onto a real surface.**
 
-Quantum Chiaroscuro projects *shading*, not images, onto a real object (the reference scene is a bay window with glass panes). A physical wall has one shape; light can make it look swollen, hollowed, creased or flat. The project makes that literal with quantum mechanics:
+Quantum Chiaroscuro projects *shading*, not images, onto a real object. The reference scene, and the default of every tool here, is a **bay window of six panels**: three wall sections (left wing, centre, right wing), each holding **two windows stacked on top of each other with one shared rail between them**, and a pane of glass in every window ([The default scene](#the-default-scene)). A physical wall has one shape; light can make it look swollen, hollowed, creased or flat. The project makes that literal with quantum mechanics:
 
 - Every patch of the wall is a **qubit whose state is its surface normal**. The light is the measurement axis, and Lambert's cosine law is the Born rule, so a frame is a measurement, not a render.
-- Each panel's **depth is in superposition** (a raised and a sunk version). How decided the depth looks in any one frame depends on where the observation lands on that panel's Bloch sphere, and that is drawn *inside the circuit*, never toggled: a pole gives a definite bump or hollow, the equator gives a flat, undecided panel. The azimuth χ round the equator chooses *which* raised-versus-sunk coherence the frame samples (`P(depth) = (1 + V sin γ cos χ)/2`, and a different bevel signature in the facets): χ = 90° reads the Y component, which is a fair coin on the depth but still shapes the bevel. The equator is exactly flat at χ = 0° and 180° only; at χ = 90° a small outcome-dependent residual bevel (about ±0.03 on the bay window) remains.
+- Each panel's **depth is in superposition** (a raised and a sunk version). How decided the depth looks in any one frame depends on where the observation lands on that panel's Bloch sphere, and that is drawn *inside the circuit*, never toggled: a pole gives a definite bump or hollow, the equator gives a flat, undecided panel. The azimuth χ round the equator chooses *which* raised-versus-sunk coherence the frame samples (`P(depth) = (1 + V sin γ cos χ)/2`, and a different bevel signature in the facets): χ = 90° reads the Y component, which is a fair coin on the depth but still shapes the bevel. The equator is exactly flat at χ = 0° and 180° only; at χ = 90° a small outcome-dependent residual bevel (about ±0.06 on the six-pane default, ±0.03 on the original three-panel window) remains.
 - Geometry only supplies the **barriers and limits**: the glass panes are never lit (they are exactly black, checked on every frame), shared edges set where the shading may change, and the plane windows set how bright each surface may get.
 
-There are two relief engines. **Superposed Relief (v2, `--engine panel`, the default)** has one polarity qubit per panel: 12 facet qubits + 3 polarity qubits = 15 simulated, exactly, on your laptop. **Domain Relief (v3/v4, `--engine domain`)** cuts the wall into local bevel facets, gives every facet its *own* depth qubit and couples those qubits along the geometry's edge graph, weakly along a boundary and strongly across the seams between panels: 92 simulated qubits in the default configuration, as a matrix-product state. Every crease between panels is entangled (largest negativity 0.26), a lamp-plus-three-depth-qubits **Mermin game** is won in 92% of rounds against a classical maximum of 75% (`G` key, `--game`), and a kicked-Ising evolution (`E` key, `--evolve-steps`) makes the entanglement grow with every step ([Domain Relief](#domain-relief-v3)).
+There are two relief engines. **Superposed Relief (v2, `--engine panel`, the default)** has one polarity qubit per panel: on the six-panel bay window 12 facet qubits (two slope facets per pane) + 6 polarity qubits = 18 simulated, exactly, on your laptop, 22 in the full circuit. **Domain Relief (v3/v4, `--engine domain`)** cuts the wall into local bevel facets, gives every facet its *own* depth qubit and couples those qubits along the geometry's edge graph, weakly along a boundary and strongly across the seams between wings: 128 simulated qubits in the default configuration (64 facets + 64 depth qubits), as a matrix-product state. Every crease between wings is entangled (4 of 4 crease edges, largest negativity 0.28), a lamp-plus-three-depth-qubits **Mermin game** (one leaf in each wing) is predicted to be won in 93% of rounds, 92.5% when sampled, against a classical maximum of 75% (`G` key, `--game`), and a kicked-Ising evolution (`E` key, `--evolve-steps`) makes the entanglement grow with every step ([Domain Relief](#domain-relief-v3)).
 
 Honest status: at these sizes everything is classically simulable, and a benchmark (`src.quantum.classical_baselines`) measures how far each design can grow before the classical methods stop being cheap. The claim is *structure and scaling*, not quantum advantage, and nothing in the quantum design has yet been run on a Moth engine (see [Status](#status-and-limits)).
 
@@ -16,17 +16,48 @@ Honest status: at these sizes everything is classically simulable, and a benchma
 
 ## Contents
 
-1. [Quick start (the studio)](#quick-start)
-2. [Installation](#installation)
-3. [The ways to run it](#the-ways-to-run-it)
-4. [How it works](#how-it-works)
-5. [Codebase map](#codebase-map)
-6. [The performance UI](#the-performance-ui)
-7. [Moth engines and spending credits](#moth-engines-and-spending-credits)
-8. [Tests](#tests)
-9. [Safety rules the code enforces](#safety-rules-the-code-enforces)
-10. [Status and limits](#status-and-limits)
-11. [Further reading](#further-reading)
+1. [The default scene](#the-default-scene)
+2. [Quick start (the studio)](#quick-start)
+3. [Installation](#installation)
+4. [The ways to run it](#the-ways-to-run-it)
+5. [How it works](#how-it-works)
+6. [Codebase map](#codebase-map)
+7. [The performance UI](#the-performance-ui)
+8. [Moth engines and spending credits](#moth-engines-and-spending-credits)
+9. [Tests](#tests)
+10. [Safety rules the code enforces](#safety-rules-the-code-enforces)
+11. [Status and limits](#status-and-limits)
+12. [Further reading](#further-reading)
+
+---
+
+## The default scene
+
+Everything that needs a window and has not been given a drawing (`python -m src.show`, the studio's *built-in demo scene*, every `--labels`-less tool, the tests) uses `bay_window_labels()` in `src/capture/labels.py`: **six panels in three planes**.
+
+```
+   left wing (+35°)          centre (0°)              right wing (-35°)
+ ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐
+ │ 0  left_top        │  │ 2  centre_top      │  │ 4  right_top       │
+ ├──────── rail ──────┤  ├──────── rail ──────┤  ├──────── rail ──────┤
+ │ 1  left_bottom     │  │ 3  centre_bottom   │  │ 5  right_bottom    │
+ └────────────────────┘  └────────────────────┘  └────────────────────┘
+        plane 0                  plane 1                  plane 2
+```
+
+| | Default scene |
+|---|---|
+| Panels | 6, ids 0-5 in the order above: `left_top`, `left_bottom`, `centre_top`, `centre_bottom`, `right_top`, `right_bottom` |
+| Planes | 3 (`plane_id` 0, 1, 2; yaw +35°, 0°, -35°). The two windows of one wing are **coplanar**: the rail between them is a *coplanar* edge, not a crease. The only creases are the two vertical edges between the wings |
+| Glass | 6 panes, one in every window; exactly black on every frame |
+| Classical patch grid (studio steps 2, 4, 5) | 4 x 4: 12 patches + 2 lamps + 6 polarity qubits = **20 qubits**, exactly the graph-v1 cap |
+| Per-panel relief (`--engine panel`) | 2 slope facets per pane (the most that keeps the circuit exact, see `--n-dirs`): **12 facet qubits + 6 polarity = 18 simulated, 22 in the circuit**, plus 6 classical plateau facets |
+| Domain relief (`--engine domain`) | 64 facets + 64 depth qubits = **128 simulated** (132 in the circuit), 74 domain edges of which 4 are creases |
+| Parity game | the lamp and three leaves, **one leaf per wing** (left, centre, right), not one per pane |
+
+The first build modelled each wing as ONE undivided panel (three panels, `bay_window_labels(stacked=False)`). That layout survives only so that `src.run_mock` and `tests/check_port_matches_mock.py` can still reproduce the original classical look test bit for bit (`mock/standing_light_mock.py`); `python -m src.run_mock --stacked` renders the six-pane default. Older numbers in the `docs/` handoffs that say "three panels", "15 qubits" or "19 qubits" describe that first layout.
+
+Your own window is drawn in the pen tool with the same convention: give the top and the bottom window of one wing the **same plane id**, so that they share an angle and the rail between them is not a crease.
 
 ---
 
@@ -35,7 +66,7 @@ Honest status: at these sizes everything is classically simulable, and a benchma
 Run everything from the **studio**. It is one local page that walks the whole pipeline and starts each tool for you.
 
 ```bash
-cd Moth_Application
+cd chiaroscuro                     # the project folder (the one holding src/, tests/ and this README)
 source .venv/bin/activate          # Python 3.10+; see Installation if you have no .venv
 python -m src.studio               # opens the studio in your browser
 ```
@@ -60,7 +91,7 @@ On the page, press **Next step** each time (it always offers the first step that
 
 | Step | Button does | Needs |
 |---|---|---|
-| **1 Draw the shapes** | opens the pen tool: draw the panels and glass on the projector's own screen, press **Save** in it. Or press **Use the built-in demo scene** to try everything with no projector and no drawing | nothing |
+| **1 Draw the shapes** | opens the pen tool: draw the panels and glass on the projector's own screen, press **Save** in it. Or press **Use the built-in demo scene** (the six-pane bay window above) to try everything with no projector and no drawing | nothing |
 | **2 Calibrate targets** | estimates the classical correlation targets for your drawing and writes the Moth payloads. Sends nothing, takes up to a minute | step 1 |
 | **3 Rehearse the show** | **opens the show on Superposed Relief**, the quantum circuit simulated exactly on your laptop. No Moth call, no credits | step 2 |
 | **4 Solve on Moth** | shows the exact payload, its hash and cost. Sends only if you started the studio with `--allow-spend` *and* press the send button | step 2 |
@@ -79,8 +110,9 @@ python -m src.studio --engine domain           # step 3 opens the domain relief 
 The studio writes to its project folder: `labels.json` (the drawing), `calib/` (targets and payloads), `solve/` (Moth results), `studio.json` (which drawing the targets came from, so a changed drawing marks later steps stale).
 
 **What to know about the current studio** (accurate as of the Superposed Relief build):
-- Only step 3 opens the new relief engine. Steps 2, 4 and 5 are the earlier, classical QDrive flow, and step 5 stays blocked until QDrive returns a circuit (it never has yet).
+- Only step 3 opens the new relief engine. Steps 2, 4 and 5 are the earlier, classical QDrive flow, and step 5 stays blocked until there is a QDrive circuit for the project (no whole-scene job has finished yet; `python -m src.quantum.qdrive_rounds` builds one in small chained jobs and the studio recognises its finished result).
 - Step 3 is gated behind step 2 even though the relief engine does not use those targets: it builds its facets straight from your drawing. So to reach relief you must run step 2 once, even with the demo scene.
+- Step 2 for the demo scene writes the same calibration as `runs/calibration_bay_4x4/` (12 patches, 20 qubits), which is what the pipeline's CLIs (`solver`, `qdrive_rounds`, `show`...) use as their default `--calib`.
 - Nothing from Moth is involved in what step 3 shows. Its header chip says `local reference circuit`.
 
 Want the figures and numbers for a talk?
@@ -102,7 +134,9 @@ pip install -r requirements.txt
 
 Dependencies: `numpy`, `scipy`, `Pillow`, `matplotlib`, `requests`, and `qiskit` + `qiskit-aer` + `qiskit-qasm3-import` (for the circuit cross-checks and for loading QDrive circuits). There is no OpenCV dependency: calibration is plain numpy, and all windows are web pages served by the standard library.
 
-**Moth API key.** Only needed to submit jobs. Put `MOTH_API_KEY=...` in the environment or in `<project>/.env` (git-ignored). The code reads that one variable lazily, never prints it, and previews never need it. If it warns that `.env` is readable by others, run `chmod 600 .env`.
+**Moth API key.** Only needed to submit jobs. Put `MOTH_API_KEY=...` in the environment or in the `.env` file in the project folder, next to this README (`chiaroscuro/.env`, git-ignored; it is the same file whichever `--project` the studio uses). The code reads that one variable lazily, never prints it, and previews never need it. If it warns that `.env` is readable by others, run `chmod 600 .env`.
+
+**If `source .venv/bin/activate` seems to do nothing** (it silently keeps using the system Python and `pip`/`pytest` fail with "bad interpreter"): the folder was moved after the venv was made, and the venv still points at the old path. Recreate it (`rm -rf .venv && python3 -m venv .venv && pip install -r requirements.txt`) or run `.venv/bin/python -m ...` directly.
 
 ---
 
@@ -115,15 +149,15 @@ The studio ([Quick start](#quick-start)) runs these same modules for you. You ca
 Use this to skip the studio. The studio's step 3 and step 5 each have a "Show options" section that sets these same flags from the page (greyed out when the source or engine you picked ignores them); blank leaves the show's own default.
 
 ```bash
-python -m src.show                                          # built-in bay window, Superposed Relief
+python -m src.show                                          # built-in six-pane bay window, Superposed Relief
 python -m src.show --labels runs/scene/labels.json          # shapes you drew with the pen tool
-python -m src.show --kappa 1.0 --n-dirs 4 --entangle 0.8    # relief knobs (below)
+python -m src.show --kappa 1.0 --n-dirs 2 --entangle 0.8    # relief knobs (below; --n-dirs 2 is what six panes get by default)
 python -m src.show --engine domain                          # Domain Relief: dozens of qubits, polarity per depth domain (flags below)
 python -m src.show --engine domain --seg-len 100 --lock 0   # finer facets, lamp left as a plain coin
 python -m src.show --engine domain --game                   # some looks are rounds of the Mermin parity game (G toggles)
 python -m src.show --engine domain --evolve-steps 4         # entanglement grown by four kicked-Ising steps (E advances one more)
 python -m src.show --engine domain --seam-mix 1             # the seams in the graph-state regime (what it costs the game: see below)
-python -m src.show --source relief --circuit FACETS.qasm    # a Moth QDrive circuit for the 15 facet qubits
+python -m src.show --source relief --circuit FACETS.qasm    # a Moth QDrive circuit for the 12 facet qubits (one per band facet; polarity is lifted locally)
 python -m src.show --source oracle                          # CLASSICAL rehearsal (also: mock, circuit, complementary)
 python -m src.show --lan                                    # also serve /output and /audience to other machines
 ```
@@ -132,13 +166,13 @@ python -m src.show --lan                                    # also serve /output
 |---|---|
 | `--source` | `relief` (default) or one of the classical sources |
 | `--kappa` | tilt budget per panel, `sum(tau²) = kappa²`. Interference visibility is about `exp(-kappa²/2)`: higher is a stronger bevel and weaker interference |
-| `--n-dirs` | slope-orientation facets per panel (4 gives 4 band facets, a qubit each, plus a classical plateau facet: 12 qubits for the bay window) |
+| `--n-dirs` | slope-orientation facets per panel, a qubit each, plus one classical plateau facet. Default: the most that keeps facets + panels within 20 exact qubits, at most 4. That is **2 for the six panes of the default bay window (12 facet + 6 polarity = 18 qubits)**, 4 for three panels (15), 1 for eight. Asking for more is refused above 22 qubits, with the number to use |
 | `--entangle` | strength of the diagonal couplings between facets (0 = product relief) |
 | `--contrast` | projection tone: stretch of the lit field about mid-grey (an exposure, not a scene property) |
 | `--lamp-mode` | `z` (default: a light world is drawn per look) or `x` (the lamp register is read in X, so the light directions interfere; the `x` experiment key, set from the start) |
-| `--calib`, `--run` | directories with calibration targets and engine results (for the demo slides and re-solve) |
+| `--calib`, `--run` | directories with calibration targets and engine results (for the demo slides and re-solve). Defaults: `runs/calibration_bay_4x4` and `runs/bay_run`, the default scene's. The re-solve dialog refuses a calibration made for a different scene |
 | `--engine` | `panel` (default) or `domain`; the flags below apply to `domain` only |
-| `--seg-len` | facet length along a polygon edge in px (150: 46 facets; 100: 78; smaller: more qubits) |
+| `--seg-len` | facet length along a polygon edge in px (150: 64 facets and 128 qubits on the default bay window; 200: 60 facets; 100: 112; 60: 176; smaller: more qubits) |
 | `--group-size` | facets that share one polarity qubit (1: one facet per depth qubit, the most coherent). Tilt budget per domain: V = cos(tau)^group-size, whatever the size of the wall |
 | `--tau` | tilt of each facet in radians (0.5) |
 | `--pol-coupling` | Ising angle between neighbouring domains' polarity qubits along a boundary (0.3, weak; sign + coplanar) |
@@ -148,9 +182,9 @@ python -m src.show --lan                                    # also serve /output
 | `--leaf-tau`, `--leaf-prefer` | tilt of the facets of the game's leaf domains (0.3: more visibility, more rounds won) and which domains are the leaves (`visible`, or `seam`) |
 | `--game`, `--game-fraction` | start with the parity game on; the fraction of looks that are rounds (0.5) |
 | `--evolve-steps`, `--evolve-zz`, `--evolve-x` | kicked-Ising steps on the facet graph before the polarity attaches (0), and their angles (0.7, 0.5) |
-| `--lock` | coupling of lamp L1 to one polarity qubit per panel with the crater-gauge signs (pi/2: maximal; 0: the lamp is a plain coin) |
+| `--lock` | coupling of lamp L1 to one leaf polarity qubit per plane (the left, centre and right wing of the bay window: three in all) with the crater-gauge signs (pi/2: maximal; 0: the lamp is a plain coin) |
 | `--tau-mix`, `--pol-field` | 0..1 moves the facets toward the equator (graph-state regime, V falls); transverse field on the polarity qubits |
-| `--backend` | `auto` (exact up to 20 qubits, else matrix-product state), `exact`, `mps` |
+| `--backend` | `auto` (exact up to 20 qubits, else matrix-product state; the default 128-qubit domain relief is always a matrix-product state), `exact`, `mps` |
 | `--projector-size WxH` | initial projector size; the output window reports its real size once open |
 | `--allow-spend` | lets the re-solve dialog submit to Moth (it still asks, showing hash and cost) |
 | `--port`, `--no-browser` | server port (default: any free) and do not open a browser |
@@ -323,9 +357,9 @@ python -m src.quantum.relief_report --domain       # + the domain relief: frames
 python -m src.quantum.classical_baselines          # where classical simulation stops being cheap (a few minutes; per-point time limit)
 python -m src.quantum.seam_benchmark               # seams, the parity game and Floquet time against the classical cost (several minutes)
 python -m src.quantum.domain_moth plan             # Moth payloads for the domain relief (build sends nothing)
-python -m src.run_mock                             # the original classical look test (reproduces the 5 mock figures)
+python -m src.run_mock                             # the original classical look test on the first build's three-panel window (reproduces the 5 mock figures; --stacked: the six-pane default)
 python -m src.baseline.compare                     # correlated draws vs independent noise, same compose path
-python -m src.quantum.complementary --sweep        # the older polarity-complementary experiment (classical-family stand-in)
+python -m src.quantum.complementary --sweep        # the older polarity-complementary experiment (classical-family stand-in; on six panes no single pane-lamp pair violates CHSH, only the many-party Mermin test does)
 python -m src.quantum.make_frames --source oracle  # a stream of frames with a provenance manifest
 ```
 
@@ -341,57 +375,59 @@ Done from the operator panel (Calibrate and Photo test tabs): outline pattern, f
 
 **Qubits** (little-endian: qubit *q* is bit *q* of the state index; spin +1 is bit 0):
 
-| Register | Size (bay window) | Role |
+| Register | Size (default bay window) | Role |
 |---|---|---|
-| facets | 12 (+3 classical) | one per band facet; state = the facet's surface normal `b = (sin τ cos φ, sin τ sin φ, cos τ)` in the panel's own frame. Each panel's flat plateau has τ≈0, so it would be a constant \|0⟩ that nothing couples to: it is a *classical* facet, lit by its deterministic Lambert value |
-| polarity | 3 | one per panel, in the state "plus"; controls whether that panel's relief is raised (`h`) or sunk (`-h`) |
+| facets | 12 (+6 classical) | one per band facet; state = the facet's surface normal `b = (sin τ cos φ, sin τ sin φ, cos τ)` in the panel's own frame. Each panel's flat plateau has τ≈0, so it would be a constant \|0⟩ that nothing couples to: it is a *classical* facet, lit by its deterministic Lambert value |
+| polarity | 6 | one per panel (pane), in the state "plus"; controls whether that panel's relief is raised (`h`) or sunk (`-h`) |
 | lamp | 2 | four light directions; controls the axis each facet is measured along |
 | observe | 2 | four observation axes (γ, χ) on each polarity qubit's Bloch sphere: by default the ring (0°, 0°), (60°, 0°), (60°, 90°), (90°, 180°); `--observations line` restores γ = 0°, 30°, 60°, 90° at χ = 0°, or give four `γ,χ` pairs in degrees |
 
-Facets + polarity = **15 simulated qubits**; the full circuit has **19**. (An earlier version kept the three plateau qubits and counted 18/22; they were constants. An earlier slope computation also halved the slope on the shared edge between two panels, so no tilted facet of one panel touched a tilted facet of its neighbour and the three panels were exactly unentangled with each other; both are fixed, tests pin them.)
+Facets + polarity = **18 simulated qubits** (12 facets + 6 polarity); the full circuit has **22** (+ 2 lamp + 2 observe). Two band facets per pane is `--n-dirs`' default for six panes: it is the most that keeps the exact statevector within 20 qubits, and the three-panel window the first build used got four per panel (15 simulated, 19 in the circuit). Historical note, so that the numbers are not confused: the first build kept the constant plateau qubits too and counted 18 and 22 *for three panels*; the plateaus are now classical facets, and the six-pane default happens to total 18 and 22 again with a different make-up. An earlier slope computation also halved the slope on the shared edge between two panels, so no tilted facet of one panel touched a tilted facet of its neighbour and the panels were exactly unentangled with each other; fixed, tests pin it.
+
+With two facets a pane, the two slopes of a pane are *opposite diagonals* (about ±55° from the horizontal), not four axis-aligned sides: they still carry the raised-versus-sunk coherence and still react to a light from the left or right, but the picture is coarser than with four. The facets of one pane share a plane with the pane above or below it, so the rail between two stacked windows is a coplanar edge of the facet graph (a weak `+` coupling), and only the two vertical wing edges are creases (`-`).
 
 **The state.** `|Ψ> = 2^(-P/2) Σ_s |s>_B ⊗ P^s |ψ_f>`, where `|ψ_f>` is the raised relief and `P = Z` on every facet of a panel (Z maps Bloch `(x,y,z)→(-x,-y,z)`: every bump becomes a hollow). It is built as: H on each polarity qubit, `Ry(τ)Rz(φ)` on each facet, optional diagonal couplings, then `CZ(B_p, f)` for every facet `f` of panel `p`.
 
 **A frame is one run of the circuit.** The lamp register rotates each facet so measuring Z measures σ·l (`P(lit) = (1 + b·l)/2`: Lambert is Born). The observation register rotates each polarity qubit to read along the depth-sphere axis. The whole register is measured; K photons are K shots (K is the *exposure*: hard grain with few, soft with many). The polarity outcome is that frame's depth decision. The lamp and observe registers are uniform draws (pseudo-random here, physical randomness on a QPU); the quantum content is the facet register, the polarity superposition and the controlled operations between them.
 
-**What the geometry decides.** Only the tilts. A height field (a chamfer of width `band_frac` of each panel, distance measured to the nearest border including the glass edge) gives every pixel a slope. Pixels that slope the same way form one facet, wherever they are, because under a distant light they are lit identically. Tilts are rescaled per panel so `Σ tau² = kappa²`.
+**What the geometry decides.** Only the tilts. A height field (a chamfer of width `band_frac` of each panel, distance measured to the nearest border including the glass edge) gives every pixel a slope. Pixels that slope the same way form one facet, wherever they are, because under a distant light they are lit identically. Tilts are rescaled per panel so `Σ tau² = kappa²`. A panel is one *window* (pane), not one wing: the budget, the polarity qubit and the visibility `V` are per pane, so each of the six panes has the same `V` = ∏cos τ ≈ 0.58 at `kappa` 1.
 
 ### Domain Relief (v3)
 
-The per-panel engine is three independent-ish 5-qubit systems. Domain Relief changes what a qubit stands for so that the entanglement follows the geometry:
+The per-panel engine is six independent-ish 3-facet systems (two band facets and a classical plateau per pane, each with its own polarity qubit; they are coupled only through the few facet couplings across shared edges). Domain Relief changes what a qubit stands for so that the entanglement follows the geometry:
 
 | Piece | What it is |
 |---|---|
 | **facet** | a piece of the bevel strip along one polygon edge (a panel's outer edge or a glass pane's edge), about `--seg-len` px long, one slope = one Bloch vector, as before |
 | **domain** | `--group-size` consecutive facets around one loop share ONE polarity qubit (one depth decision per small stretch of bevel). The tilt budget is per domain, so V = cos(τ)^m does not shrink as the wall gets more facets |
 | **graph** | domains are nodes; domains whose facets touch are joined, within a plane (coplanar) or across a shared edge between panels (crease). The polarity qubits are coupled along it: `exp(-iθ ZZ/2)` on \|+⟩\|+⟩, a graph-state-like Ising layer, sign `+` coplanar and `--crease-sign` across a crease |
-| **lamp lock** | lamp L1 coupled to one polarity qubit per panel with the crater-gauge signs (a raised bevel facing right lit from the right looks like a sunk one facing left lit from the left): the light side and the depth are entangled |
+| **lamp lock** | lamp L1 coupled to ONE leaf polarity qubit per *plane* (one in each wing: three, whatever the number of panes) with the crater-gauge signs (a raised bevel facing right lit from the right looks like a sunk one facing left lit from the left): the light side and the depth are entangled |
 | **backend** | up to 20 qubits an exact statevector; beyond, Aer's matrix-product-state simulator evolves the state and `src/quantum/mps.py` samples it *exactly* (one polarity outcome per frame, then K photons given it: no post-selection) |
 
-**Measured at the show's defaults** (`python -m src.quantum.relief_report --domain`: 46 facets + 46 domain qubits = 92 simulated, 96 in the circuit, 52 domain edges of which 6 are creases, bond dimension capped at 32 with a norm deficit of 1.3e-3; weak coupling 0.3 along a boundary, strong 1.0 across a crease, leaf tilt 0.3):
-- 36 of 52 domain edges carry entanglement between their two domains, and **all 6 creases do** (largest negativity 0.26; at the first domain-relief defaults it was one crease of five at 0.01). The dephased control has none.
-- Lamp + three leaf domains: **Mermin value 6.57 against a local bound of 4** (dephased depth: 1.0). No *pair* violates CHSH (best lamp–depth 1.75, best depth–depth 1.94): monogamy. Lock the lamp to *every* domain and even the Mermin violation disappears (`tests.test_domains`).
-- The signed domain graph is *balanced* on its own, so there is no frustration from creases alone; whether the lamp lock frustrates it depends on which domains are locked (3 frustrated cycles at the earlier 69-qubit defaults, 0 at these). The Necker-style competition is a property of the lock you choose, not of the geometry.
-- Frame-level interference signature: the K-photon frame statistics of the coherent state and of control B are identical at the decided observation and differ at the equatorial ones by up to 0.12 against a photon noise of 0.06. Single frames do not show it; an ensemble of a few hundred does.
-- Speed: Aer builds ONE state (about 1-2 s); the lock, the light and the observation are single-qubit gates on its tensors. A look costs about 0.06 s.
+**Measured at the show's defaults** on the six-pane bay window (`python -m src.quantum.relief_report --domain`: 64 facets + 64 domain qubits = 128 simulated, 132 in the circuit, 74 domain edges of which 4 are creases, bond dimension capped at 32 with a norm deficit of 1.8e-2; weak coupling 0.3 along a boundary, strong 1.0 across a crease, leaf tilt 0.3; the figures are in `runs/relief/`, the three-panel ones in `runs/relief_three_panel/`):
+- 55 of 74 domain edges carry entanglement between their two domains, and **all 4 creases do** (largest negativity 0.28; at the first domain-relief defaults none did on this window). The dephased control has none.
+- Lamp + three leaf domains (one per wing, domains 8, 29 and 50): **Mermin value 6.94 against a local bound of 4** (dephased depth: 1.0). No lamp-depth *pair* violates CHSH (best 1.85) and no depth-depth pair is certified to (best 2.008, which is inside the matrix-product truncation error of 1.8e-2): monogamy. Lock the lamp to *every* domain with a crater-gauge sign (37 of them) and the Mermin violation disappears (0.75; `tests.test_domains`).
+- The signed domain graph is *balanced* on its own, so there is no frustration from creases alone, and the three-leaf lock does not frustrate it (0 frustrated cycles with or without the lamp). The Necker-style competition is a property of the lock you choose, not of the geometry.
+- Frame-level interference signature: measured on the three-panel window (not repeated on the six-pane one), the K-photon frame statistics of the coherent state and of control B were identical at the decided observation and differed at the equatorial ones by up to 0.12 against a photon noise of 0.06. Single frames do not show it; an ensemble of a few hundred does.
+- Speed: Aer builds ONE state (about 2-3 s, about 5 s for the whole domain session); the lock, the light and the observation are single-qubit gates on its tensors. A look costs about 0.07 s (0.04 s for the per-panel engine).
 
 ### The parity game: the frames certify the state
 
-Every look can be one round of a four-party Mermin (GHZ-style) game between the lamp and the depth qubits of three panels (`src/quantum/parity_game.py`, key `G`, `--game`). A round draws an input S, a uniformly random *even-size* subset of the four parties. A party in S reads its qubit along its setting A', the others along A (the axes are the numerically optimised Mermin frames of the state). Everyone gets a ±1 outcome, and the round is won when `(product of the four outcomes) × (−1)^(|S|/2) = +1`.
-- The eight inputs are the eight terms of the Mermin operator, so a round is won with probability `(1 + M/8)/2` for a state with Mermin value M. **No classical strategy wins more than 75%** (`classical_bound` proves it by brute force over all 4⁴ strategies); a perfect GHZ state wins every round. At the defaults M = 6.57, so the prediction is 91.1%, and 400 rounds gave **367 won (91.8%)**, 7.7 σ above the classical bound. Dephased depth cannot exceed 75% (tested).
+Every look can be one round of a four-party Mermin (GHZ-style) game between the lamp and the depth qubits of three *leaf* domains, one in each wing of the bay window (the left, centre and right: not one per pane, which would lock the lamp to six qubits and lose the violation) (`src/quantum/parity_game.py`, key `G`, `--game`). If a wall has more than three planes the leaves are the left-most, the middle and the right-most. A round draws an input S, a uniformly random *even-size* subset of the four parties. A party in S reads its qubit along its setting A', the others along A (the axes are the numerically optimised Mermin frames of the state). Everyone gets a ±1 outcome, and the round is won when `(product of the four outcomes) × (−1)^(|S|/2) = +1`.
+- The eight inputs are the eight terms of the Mermin operator, so a round is won with probability `(1 + M/8)/2` for a state with Mermin value M. **No classical strategy wins more than 75%** (`classical_bound` proves it by brute force over all 4⁴ strategies); a perfect GHZ state wins every round. At the defaults M = 6.94, so the prediction is 93.4%, and 400 rounds gave **370 won (92.5%)**, 8.1 σ above the classical bound. Dephased depth cannot exceed 75% (tested).
 - The lamp is read along A or A′, a rotated axis: this is the lamp read in X. Its outcome then *chooses the light side by feed-forward*, so the facets keep no record of the lamp and its coherence with the depth survives; each leaf's depth-sphere dot sits on its own setting; every other domain keeps the frame's ordinary observation. The look is the picture those outcomes make; the operator page and the caption show the round (inputs, outcomes, won or lost) and the running tally against 75%. One look is one bit; the win *rate* over many looks is what certifies.
 - **What the game cannot do:** the rate is `(1 + M/8)/2` for THIS state after every dephasing the facets and neighbours cause, and exceeds 75% only if M > 4.
-- **It does not survive the hard seam.** Put the leaves on a seam whose facets sit at the equator and visibility is 0: the predicted win rate falls from 75% (seam_mix 0) to 57% (seam_mix 1), below the classical bound, while leaves away from the seam stay at 91% (`seam_benchmark`).
+- **It does not survive the hard seam.** Put the leaves on a seam whose facets sit at the equator and visibility is 0: the predicted win rate falls from 76% (seam_mix 0) to 56% (seam_mix 1), below the classical bound, while leaves away from the seam stay at 93-94% (`seam_benchmark`).
 
 ### Seams: where the entanglement between edges lives
 
-- **One facet per depth qubit** (`--group-size 1`) raises each qubit's own visibility V from about 0.77 to 0.88; with **weak coupling along a boundary and strong across a crease** (`--pol-coupling 0.3`, `--crease-coupling 1.0`, `--seam-coupling 1.0`) every crease is entangled, and the lamp–depth Mermin value rises from 4.3 to 6.6 (strong coupling everywhere lowers it: monogamy again).
-- **Seam regime** (`--seam-mix`): only the facets on a crease move toward the equator. At seam_mix 1 each seam facet is maximally entangled with the rest of the wall (1.00 bits against 0.31 in the relief regime, and 0.28 for other facets), the seam domains have visibility exactly 0 yet keep a GHZ stabilizer of 0.54–0.58, and the classical cost at bond dimension 32 rises about 12× (norm deficit 1.3e-3 → 1.6e-2). The price is that the creases' *polarity* entanglement (negativity 0.26) is destroyed, and the game cannot use those qubits (above).
-- **Honest limit:** the seams of a wall are a thin skeleton of lines, and an MPS handles a thin skeleton. On tiled walls (n × n panels, every shared edge a seam: up to 368 qubits) the norm deficit at bond dimension 32 stays between 8e-3 and 7e-2 and does not grow from 200 to 368 qubits; the equatorial seam costs about 2× the relief seam there. The lattice benchmark in which *every* facet is equatorial and CZ-coupled in 2D (which an MPS cannot do beyond ~75 qubits) is a different object: that is a wall with no visible relief.
+- **One facet per depth qubit** (`--group-size 1`) raises each qubit's own visibility V from about 0.77 to 0.88; with **weak coupling along a boundary and strong across a crease** (`--pol-coupling 0.3`, `--crease-coupling 1.0`, `--seam-coupling 1.0`) every crease is entangled. Measured on the six-pane window, the lamp–depth Mermin value is 2.5 at the first domain-relief defaults (group size 2, uniform coupling 0.8: no crease entangled), 4.6 with one facet per qubit and uniform coupling 0.8 (2 of 4 creases), 6.3 with weak boundaries and strong seams (4 of 4) and 6.9 once the leaves' tilt is lowered to 0.3 (strong coupling everywhere lowers it: monogamy again).
+- **Seam regime** (`--seam-mix`): only the facets on a crease move toward the equator. At seam_mix 1 each seam facet is maximally entangled with the rest of the wall (1.00 bits against 0.29 in the relief regime, and 0.27 for other facets; a pair across a crease 2.0 bits against 0.57), the seam domains have visibility exactly 0 yet keep a GHZ stabilizer of 0.51–0.56, and the classical cost at bond dimension 32 rises, by much less than on the first three-panel window: norm deficit 1.8e-2 → 2.5e-2 (about 1.4×; the three-panel window went from 1.3e-3 to 1.6e-2, 12×, but its relief state started far easier for a bond-32 stand-in). The price is that the creases' *polarity* entanglement (negativity 0.28) is destroyed, and the game cannot use those qubits (above).
+- **Honest limit:** the seams of a wall are a thin skeleton of lines, and an MPS handles a thin skeleton. On tiled walls (n × n panels, every shared edge a seam: up to 368 qubits) the norm deficit at bond dimension 32 stays between 8e-3 and 4e-2 for the relief seam and between 4e-2 and 1e-1 for the equatorial one, and does not grow from 200 to 368 qubits; the equatorial seam costs about 2-3× the relief seam there (in these tiled walls every panel is its own plane, so the game's three leaves are the left-most, middle and right-most). The lattice benchmark in which *every* facet is equatorial and CZ-coupled in 2D (which an MPS cannot do beyond ~75 qubits) is a different object: that is a wall with no visible relief.
 
 ### Dynamics: entanglement that grows in time
 
-`--evolve-steps T` (key `E` adds one) runs T kicked-Ising steps on the facet graph after the facet register is prepared and before the polarity attaches: `exp(-iθ_zz ZZ/2)` on every facet coupling and `exp(-iθ_x X/2)` on every facet, per step (`ReliefSpec.floquet`; the exact numpy state, the Qiskit circuit and the MPS agree, tested). Each step entangles further and moves the facets' normals, so the relief evolves. Measured on the bay window at bond dimension 32 (`seam_benchmark`): the mean bond entropy rises from 0.99 bits to 2.4–2.6 within 6–8 steps, and the norm deficit of the best bond-32 classical stand-in grows from 1.3e-3 to 8.7e-2 (θ_zz 0.7, θ_x 0.5) or 1.4e-1 (1.0, 0.9): 70–100×, then saturates (finite size and the cap). A static state never gets harder; this one does. **It costs the game:** the same steps spread the leaf qubits' coherence over the facets, so the Mermin value and the predicted parity-game win rate fall with them (static 6.57 → 91%; 1 step 5.93 → 87%; 2 steps 4.45 → 78%; **4 steps 3.73 → 73%, below the classical 75%**; 8 steps 4.23 → 77%), and the crease entanglement (negativity 0.26) is gone by step 2–4. Entanglement that grows in time and the lamp–depth Bell test pull against each other in this design: a performance can have the game early or the dynamics late, not both at once, unless the leaves are decoupled from the evolved facets (not built). The echo engine (`otoc-echo-v1`) is the same kicked-Ising family; its payload and the echo-tap-to-tilt mapping remain in `domain_moth.py`, **not run on Moth and not wired into the show**.
+`--evolve-steps T` (key `E` adds one) runs T kicked-Ising steps on the facet graph after the facet register is prepared and before the polarity attaches: `exp(-iθ_zz ZZ/2)` on every facet coupling and `exp(-iθ_x X/2)` on every facet, per step (`ReliefSpec.floquet`; the exact numpy state, the Qiskit circuit and the MPS agree, tested). Each step entangles further and moves the facets' normals, so the relief evolves. Measured on the six-pane bay window at bond dimension 32 (`seam_benchmark`): the mean bond entropy rises from 1.21 bits to 2.3–2.4 within 6–8 steps (θ_zz 0.7, θ_x 0.5) or 2.7–2.85 (1.0, 0.9), and the norm deficit of the best bond-32 classical stand-in grows from 1.8e-2 to 7.6e-2 (4×) or 1.4e-1 (8×), then saturates (finite size and the cap). The relative growth is smaller than the 70–100× the three-panel window showed, because the six-pane state is already 1.8e-2 off at bond 32 before any step. A static state never gets harder; this one does. **It costs the game:** the same steps spread the leaf qubits' coherence over the facets, so the Mermin value and the predicted parity-game win rate fall with them (static 6.94 → 93%; 1 step 4.94 → 81%; **2 steps 3.79 → 74%, below the classical 75%**; 3 steps 4.43 → 78%; 4 steps 4.44 → 78%; 6 steps 4.33 → 77%; 8 steps 5.13 → 82%; the Mermin value is a numerical maximum over measurement frames, so the series is not exactly monotone), and the crease entanglement (negativity 0.28) is gone by step 3 (4 of 4 creases entangled static, 0 of 4 at steps 3-4, partly back at 6-8). Entanglement that grows in time and the lamp–depth Bell test pull against each other in this design: a performance can have the game early or the dynamics late, not both at once, unless the leaves are decoupled from the evolved facets (not built). The echo engine (`otoc-echo-v1`) is the same kicked-Ising family; its payload and the echo-tap-to-tilt mapping remain in `domain_moth.py`, **not run on Moth and not wired into the show**.
 
 ### Things that were wrong and are fixed (read before trusting older numbers)
 - Control B on the matrix-product backend kept one hidden depth for a whole frame, where the exact engine redraws it per photon (frame-to-frame spread 0.14 against 0.06). Fixed, with a frame-level regression test.
@@ -436,10 +472,10 @@ The first build (still present, selectable with `--source oracle|mock|circuit|co
 
 | File | What it does |
 |---|---|
-| `capture/labels.py` | `labels.json` schema, validation, defaults, the synthetic bay window |
+| `capture/labels.py` | `labels.json` schema, validation, defaults, the built-in six-pane bay window (`bay_window_labels()`; `stacked=False` is the three-panel layout of the mock), the default calibration and run folders |
 | `capture/pen_tool.py` (+ `pen_tool.html`, `pen_draw.js`, `pen_geom.js`, `projector.html`) | the drawing tool: browser UI served locally, shared-edge snapping |
-| `geometry/planes.py` | `Scene`: regions, masks, plane normals, windows, relief field; `build_scene(labels)` |
-| `geometry/facets.py` | **facets**: orientation classes, tilt budget, edges between facets; classical plateau facets; per-panel slope field (no differencing across a seam) |
+| `geometry/planes.py` | `Scene`: regions, masks, plane normals, windows, relief field, panel adjacency; `build_scene(labels)` |
+| `geometry/facets.py` | **facets**: orientation classes (`auto_n_dirs`: how many per panel keep the circuit exact), tilt budget, edges between facets; classical plateau facets; per-panel slope field (no differencing across a seam) |
 | `geometry/domains.py` | **domains**: spatial bevel-strip facets, depth domains, the domain graph (coplanar / crease), crater-gauge lock signs, frustration of the signed graph |
 | `geometry/relief.py`, `geometry/depth.py` | distance-to-border field; depth coordinate along side panels |
 | `mask/build_mask.py`, `mask/masked_blur.py`, `mask/apply_black.py` | rasterise polygons; blur that never leaks light into glass; the final exact-zero multiply |
@@ -451,7 +487,7 @@ The first build (still present, selectable with `--source oracle|mock|circuit|co
 |---|---|
 | `relief_state.py` | **the quantum core**: `ReliefSpec`, `facet_state`, `lift_polarity`, `ReliefState.draw`, light rig, Qiskit `reference_circuit` and `full_circuit` |
 | `relief_witness.py` | visibility, stabilizer, fidelity witness, CHSH scan, sampled witness run, scaling law |
-| `domain_state.py` | **domain relief**: `spec_from_domains`, the exact and matrix-product backends (`make_state`), `leaf_domains` |
+| `domain_state.py` | **domain relief**: `spec_from_domains`, the exact and matrix-product backends (`make_state`), `leaf_domains` (one leaf per plane, at most three) |
 | `mps.py` | matrix-product states on Aer: exact conditional sampling, reduced density matrices (with operator insertions, and between two different states), superposition of states (bond dimensions add), single-site gates, bond dimensions and entropies |
 | `parity_game.py` | the Mermin parity game: frames of the state, rounds as frames, win rate against the classical 75%, brute-force classical bound |
 | `seam_benchmark.py` | seams, the game and Floquet time against the classical cost; tiled walls; `runs/seams/seams.png` |
@@ -463,6 +499,7 @@ The first build (still present, selectable with `--source oracle|mock|circuit|co
 | `moth_client.py` | Moth Atlas API client: gated submit, never retries a POST, saves job id and raw result first |
 | `moth_engines.py` | per-engine fit, payload builders (tomography, QDrive, echo, Qpixl, shader), defensive parsers, scoring against exact moments |
 | `solver.py` | submit calibrated targets to graph-v1 or QDrive and score what came back (classical flow) |
+| `qdrive_plan.py`, `qdrive_rounds.py`, `motte_mock.py` | QDrive in small chained, scored rounds (plan, resume, assemble; `--engine local` rehearses it with no credits), and the paper-based local mock of the engine they are tested against |
 | `sampler_local.py`, `sampler_mock.py` | sample a statevector / QASM circuit locally; the classical Gibbs sampler |
 | `complementary.py` | the earlier polarity-complementary experiment, CHSH and Mermin machinery |
 | `ab_compare.py`, `make_frames.py` | engine comparison figures; frame streams with provenance |
@@ -507,7 +544,8 @@ The first build (still present, selectable with `--source oracle|mock|circuit|co
 | `src/run_mock.py`, `mock/standing_light_mock.py` | the original classical look test and its port (checked bit-for-bit equal) |
 | `superposed_relief_refsim.py` | the handoff's numpy reference simulation; its numbers are regression-tested |
 | `tests/` | see [Tests](#tests) |
-| `runs/` | generated outputs (`relief/`, `moth/`, `calibration_5x4/`, `first_run/`, ...) |
+| `qdrive_lab/` | the QDrive field lab: trial scripts, offline checks (`python qdrive_lab/test_offline.py`) and every raw result, see `docs/qdrive-field-notes.md` |
+| `runs/` | generated outputs: `calibration_bay_4x4/` (the default scene's targets and payloads), `bay_run/` (where its Moth results go), `relief/`, `seams/`, `moth/`, and the first build's three-panel record (`calibration_5x4/`, `first_run/`, `relief_three_panel/`, `seams_three_panel/`) |
 
 **Not implemented** (one-line stubs): `capture/import_roomplan.py`, `capture/load_mesh.py`, `geometry/creases.py`, `geometry/visibility.py`, `store/run_card.py`, `targets/from_geometry.py`.
 
@@ -538,6 +576,9 @@ The science section also shows, per panel, a **depth-sphere dot** (where the obs
 
 ## Moth engines and spending credits
 
+**QDrive in rounds.** One QDrive job per component can stall; `python -m src.quantum.qdrive_rounds --help` sends the same plan as small chained jobs (a spend decision per job, each scored before the next), keeps every piece on disk, and assembles the show's `qdrive/circuit.qasm` from them. `--engine local` rehearses it with no credits. See `docs/qdrive-solution-design.md` section 8.
+
+
 ```bash
 python -m src.quantum.moth_engines plan                 # every engine, cost, and whether it fits
 python -m src.quantum.moth_engines build tomography     # write a payload and print the exact request (sends nothing)
@@ -556,27 +597,46 @@ python -m src.quantum.moth_client send    PAYLOAD.json --engine tomography-api-v
 
 **Spending rules, enforced in code:** `send` needs `--approve-credits N` equal to the estimated cost; a POST is never retried (a retry could bill twice); the job id is written before polling and the raw response before parsing; the show's re-solve dialog and the studio refuse to spend unless started with `--allow-spend` *and* the confirm repeats the payload hash and credits it showed; a payload with a saved result costs nothing and sends nothing; IBM credentials are never sent by this client. Local checks block unknown parameters, over-size QDrive jobs and `mode: "qpu"`.
 
+**What the default scene sends** (all of it previewable with no key and no credits):
+
+| Path | Payload for the six-pane bay window | Credits |
+|---|---|---|
+| `python -m src.quantum.solver graph-v1` | 20 qubits (the cap), 45 edges, 20 `<Z>` + 45 `<ZZ>` operations (from `runs/calibration_bay_4x4`) | 5 |
+| `python -m src.quantum.solver qdrive` | one job, 20 qubits, 66 targets: sendable (the client refuses above 100 targets and warns above 30), **but every 19-qubit QDrive job in the lab timed out**, so use the rounds below | 1 |
+| `python -m src.quantum.qdrive_rounds plan` | two independent components (patches + lamps: 14 qubits; polarity: 6), 10 chained jobs of 1-2 layers | 10 |
+| `python -m src.quantum.moth_engines build tomography` | the 18-qubit per-panel circuit as OpenQASM 2, with the qubit pairs that carry the physics | 1 |
+| `python -m src.quantum.moth_engines build qdrive-facets` | the 12-qubit facet register, 62 targets cut into jobs of at most 24 | 1 per job |
+| `python -m src.quantum.domain_moth build ...` | polarity register of the domain relief (builds with `--group-size 2`, 34 domain qubits, *not* the show's 64: a 64-qubit QDrive job is far beyond anything that has run), a patch of at most 20 qubits for tomography, the echo | 1 each |
+
+**The first day the servers are back** (a suggested order, cheapest and most informative first; every command previews unless you add `--approve-credits N`): (1) `python -m src.quantum.qdrive_rounds canary --out runs/bay_run --approve-credits 1` tells a service problem from a payload problem for one credit; (2) `moth_engines build tomography` and send it: it verifies the circuit the show actually runs, 1 credit; (3) `qdrive_rounds run --max-steps 2` for the first two rounds, then `qdrive_rounds assemble`; (4) only then `solver graph-v1` (5 credits). `python -m unittest tests.test_moth_pipeline` rehearses every one of these paths against a fake Moth server on localhost (payloads accepted, jobs recorded before polling, circuits downloaded without the key, results parsed and scored, the show switching to the returned circuit, nothing paid twice); if it passes, the first real call differs only in who answers.
+
 ---
 
 ## Tests
 
 ```bash
-for m in test_fast test_projector test_ui test_studio test_complementary test_pen_geom \
-         test_frames test_payloads test_moth_client test_relief test_moth_engines test_domains; do
+python -m pytest tests -q                   # everything: 316 tests, about 7 minutes (pytest is in the venv; unittest runs the same files)
+for m in test_fast test_projector test_ui test_studio test_complementary test_pen_geom test_frames test_payloads test_moth_client \
+         test_relief test_moth_engines test_domains test_qdrive_plan test_qdrive_rounds test_moth_pipeline; do
   python -m unittest tests.$m
 done
-python -m tests.check_port_matches_mock     # the src/ port still reproduces the original mock exactly
+python -m tests.check_port_matches_mock     # the src/ port still reproduces the original three-panel mock exactly, and the six-pane default is the same wall
 python superposed_relief_refsim.py          # the handoff's reference numbers
+python -m pytest qdrive_lab/test_offline.py -q   # the QDrive lab's scorer against known states (8 more tests)
 ```
 
 | Module | Covers |
 |---|---|
-| `test_domains` (56) | domain geometry (creases touch, per-domain budget, balanced vs frustrated graph), circuits (Qiskit = numpy, Aer sampling = exact with the lamp lock), the MPS tools against the statevector, exact vs MPS frames (both controls, lamp in X), the parity game (classical bound, exact joint distribution, win rate), seams and Floquet dynamics, certificates (exact = MPS, operator insertion = a real lamp qubit, monogamy), ground state, Moth payloads, baselines, the session |
-| `test_relief` (36) | refsim table, Lambert = Born, conventions, Qiskit circuit = numpy state, **Aer sampling of the full circuit = exact distribution**, facets, couplings, visibility law, which-depth/visibility, controls, witnesses, no toggles in performance mode, honest provenance |
-| `test_moth_engines` (12) | payloads valid and priced, QASM2 round-trip, parsers and scoring, the 201-target payload refused, echo tap mapping |
-| `test_ui`, `test_studio` | key table, captions, session actions, demo, calibration, spend gate, the HTTP servers |
-| `test_projector` | homography, warp, exact-black guarantee, photographed check (synthetic) |
-| `test_frames`, `test_complementary`, `test_fast`, `test_payloads`, `test_moth_client`, `test_pen_geom` | the classical family and the API client, all offline |
+| `test_domains` (60) | domain geometry on the six-pane default (creases touch, rails coplanar, per-domain budget, one leaf per plane and at most three, balanced vs frustrated graph), circuits (Qiskit = numpy, Aer sampling = exact with the lamp lock), the MPS tools against the statevector, exact vs MPS frames (both controls, lamp in X), the parity game (classical bound, exact joint distribution, win rate), the lamp lock's monogamy, seams and Floquet dynamics, certificates (exact = MPS, operator insertion = a real lamp qubit), ground state, Moth payloads, baselines, the session |
+| `test_relief` (46) | refsim table, Lambert = Born, conventions, Qiskit circuit = numpy state, **Aer sampling of the full circuit = exact distribution**, the default scene (six panes, three planes, 12 + 6 = 18 qubits) and the three-panel layout it replaced, facets, couplings, visibility law, which-depth/visibility, controls, witnesses, no toggles in performance mode, honest provenance |
+| `test_moth_pipeline` (16) | **the whole Moth path against a fake Moth server on localhost**: the default calibration and its payloads, the solver for graph-v1 and QDrive end to end (job recorded, circuit downloaded without the key, parsed, scored, loaded by the show), the show's re-solve gate over real HTTP, every engine builder's payload accepted by the fake API's schema check, tomography scored against itself, the domain payloads, a calibration for another scene refused, a new payload never inheriting an old result, and every README command (previews and the local rounds rehearsal) run as a subprocess |
+| `test_qdrive_plan` (15), `test_qdrive_rounds` (22) | QDrive growth plans, cutting into chained rounds, resuming, failing, assembling, provenance (against an ideal fake engine) |
+| `test_moth_engines` (12), `test_moth_client` (19) | payloads valid and priced, QASM2 round-trip, parsers and scoring, the 201-target payload refused, echo tap mapping; the client's safety properties (never retries a POST, key never printed, gate before any HTTP) |
+| `test_ui` (27), `test_studio` (37) | key table, captions, session actions, demo, calibration, spend gate, the HTTP servers, the studio's five steps with fake child processes |
+| `test_projector` (20) | homography, warp, exact-black guarantee, photographed check (synthetic) |
+| `test_frames` (14), `test_complementary` (15), `test_fast` (4), `test_payloads` (5), `test_pen_geom` (4) | the classical family: sampler, oracle, frames, composers (six panes and the original three), the polarity stand-in |
+
+Tests never read your real `.env` and never reach Moth: the Moth tests patch the API address to a localhost server and set a fake key in the environment.
 
 Offline demo of the classical solve/compare flow without Moth: `python -m tests.make_selftest_fixtures` (writes SYNTHETIC results, stamped on every figure).
 
@@ -594,22 +654,22 @@ Offline demo of the classical solve/compare flow without Moth: `python -m tests.
 
 ## Status and limits
 
-**Done and tested:** the relief engines (per-panel and domain), their circuits and witnesses; the parity game, the seam regime and the kicked-Ising dynamics; the show, controls, demo and studio; the classical pipeline; the Moth client and engine builders; offline. The whole suite (`tests/`, 12 modules) and the mock-port check pass.
+**Done and tested:** the relief engines (per-panel and domain) on the six-pane default window, their circuits and witnesses; the parity game, the seam regime and the kicked-Ising dynamics; the show, controls, demo and studio; the classical pipeline; the Moth client and engine builders and the whole Moth path against a fake server; offline. The whole suite (`tests/`, 15 modules, 316 tests) and the mock-port check pass.
 
 **Not verified (needs you or credits):**
 - Any real Moth result for the relief design (either engine). Tomography, echo and QDrive result shapes are mostly "not documented yet", so parsers are defensive and raw results are saved first. The domain payloads (`domain_moth`) are built, validated locally and **not sent**; the qubit cap of `tomography-api-v2` is undocumented, which is why only patches of ≤ 20 qubits are offered.
 - The domain relief on a projector: the frames are simulated and rendered, the glass-black checks pass, but the look on a real wall (six or so times as many facets, each with its own bevel strip) has not been judged by eye.
-- The parity game's win rate is the *simulated* state's prediction, confirmed by sampling the simulation (367 of 400 rounds against a predicted 91.1%). It has not been measured on a device.
+- The parity game's win rate is the *simulated* state's prediction, confirmed by sampling the simulation (370 of 400 rounds against a predicted 93.4%). It has not been measured on a device.
 - The kicked-Ising evolution is wired into the show (`E`, `--evolve-steps`), but the echo engine's own taps (`otoc-echo-v1`, `domain_moth.dynamic_specs`) are a module and a test, not a live mode, and not run on Moth. Evolution and the parity game conflict: the game falls below 75% by step 4.
-- QDrive has never returned a circuit. Chaining uses an `input_files` asset id, and the docs list only PNG/JPEG as accepted assets; mixed Pauli words have a 2-qubit probe built but unsent.
+- QDrive has returned circuits for small jobs only (a 2-qubit Bell state, a 3-qubit GHZ state, chained jobs: 21 of 28 jobs completed on 2 and 4 Oct 2026) and never for a whole scene: every 19-qubit job and every 8-body target timed out. Chaining through an output asset UUID works, the docs' PNG/JPEG-only asset limit does not hold, and mixed Pauli words work as a mapping (all recorded in `docs/qdrive-field-notes.md`); what is untested is anything near 20 qubits, which is why the default scene is sent in rounds of two components (14 + 6 qubits).
 - `local_echo` is *our reading* of the echo engine's description, not its definition.
 - A real projector, a real window, real photos. The glass-check thresholds were reasoned, not calibrated.
 - The studio's Solve and Perform steps are still the classical QDrive flow.
 
 **What is and is not quantum** (an audit of the code, with the numbers):
 - The facet register, the polarity superposition and the controlled operations between them are quantum content, simulated exactly or as a matrix-product state. The lamp and observation registers are uniform draws, equivalent to coin flips, except where the lamp is locked to a polarity qubit (`--lock`) or read in X (both backends).
-- Per-panel engine: 72% of the variance of per-frame expected brightness is the lamp world (a classical draw); the polarity outcome (a near-fair coin) carries the rest. What the wall shows, the interference included, is reproduced by a classical sampler: a *two-branch sampler* draws exact frames of the uncoupled product relief at N = 5000 in 0.04 s, and the scaling law that keeps V constant (τ = κ/√N) keeps the state at ~0.25 excitations per panel, so excitation truncation (k = 2) is also exact to 0.99.
-- Domain engine: capping the matrix-product bond dimension at 32 (what the show does) leaves a norm deficit of 1.3e-3 at the default 92 qubits (at the earlier 69-qubit configuration: 1.3e-2 at bond 8, 6e-3 at 16, 7.6e-4 at 64: the Schmidt tail is long, so an *exact* state needs more than 128), so the show's state is *approximately* classically simulable to a fraction of a percent and not cheaply to machine precision. Making the seams equatorial raises the classical cost about 12× but destroys what the game needs; the kicked-Ising evolution raises it 70–100× over 6–8 steps, also at the game's expense; tiled walls of up to 368 qubits show no growth in the seam-only regime. The MPS benchmark shows where even the approximation stops: a lattice of domains in the relief regime passes bond dimension 128 at ~100 qubits, and in the graph-state regime (facets at the equator, CZ-like couplings) at ~75, with a 7% norm deficit. That is the regime where hardness is plausible, and it is **not** the regime the show runs in (it needs V → 0). No quantum advantage is claimed anywhere.
+- Per-panel engine (the following two figures were measured on the first three-panel window and not repeated on the six-pane one): 72% of the variance of per-frame expected brightness is the lamp world (a classical draw); the polarity outcome (a near-fair coin) carries the rest. What the wall shows, the interference included, is reproduced by a classical sampler: a *two-branch sampler* draws exact frames of the uncoupled product relief at N = 5000 in 0.04 s, and the scaling law that keeps V constant (τ = κ/√N) keeps the state at ~0.25 excitations per panel, so excitation truncation (k = 2) is also exact to 0.99.
+- Domain engine: capping the matrix-product bond dimension at 32 (what the show does) leaves a norm deficit of 1.8e-2 at the default 128 qubits of the six-pane window (1.3e-3 at the 92 qubits of the three-panel window; at the earlier 69-qubit configuration: 1.3e-2 at bond 8, 6e-3 at 16, 7.6e-4 at 64: the Schmidt tail is long, so an *exact* state needs more than 128), so the show's state is *approximately* classically simulable to about 2% and not cheaply to machine precision. Making the seams equatorial raises the classical cost about 1.4× (12× on the three-panel window, which started far easier) and destroys what the game needs; the kicked-Ising evolution raises it 4–8× over 6–8 steps (70–100× there), also at the game's expense; tiled walls of up to 368 qubits show no growth in the seam-only regime. The MPS benchmark shows where even the approximation stops: a lattice of domains in the relief regime passes bond dimension 128 at ~100 qubits, and in the graph-state regime (facets at the equator, CZ-like couplings) at ~75, with a 7% norm deficit. That is the regime where hardness is plausible, and it is **not** the regime the show runs in (it needs V → 0). No quantum advantage is claimed anywhere.
 
 ---
 

@@ -144,7 +144,7 @@ function knobPanel(id) {
       input.value = knobVals[k.key] || "";
       input.onchange = () => { knobVals[k.key] = input.value; saveKnobs(); applyKnobs(); };
     } else {
-      input = el("input", { type: "text", placeholder: def !== "" && def !== 0 ? String(def) : (k.kind === "size" ? "1920x1080" : k.kind === "path" ? "default" : "default"), value: knobVals[k.key] || "" });
+      input = el("input", { type: "text", placeholder: def !== null && def !== "" && def !== 0 ? String(def) : (k.kind === "size" ? "1920x1080" : k.kind === "path" ? "default" : "default"), value: knobVals[k.key] || "" });
       if (k.kind === "path") input.className = "wide";
       input.oninput = () => { knobVals[k.key] = input.value; saveKnobs(); };
     }

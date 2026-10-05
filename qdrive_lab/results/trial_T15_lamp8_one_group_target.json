@@ -1,0 +1,144 @@
+{
+ "label": "T15_lamp8_one_group_target",
+ "http": 202,
+ "body_sent": {
+  "params": {
+   "machine": "aer",
+   "n_qubits": 8,
+   "seed": 7,
+   "shots": 1024,
+   "update_method": "spectral",
+   "tomography": 0,
+   "sample": false,
+   "coupling_map": [
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     2,
+     4
+    ],
+    [
+     3,
+     4
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     4,
+     5
+    ],
+    [
+     5,
+     6
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     6,
+     7
+    ]
+   ],
+   "targets": [
+    {
+     "qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "expvals": {
+      "ZIIIIIII": -0.0096,
+      "IZIIIIII": -0.0087,
+      "IIZIIIII": -0.0073,
+      "IIIZIIII": -0.0071,
+      "IIIIZIII": -0.008,
+      "IIIIIZII": -0.007,
+      "IIIIIIZI": -0.0066,
+      "IIIIIIIZ": -0.0088,
+      "IIIZZIII": 0.9673,
+      "IIIZIZII": 0.9335,
+      "IIIIZZII": 0.9314,
+      "IIZIZIII": 0.9287,
+      "IIZZIIII": 0.9278,
+      "ZIZIIIII": 0.9037,
+      "ZZIIIIII": 0.9033,
+      "IZZIIIII": 0.903,
+      "IIIIIZZI": 0.9004,
+      "IIIIIIZZ": 0.8996,
+      "IIIIIZIZ": 0.8986
+     }
+    },
+    null,
+    {
+     "qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "expvals": {
+      "ZIIIIIII": -0.0096,
+      "IZIIIIII": -0.0087,
+      "IIZIIIII": -0.0073,
+      "IIIZIIII": -0.0071,
+      "IIIIZIII": -0.008,
+      "IIIIIZII": -0.007,
+      "IIIIIIZI": -0.0066,
+      "IIIIIIIZ": -0.0088,
+      "IIIZZIII": 0.9673,
+      "IIIZIZII": 0.9335,
+      "IIIIZZII": 0.9314,
+      "IIZIZIII": 0.9287,
+      "IIZZIIII": 0.9278,
+      "ZIZIIIII": 0.9037,
+      "ZZIIIIII": 0.9033,
+      "IZZIIIII": 0.903,
+      "IIIIIZZI": 0.9004,
+      "IIIIIIZZ": 0.8996,
+      "IIIIIZIZ": 0.8986
+     }
+    },
+    null
+   ]
+  }
+ },
+ "job_id": "678811ca-4322-478b-bc9f-e32b1cc78aeb",
+ "status": "failed",
+ "secs": 186.4,
+ "progress": {
+  "detail": "Building circuit",
+  "step": "run"
+ },
+ "status_warnings": [],
+ "error": {
+  "message": "The engine did not respond in time \u2014 retry the job",
+  "retryable": true,
+  "type": "engine_timeout"
+ }
+}
