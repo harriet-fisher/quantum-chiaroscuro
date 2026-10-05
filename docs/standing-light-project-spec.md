@@ -229,6 +229,8 @@ capture → geometry analysis → region labels + impenetrable mask
 
 ### 8.2 Module and function map
 
+> **Design-time map.** Function names below are the plan, not the code: the scan route (`load_mesh`, `import_lidar_export`), `find_creases`, `visibility_from_projector`, analytic targets from geometry and `save_run_card` were never built, and `audio/` does not exist. See the README's codebase map for what the code actually has.
+
 
 | Module               | Responsibility            | Key functions                                                                                                                                    | Classical / Quantum       |
 | -------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- |

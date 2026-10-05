@@ -468,7 +468,7 @@ The first build (still present, selectable with `--source oracle|mock|circuit|co
 
 ## Codebase map
 
-### `src/geometry/`, `src/mask/`, `src/bounds/`: the scene
+### `src/capture/`, `src/geometry/`, `src/mask/`, `src/bounds/`: the scene
 
 | File | What it does |
 |---|---|
@@ -547,7 +547,7 @@ The first build (still present, selectable with `--source oracle|mock|circuit|co
 | `qdrive_lab/` | the QDrive field lab: trial scripts, offline checks (`python qdrive_lab/test_offline.py`) and every raw result, see `docs/qdrive-field-notes.md` |
 | `runs/` | generated outputs: `calibration_bay_4x4/` (the default scene's targets and payloads), `bay_run/` (where its Moth results go), `relief/`, `seams/`, `moth/`, and the first build's three-panel record (`calibration_5x4/`, `first_run/`, `relief_three_panel/`, `seams_three_panel/`) |
 
-**Not implemented** (one-line stubs): `capture/import_roomplan.py`, `capture/load_mesh.py`, `geometry/creases.py`, `geometry/visibility.py`, `store/run_card.py`, `targets/from_geometry.py`.
+Planned but deliberately not built: scan capture (OBJ / RoomPlan import), ray-cast visibility from the projector pose, mesh crease detection, analytic targets from geometry and a run card. The drawing tool is the only capture path, and creases are the borders between panels with different plane ids.
 
 ---
 

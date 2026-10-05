@@ -254,19 +254,21 @@ standing-light/
   requirements.txt
   mock/standing_light_mock.py   # working classical look test (keep as reference)
   src/
-    capture/      load_mesh.py, pen_tool.py, import_roomplan.py
-    geometry/     planes.py, creases.py, depth.py, relief.py, visibility.py
+    capture/      pen_tool.py, labels.py
+    geometry/     planes.py, depth.py, relief.py, facets.py, domains.py
     mask/         build_mask.py, masked_blur.py, apply_black.py
     graph/        patches.py, edges.py, lamp_hub.py, allocate_qubits.py
     bounds/       windows.py
-    targets/      from_geometry.py, calibrate_from_mock.py, payloads.py, consistency.py
+    targets/      calibrate_from_mock.py, payloads.py, consistency.py
     quantum/      moth_client.py, solver.py, sampler_local.py, sampler_mock.py
     texture/      compose.py, interpolate.py, bevel.py
     projector/    calibrate.py, warp.py, output_window.py
     ui/           operator_panel.py, keys.py
-    store/        run_card.py, cache.py
+    store/        cache.py, jsonfmt.py
   runs/           # run cards, cached states, frames
 ```
+
+*(This is the layout as built, abridged. The planned modules that were never written were dropped: `capture/load_mesh.py`, `capture/import_roomplan.py` (Route B, scans), `geometry/creases.py`, `geometry/visibility.py`, `targets/from_geometry.py` and `store/run_card.py`. Route A is the only capture path: creases are the borders between panels with different plane ids, and a run's parameters are saved in its own folder.)*
 
 ## 7. Tools for uploading geometry and identifying patches
 
