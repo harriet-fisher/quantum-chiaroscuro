@@ -51,6 +51,10 @@ LOG_LINES = 300
 
 STAGES = ("draw", "targets", "preview", "solve", "final")
 TITLES = dict(draw="Draw the shapes", targets="Calibrate targets", preview="Rehearse the show", solve="Solve: execute the circuit", final="Perform with the result")
+ECHO = "echo"                                                                 # the Perform choice that plays the echo run
+ECHO_LOCAL, ECHO_MOTH = "echo-local", "echo-moth"                                 # step 4: dynamic relief, taps from our local echo (free) or Moth's otoc-echo-v1 (1 credit), circuits executed on Aer
+QFAC = "qdrive-facets"                                                        # step 4: the facet register prepared by QDrive, one chained job per confirm
+TOMO = "tomography"                                                          # step 4: verify the reference circuit on Moth's tomography-api-v2 (1 credit)
 AER = "aer"                                                                  # step 4's local engine: the relief circuit executed on Aer (no Moth call)
 ENGINES = {"qdrive": ("payload_qdrive.json", "qdrive-api-v1", "qdrive"), "graph-v1": ("payload_graph_v1.json", "graph-v1", "graph_v1")}
 
@@ -247,6 +251,35 @@ class Studio:
         sha = sha_file(self.labels_path)
         return st if st and sha and st.get("labels_sha") == sha else None
 
+    @property
+    def echo_dir(self):
+        return os.path.join(self.solve, "echo")
+
+    def echo_info(self):
+        """state.json of the echo run in <project>/solve/echo when it was made from the current drawing, else None."""
+        from src.quantum.echo_relief import read_state
+        st = read_state(self.echo_dir)
+        sha = sha_file(self.labels_path)
+        return st if st and sha and st.get("labels_sha") == sha else None
+
+    @property
+    def qfacets_dir(self):
+        return os.path.join(self.solve, "qdrive_facets")
+
+    def qfacets_info(self):
+        """state.json of the QDrive facet chain in <project>/solve/qdrive_facets when it is of the current drawing, else None."""
+        from src.quantum.facet_qdrive import read_state
+        st = read_state(self.qfacets_dir)
+        sha = sha_file(self.labels_path)
+        return st if st and sha and st.get("labels_sha") == sha else None
+
+    def tomography_info(self):
+        """state.json of the Moth tomography check in <project>/solve/tomography when it is of the current drawing and came from Moth (a local rehearsal does not count)."""
+        from src.quantum.verify_moth import read_state
+        st = read_state(os.path.join(self.solve, "tomography"))
+        sha = sha_file(self.labels_path)
+        return st if st and not st.get("local") and sha and st.get("labels_sha") == sha else None
+
     def circuit_path(self):
         p = os.path.join(self.solve, "qdrive", "circuit.qasm")
         return p if os.path.exists(p) else None
@@ -327,12 +360,37 @@ class Studio:
         aer = self.aer_info() if ok_targets else None
         if aer:
             sc = aer["score"]
-            text = (f"Superposed Relief was executed on Aer: {aer['n_qubits']} qubits, {aer['shots']:,} shots per lamp reading; "
+            text = (f"Superposed Relief was executed on Aer: {aer['n_qubits']} qubits, {aer['shots']:,} shots per lamp reading"
+                    + (f", facet register: {aer['facets']['label']}" if aer.get("facets") else "") + "; "
                     + ("the shots agree with the reference state within shot noise." if sc["consistent"] else "the shots do NOT agree with the reference state (see state.json)."))
             v.update(status="done", note=(v["note"] + " " if v["status"] == "done" else "") + text)
             results[AER] = dict(cached=True, orphans=[])
-        elif ok_targets and read_aer_exists(self.aer_dir):
+        echo = self.echo_info() if ok_targets else None
+        if echo:
+            src = "Moth's otoc-echo-v1" if echo["taps_source"] == "moth" else "the local echo"
+            text = (f"Dynamic relief was executed on Aer: {echo['depth']} circuits of {echo['n_qubits']} qubits, {echo['shots']:,} shots each, taps from {src}; "
+                    + ("every depth agrees with its reference state within shot noise." if echo["consistent"] else "a depth does NOT agree with its reference state (see state.json)."))
+            v.update(status="done", note=(v["note"] + " " if v["status"] == "done" else "") + text)
+            results[ECHO] = dict(cached=True, orphans=[])
+        elif ok_targets and os.path.exists(os.path.join(self.echo_dir, "state.json")):
+            v["warn"] = (v.get("warn", "") + " " if v.get("warn") else "") + "The saved echo run was made from an earlier drawing; run it again."
+        if not aer and ok_targets and read_aer_exists(self.aer_dir):
             v["warn"] = (v.get("warn", "") + " " if v.get("warn") else "") + "The saved Aer run was made from an earlier drawing; run it again."
+        v["extras"] = []
+        chain = self.qfacets_info() if ok_targets else None
+        if chain:
+            results[QFAC] = dict(cached=bool(chain["complete"]), orphans=[])
+            v["chain"] = (f"QDrive facet register: {chain['jobs_done']} of {chain['jobs_total']} job(s) done, fidelity to the ideal facet state {chain['score']['fidelity']:.3f}"
+                          + (" (LOCAL rehearsal, not a Moth result)" if chain.get("local") else "") + (": complete, ready for the Aer run." if chain["complete"] else "."))
+            v["extras"].append(v["chain"])
+        tomo = self.tomography_info() if ok_targets else None
+        if tomo:
+            sc, cmp_aer = tomo["score"], tomo.get("aer_comparison") or {}
+            results[TOMO] = dict(cached=True, orphans=[])
+            v["verified"] = (f"Moth tomography-api-v2 verified the reference circuit ({tomo['n_qubits']} qubits): rms error of the single-qubit moments {sc['rms_single']:.3g}"
+                             + (f", of {sc['n_pair_values']} pair correlators {sc['rms_pairs']:.3g}" if sc.get("rms_pairs") is not None else "")
+                             + (f"; polarity visibilities within {cmp_aer['max_abs_difference']:.3f} of the Aer witness run" if cmp_aer.get("max_abs_difference") is not None else "") + ".")
+            v["extras"].append(v["verified"])
         if solve and solve.running:
             v.update(status="running", note="Running the solver.")
         elif solve and solve.returncode not in (None, 0):
@@ -342,23 +400,27 @@ class Studio:
 
         # 5 final
         circuit = self.circuit_path()
-        choices = ([AER] if aer else []) + (["qdrive"] if ok_targets and circuit and views["solve"].get("results", {}).get("qdrive", {}).get("cached") else [])
-        used = (sha_file(os.path.join(self.aer_dir, "shots.npz")) if choices[0] == AER else sha_file(circuit)) if choices else None
-        both = " The QDrive circuit is also available (second button)." if len(choices) > 1 else ""
+        choices = ([AER] if aer else []) + ([ECHO] if echo else []) + (["qdrive"] if ok_targets and circuit and views["solve"].get("results", {}).get("qdrive", {}).get("cached") else [])
+        used = None
+        if choices:
+            used = {AER: lambda: sha_file(os.path.join(self.aer_dir, "shots.npz")), ECHO: lambda: sha_file(os.path.join(self.echo_dir, "shots.npz")),
+                    "qdrive": lambda: sha_file(circuit)}[choices[0]]()
+        both = " More results are available (more buttons)." if len(choices) > 1 else ""
         v = dict(status="ready" if choices else "blocked", choices=choices,
-                 note=("Opens the show on the Aer run: every look is one measured shot of the relief circuit executed on Aer (a statevector simulation here, not a Moth result)." + both if choices[:1] == [AER] else
-                       "Opens the show on the circuit QDrive returned (simulated locally; the older classical-family flow)." if choices else
-                       "Needs a result from step 4: the Aer run (free, local) or a QDrive result for the current payload; graph-v1 returns no circuit to draw from."))
+                 note=({AER: "Opens the show on the Aer run: every look is one measured shot of the relief circuit executed on Aer (a statevector simulation here, not a Moth result).",
+                        ECHO: "Opens the show on the echo run: dynamic relief, every look steps to the next echo depth and is one measured shot of that depth's circuit executed on Aer.",
+                        "qdrive": "Opens the show on the circuit QDrive returned (simulated locally; the older classical-family flow)."}[choices[0]] + both if choices else
+                       "Needs a result from step 4: the Aer run or the echo run (free, local) or a QDrive result for the current payload; graph-v1 returns no circuit to draw from."))
         if choices and rec.get("final") == used:
             v.update(status="done", note="Performed with this result. Open it again any time." + both)
-        if show and show.running and show.meta.get("mode") in ("circuit", "aer"):
-            v.update(status="running", note=("The show is open on the Aer run." if show.meta.get("mode") == "aer" else "The show is open on the QDrive circuit."))
+        if show and show.running and show.meta.get("mode") in ("circuit", "aer", "echo"):
+            v.update(status="running", note={"aer": "The show is open on the Aer run.", "echo": "The show is open on the echo run.", "circuit": "The show is open on the QDrive circuit."}[show.meta["mode"]])
         views["final"] = v
 
         for name, job_name in dict(draw="pen", targets="targets", solve="solve").items():
             j = self.jobs.get(job_name)
             views[name]["job"] = j.view() if j else None
-        for name, modes in dict(preview=("oracle",), final=("circuit", "aer")).items():
+        for name, modes in dict(preview=("oracle",), final=("circuit", "aer", "echo")).items():
             views[name]["job"] = show.view() if show and show.meta.get("mode") in modes else None
         order = [s for s in STAGES if views[s]["status"] not in ("done", "blocked")]
         return [dict(id=s, title=TITLES[s], **views[s]) for s in STAGES], (order[0] if order else None)
@@ -541,13 +603,17 @@ class Studio:
         choices = next(s for s in self.stage_views()[0] if s["id"] == "final")["choices"]
         want = opts.get("from") or choices[0]
         if want not in choices:
-            raise StageError(f"there is no current {'Aer run' if want == AER else 'QDrive result' if want == 'qdrive' else repr(want)} to perform with; step 4 makes one")
+            raise StageError(f"there is no current {'Aer run' if want == AER else 'echo run' if want == ECHO else 'QDrive result' if want == 'qdrive' else repr(want)} to perform with; step 4 makes one")
         port = self._show_port(knobs)
         no_browser = False if knobs.get("no_browser") else None
         if want == AER:
             flags = [x for k, v in (self.aer_info().get("flags") or {}).items() for x in ("--" + k.replace("_", "-"), str(v))]
             self._server_job("show", self._show_argv(port, "relief", knobs, ("--aer-run", self.aer_dir, *flags)), port, open_browser=no_browser, mode="aer")
             self._remember(final=sha_file(os.path.join(self.aer_dir, "shots.npz")))
+        elif want == ECHO:
+            flags = self._flag_args(self.echo_info().get("flags") or {})
+            self._server_job("show", self._show_argv(port, "relief", knobs, ("--echo-run", self.echo_dir, *flags)), port, open_browser=no_browser, mode="echo")
+            self._remember(final=sha_file(os.path.join(self.echo_dir, "shots.npz")))
         else:
             circuit = self.circuit_path()
             self._server_job("show", self._show_argv(port, "circuit", knobs, ("--circuit", circuit)), port, open_browser=no_browser, mode="circuit")
@@ -578,27 +644,63 @@ class Studio:
             save_labels(fill_defaults(bay_window_labels()), self.labels_path)
 
     # ------------------------------------------------------------------ solve: plan, then an explicit matching confirm
-    def plan_aer(self, show=None, shots=None):
-        """Step 4's local engine: what the Aer run would execute, its hash, and whether a run for exactly this is already on disk. Costs nothing and sends nothing."""
-        from src.capture.labels import load_labels
+    # the relief engines (their plans are built from the drawing and the show options, not from calib/): engine id -> plan method
+    RELIEF_ENGINES = {"aer": "plan_aer", "tomography": "plan_tomography", "qdrive-facets": "plan_qfacets", "echo-local": "plan_echo_local", "echo-moth": "plan_echo_moth"}
+
+    def _relief_flags(self, show, what):
+        """The relief flags among the show options (kappa, n_dirs, entangle, contrast, observations), validated. Refuses what a per-panel circuit cannot be."""
         from src.quantum import aer_relief as ar
-        from src.quantum.relief_state import full_circuit
         if not os.path.exists(self.labels_path):
             raise StageError("needs a saved drawing (step 1)")
         raw = {k: v for k, v in (show or {}).items() if k in ar.RELIEF_FLAGS or k in ("engine", "source")}
         if (raw.get("engine") or self.engine) != "panel" or (raw.get("source") or "relief") != "relief":
-            raise StageError("the Aer run executes the per-panel relief circuit; the domain engine's 69 qubits and the classical sources are not part of it (set show option engine to panel)")
+            raise StageError(f"{what} covers the per-panel relief circuit; the domain engine's 69 qubits and the classical sources are not part of it (set show option engine to panel)")
         given = self._knob_values("preview", raw)
-        flags = {k: given[k] for k in ar.RELIEF_FLAGS if k in given}
+        return {k: given[k] for k in ar.RELIEF_FLAGS if k in given}
+
+    @staticmethod
+    def _opt_int(opts, key, default, lo, hi, what):
+        v = (opts or {}).get(key)
         try:
-            shots = ar.DEFAULT_SHOTS if shots in (None, "") else int(shots)
+            v = default if v in (None, "") else int(v)
         except (TypeError, ValueError):
-            raise StageError("shots must be a whole number")
-        if not 10_000 <= shots <= 20_000_000:
-            raise StageError("shots must be between 10,000 and 20,000,000")
+            raise StageError(f"{what} must be a whole number")
+        if not lo <= v <= hi:
+            raise StageError(f"{what} must be between {lo:,} and {hi:,}")
+        return v
+
+    @staticmethod
+    def _flag_args(flags):
+        return [x for k, v in flags.items() for x in ("--" + k.replace("_", "-"), str(v))]
+
+    @staticmethod
+    def _orphans(run_dir):
+        """Job ids submitted into run_dir that never produced a raw result (credits may have been spent)."""
+        done = {os.path.basename(p)[len("raw_result_"):-5] for p in _glob(run_dir, "raw_result_*.json")}
+        return [os.path.basename(p)[4:-5] for p in _glob(run_dir, "job_*.json") if os.path.basename(p)[4:-5] not in done and not os.path.basename(p)[4:].startswith("local-")]
+
+    def plan_aer(self, show=None, opts=None):
+        """Step 4's local engine: what the Aer run would execute, its hash, and whether a run for exactly this is already on disk. Costs nothing and sends nothing."""
+        from src.capture.labels import load_labels
+        from src.quantum import aer_relief as ar
+        from src.quantum.relief_state import full_circuit
+        flags = self._relief_flags(show, "the Aer run")
+        shots = self._opt_int(opts, "shots", ar.DEFAULT_SHOTS, 10_000, 20_000_000, "shots")
         _, _, spec = ar.build_spec(load_labels(self.labels_path), flags.get("kappa", 1.0), flags.get("n_dirs"), flags.get("entangle", 0.8), flags.get("observations"))
-        qc = full_circuit(spec)
-        sha = ar.plan_sha(spec, shots, ar.DEFAULT_SEED)
+        facets = (opts or {}).get("facets") or "ideal"
+        if facets not in ("ideal", "qdrive"):
+            raise StageError("facets must be 'ideal' or 'qdrive'")
+        fqc = fpath = fsha = fnote = None
+        if facets == "qdrive":
+            chain = self.qfacets_info()
+            fpath = os.path.join(self.qfacets_dir, "circuit.qasm")
+            if not chain or not chain.get("complete") or not os.path.exists(fpath) or chain.get("spec") != ar.spec_fingerprint(spec):
+                raise StageError("there is no finished QDrive facet chain for these settings and this drawing: run the 'QDrive facet register' engine until its jobs are done "
+                                 "(or choose the hand-built facet circuit)")
+            fqc, _, fsha = ar.load_facet_circuit(fpath, spec)
+            fnote = (f"facet register: {ar.facet_provenance(fpath)['label']}; fidelity to the ideal facet state {chain['score']['fidelity']:.4f}")
+        qc = full_circuit(spec, facet_circuit=fqc)
+        sha = ar.plan_sha(spec, shots, ar.DEFAULT_SEED, fsha)
         have = ar.read_state(self.aer_dir)
         cached = bool(have and have["sha256"] == sha)
         ops = ", ".join(f"{n} x{c}" for n, c in sorted(qc.count_ops().items()))
@@ -606,15 +708,109 @@ class Studio:
                     + (f"; {spec.n_classical} flat facets stay classical (no qubit)" if spec.n_classical else "") + "\n"
                     f"circuit: {qc.size()} operations ({ops})\n"
                     f"{shots:,} shots on Aer's statevector simulator with seed {ar.DEFAULT_SEED}, once with the lamp register read in Z and once in X; then a check of the shots against the "
-                    "reference state and a witness run (polarity in X, facets in Z).\nExecuted here by qiskit-aer: no network, no key, no credits.")
+                    "reference state and a witness run (polarity in X, facets in Z).\n" + (fnote + "\n" if fnote else "") + "Executed here by qiskit-aer: no network, no key, no credits.")
+        command = self._py("src.quantum.aer_relief", "--labels", self.labels_path, "--out", self.aer_dir, "--shots", str(shots), "--seed", str(ar.DEFAULT_SEED), *self._flag_args(flags),
+                           *(["--facet-circuit", fpath] if fpath else []))
         return dict(engine=AER, engine_id="relief-aer (this laptop)", sha256=sha, credits=0, cached=cached, problems=ar.check_size(spec), describe=describe,
-                    allow_spend=self.allow_spend, orphans=[], flags=flags, shots=shots,
+                    allow_spend=self.allow_spend, orphans=[], flags=flags, shots=shots, opts=dict(shots=shots, facets=facets), command=command, action="Run on Aer here (0 credits)", hash_label="circuit", local=True,
                     note=("A run for exactly this circuit, shot count and seed is already on disk: nothing is executed." if cached else
                           "Executes this circuit on Aer on this machine (a few seconds) and saves the measured shots. Nothing is sent anywhere and no credits are spent."))
 
-    def plan(self, engine, show=None, aer_shots=None):
-        if engine == AER:
-            return self.plan_aer(show, aer_shots)
+    def plan_echo_local(self, show=None, opts=None):
+        return self._plan_echo("local", show, opts)
+
+    def plan_echo_moth(self, show=None, opts=None):
+        return self._plan_echo("moth", show, opts)
+
+    def _plan_echo(self, source, show, opts):
+        """Dynamic relief: the echo's taps (local, or Moth's otoc-echo-v1) modulate the relief and one circuit per echo depth is executed on Aer."""
+        from src.capture.labels import load_labels
+        from src.quantum import aer_relief as ar
+        from src.quantum import echo_relief as er
+        from src.store.cache import cached_result
+        flags = self._relief_flags(show, "the echo run")
+        depth = self._opt_int(opts, "depth", er.DEFAULT_DEPTH, 1, er.MAX_DEPTH, "echo depth")
+        width = self._opt_int(opts, "width", 4, 1, 24, "lattice width")
+        height = self._opt_int(opts, "height", 4, 1, 24, "lattice height")
+        shots = self._opt_int(opts, "shots", er.DEFAULT_SHOTS, 10_000, 5_000_000, "shots per depth")
+        spec = ar.build_spec(load_labels(self.labels_path), flags.get("kappa", 1.0), flags.get("n_dirs"), flags.get("entangle", 0.8), flags.get("observations"))[2]
+        problems = ar.check_size(spec) + er.check_lattice(width, height, depth, source)
+        kick = width * height // 2
+        moth_sha = job = None
+        moth_cached, orphans, credits = True, [], 0
+        if source == "moth":
+            _, moth_sha, job = er.moth_job(width, height, depth, kick)
+            problems += job.problems()
+            moth_cached = bool(cached_result(os.path.join(self.echo_dir, "moth"), moth_sha))
+            orphans = self._orphans(os.path.join(self.echo_dir, "moth"))
+            credits = 0 if moth_cached else job.credits
+        sha = er.plan_sha(spec, source, width, height, depth, kick, shots, ar.DEFAULT_SEED, moth_sha)
+        have = er.read_state(self.echo_dir)
+        cached = bool(have and have["sha256"] == sha)
+        flat = f"; {spec.n_classical} flat facets stay classical" if spec.n_classical else ""
+        describe = (f"Dynamic relief: {depth} echo depth(s) on a {width}x{height} lattice (kick at site {kick}); the taps scale each facet's tilt and turn its slope direction, "
+                    f"and one relief circuit per depth ({spec.n_full} qubits{flat}) is executed on Aer with {shots:,} shots each (lamp read in Z), checked against its reference state.\n"
+                    + ("Taps: the LOCAL echo, our reading of the engine's description (free)." if source == "local" else
+                       "Taps: Moth's otoc-echo-v1 (machine aer).\n" + job.describe(max_ops=3)[:2500]))
+        command = self._py("src.quantum.echo_relief", "--labels", self.labels_path, "--out", self.echo_dir, "--source", source, "--depth", str(depth), "--width", str(width),
+                           "--height", str(height), "--shots", str(shots), "--seed", str(ar.DEFAULT_SEED), *self._flag_args(flags))
+        local_run = source == "local" or moth_cached
+        return dict(engine=ECHO_LOCAL if source == "local" else ECHO_MOTH, engine_id="relief-echo (taps: " + ("local echo" if source == "local" else "otoc-echo-v1") + ")",
+                    sha256=sha, credits=credits, cached=cached, problems=problems, describe=describe, allow_spend=self.allow_spend, orphans=orphans, flags=flags,
+                    opts=dict(depth=depth, width=width, height=height, shots=shots), command=command, hash_label="echo run", local=local_run,
+                    action="Run on Aer here (0 credits)" if local_run else None,
+                    note=("A run for exactly this echo, circuit, shot count and seed is already on disk: nothing is executed." if cached else
+                          (f"Executes {depth} circuits on Aer on this machine (about {depth * 4} s). Nothing is sent anywhere and no credits are spent." if source == "local" else
+                           "The Moth result for this echo request is already on disk (0 credits); the circuits are executed on Aer here." if moth_cached else
+                           f"Sends the echo request to Moth and spends {job.credits} credit(s), then executes the {depth} circuits on Aer here."
+                           + ("" if self.allow_spend else " Disabled: the studio was started without --allow-spend."))))
+
+    def plan_qfacets(self, show=None, opts=None):
+        """Prepare the facet register with QDrive: the NEXT job of the chain (each job is its own spend decision), or a note that the chain is finished."""
+        import hashlib
+        from src.capture.labels import load_labels
+        from src.quantum import aer_relief as ar
+        from src.quantum import facet_qdrive as fq
+        flags = self._relief_flags(show, "the QDrive facet register")
+        spec = ar.build_spec(load_labels(self.labels_path), flags.get("kappa", 1.0), flags.get("n_dirs"), flags.get("entangle", 0.8), flags.get("observations"))[2]
+        chain = fq.plan_chain(spec)
+        st = fq.chain_state(self.qfacets_dir, chain, spec)
+        k, blocked = fq.next_index(chain, st)
+        command = self._py("src.quantum.facet_qdrive", "send", "--labels", self.labels_path, "--out", self.qfacets_dir, "--jobs", "1", *self._flag_args({x: v for x, v in flags.items() if x != "contrast"}))
+        base = dict(engine=QFAC, engine_id=fq.ENGINE + " (facet register)", allow_spend=self.allow_spend, flags=flags, opts={}, command=command, action=None, hash_label="job",
+                    orphans=[blocked] if blocked else [])
+        if k is None:
+            return dict(base, sha256=hashlib.sha256(f"{chain['sha']}:done".encode()).hexdigest(), credits=0, cached=True, problems=[], describe=f"all {len(chain['jobs'])} job(s) are done",
+                        note="The QDrive facet chain is finished: nothing is sent. Choose 'facet register: QDrive' in the Aer run to execute the relief on it.")
+        job = fq.preview_job(chain, st, k)
+        sha = hashlib.sha256(f"{chain['sha']}:{k}".encode()).hexdigest()
+        n_t = sum(1 for t in job.params["targets"] if t)
+        return dict(base, sha256=sha, credits=job.credits, cached=False, problems=job.problems() + ([blocked] if blocked else []),
+                    describe=f"job {k + 1} of {len(chain['jobs'])} of the facet-register chain: {n_t} target(s) on {spec.F} qubits" + (f", continuing job {k} (its output asset)" if k else "") + "\n" + job.describe(max_ops=3)[:3000],
+                    note=f"Sends job {k + 1} of {len(chain['jobs'])} to Moth and spends {job.credits} credit(s); the returned circuit is scored against the ideal facet state before the next job is offered."
+                         + ("" if self.allow_spend else " Disabled: the studio was started without --allow-spend."))
+
+    def plan_tomography(self, show=None, opts=None):
+        """Verify on Moth: the reference relief circuit sent to tomography-api-v2 (1 credit), scored against the exact moments and the Aer witness run."""
+        from src.capture.labels import load_labels
+        from src.quantum import verify_moth as vm
+        from src.store.cache import cached_result
+        flags = self._relief_flags(show, "the tomography check")
+        shots = self._opt_int(opts, "shots", 4096, 256, 100_000, "tomography shots")
+        spec, params, sha, job = vm.plan(load_labels(self.labels_path), flags, shots)
+        run_dir = os.path.join(self.solve, "tomography")
+        cached = bool(cached_result(run_dir, sha))
+        command = self._py("src.quantum.verify_moth", "--labels", self.labels_path, "--out", run_dir, "--aer-run", self.aer_dir, "--shots", str(shots), *self._flag_args(flags))
+        return dict(engine=TOMO, engine_id=vm.ENGINE, sha256=sha, credits=0 if cached else job.credits, cached=cached, problems=job.problems(), describe=job.describe(max_ops=3)[:4000],
+                    allow_spend=self.allow_spend, orphans=self._orphans(run_dir), flags=flags, opts=dict(shots=shots), command=command,
+                    action=None, hash_label="payload",
+                    note=("A result for exactly this payload is already on disk: nothing is sent and it costs nothing." if cached else
+                          f"Sends the reference circuit ({spec.n_sim} qubits, no lamp or observe registers) to Moth and spends {job.credits} credit(s); the result is scored against the exact "
+                          "moments (and the Aer witness run if there is one)." + ("" if self.allow_spend else " Disabled: the studio was started without --allow-spend.")))
+
+    def plan(self, engine, show=None, opts=None):
+        if engine in self.RELIEF_ENGINES:
+            return getattr(self, self.RELIEF_ENGINES[engine])(show, opts)
         from src.quantum.moth_client import MothClient
         from src.store.cache import cached_result
         from src.targets.payloads import payload_sha256
@@ -638,11 +834,11 @@ class Studio:
                           f"Sends this payload to Moth and spends {job.credits} credit(s)." + ("" if self.allow_spend else
                           " Disabled: the studio was started without --allow-spend (preview only). Restart it with --allow-spend to send.")))
 
-    def confirm(self, engine, sha256, credits, show=None, aer_shots=None):
+    def confirm(self, engine, sha256, credits, show=None, opts=None):
         with self.lock:
             self._require_idle()
-            if engine == AER:
-                return self._confirm_aer(sha256, credits, show, aer_shots)
+            if engine in self.RELIEF_ENGINES:
+                return self._confirm_relief(engine, sha256, credits, show, opts)
             plan = self.plan(engine)
             if plan["problems"]:
                 raise StageError("this payload cannot be sent: " + "; ".join(plan["problems"]))
@@ -659,17 +855,19 @@ class Studio:
             return dict(started=True, plan=plan)
 
 
-    def _confirm_aer(self, sha256, credits, show, aer_shots):
-        plan = self.plan_aer(show, aer_shots)
+    def _confirm_relief(self, engine, sha256, credits, show, opts):
+        """Run a relief engine's plan: the request must repeat the hash and the cost it was shown with; Moth engines also need --allow-spend."""
+        plan = self.plan(engine, show, opts)
         if plan["problems"]:
-            raise StageError("this circuit cannot be run here: " + "; ".join(plan["problems"]))
-        if sha256 != plan["sha256"] or credits != 0:
-            raise StageError("the circuit or the shot count changed since it was shown: review it again before running")
-        from src.quantum import aer_relief as ar
-        argv = self._py("src.quantum.aer_relief", "--labels", self.labels_path, "--out", self.aer_dir, "--shots", str(plan["shots"]), "--seed", str(ar.DEFAULT_SEED))
-        for k, v in plan["flags"].items():
-            argv += ["--" + k.replace("_", "-"), str(v)]
-        self.jobs["solve"] = Job("solve", argv, self.spawn, engine=AER, credits=0, sha256=plan["sha256"])
+            raise StageError("this cannot be run: " + "; ".join(plan["problems"]))
+        if sha256 != plan["sha256"] or credits != plan["credits"]:
+            raise StageError("the request or its cost changed since it was shown: review it again before running")
+        if plan["credits"] and not self.allow_spend:
+            raise PermissionError("the studio was started without --allow-spend, so it will not submit to Moth")
+        argv = list(plan["command"])
+        if plan["credits"]:
+            argv += ["--approve-credits", str(plan["credits"])]
+        self.jobs["solve"] = Job("solve", argv, self.spawn, engine=engine, credits=plan["credits"], sha256=plan["sha256"])
         return dict(started=True, plan=plan)
 
 
@@ -743,9 +941,9 @@ def make_handler(studio, token, hosts):
                     studio.use_demo_scene()
                     return self._json(200, dict(ok=True))
                 if path == "/api/solve/plan":
-                    return self._json(200, dict(ok=True, plan=studio.plan(body.get("engine", "qdrive"), body.get("show"), body.get("aer_shots"))))
+                    return self._json(200, dict(ok=True, plan=studio.plan(body.get("engine", "qdrive"), body.get("show"), body.get("opts"))))
                 if path == "/api/solve/confirm":
-                    return self._json(200, dict(ok=True, **studio.confirm(body["engine"], body["sha256"], body["credits"], body.get("show"), body.get("aer_shots"))))
+                    return self._json(200, dict(ok=True, **studio.confirm(body["engine"], body["sha256"], body["credits"], body.get("show"), body.get("opts"))))
                 self._json(404, dict(ok=False, error="not found"))
             except PermissionError as e:
                 self._json(403, dict(ok=False, error=str(e)))

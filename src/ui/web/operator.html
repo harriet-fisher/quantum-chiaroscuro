@@ -198,7 +198,9 @@ function render(s) {
   const o = s.output;
   chip($('cOut'), o.connected ? `output ${o.w}x${o.h}${o.fullscreen ? ' fullscreen' : ' (windowed)'}` : 'output: not connected', o.connected ? (o.fullscreen ? 'good' : 'warn') : 'bad');
   const p = s.provenance;
-  chip($('cSrc'), s.family === 'relief' ? (p.from_moth ? 'Moth QDrive circuit' : 'local reference circuit' + (p.untested ? ' · UNTESTED' : '')) + (s.knobs.noise ? ' · CONTROL A' : s.knobs.dephased ? ' · CONTROL B' : '')
+  chip($('cSrc'), s.family === 'relief' ? (p.echo ? 'Aer circuits, one per echo depth' + (p.echo_moth ? ' (Moth echo taps)' : ' (local echo taps)')
+      : p.executed === 'aer' ? 'Aer circuit run' + (p.from_moth ? ' (facets by Moth QDrive)' : '') + (p.untested ? ' · UNTESTED' : '')
+      : p.from_moth ? 'Moth QDrive circuit' : 'local reference circuit' + (p.untested ? ' · UNTESTED' : '')) + (s.knobs.noise ? ' · CONTROL A' : s.knobs.dephased ? ' · CONTROL B' : '')
     : (p.quantum_backed ? `quantum state, simulated locally${p.from_moth ? ' (Moth circuit)' : ''}${p.untested ? ' · UNTESTED' : ''}` : 'classical rehearsal (no quantum)'), p.quantum_backed && !s.knobs.noise && !s.knobs.dephased ? 'good' : 'warn');
   chip($('cGlass'), `glass exactly 0 in ${s.glass.frames_checked} frames` + (s.glass.violations ? ` · ${s.glass.violations} REFUSED` : ''), s.glass.violations ? 'bad' : 'good');
   chip($('cAuto'), s.knobs.auto ? `auto every ${s.knobs.cycle_s}s` : 'auto: off', s.knobs.auto ? 'good' : '');

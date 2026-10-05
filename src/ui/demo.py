@@ -50,7 +50,8 @@ def build_relief_steps(ctx):
     prov, cert = ctx["prov"], ctx.get("tomography")
     from src.quantum.relief_witness import visibility_table
     table = visibility_table()
-    where = ("a circuit returned by Moth's QDrive for the facet qubits" if prov.get("from_moth") else
+    where = ("a circuit whose facet register Moth's QDrive prepared, executed gate by gate on the Aer simulator on this laptop" if prov.get("from_moth") and prov.get("executed") == "aer" else
+             "a circuit returned by Moth's QDrive for the facet qubits" if prov.get("from_moth") else
              "a circuit executed gate by gate on the Aer simulator on this laptop; no Moth result is involved" if prov.get("executed") == "aer" else
              "a circuit simulated exactly on this laptop; no Moth result is involved")
     moth = ctx.get("moth_lines") or ["Nothing has been run on a Moth engine for this scene yet: no tomography, no QDrive circuit."]
@@ -96,7 +97,8 @@ def build_relief_steps(ctx):
             Beat(slide("What is and is not quantum here", [provenance_line(prov)] + moth + [
                 "Simulable: at 18 simulated qubits everything here is simulated exactly on a laptop. No quantum advantage is claimed.",
                 "Controls: the lamp and observation registers are uniform draws (physical randomness on a QPU, pseudo-random here); the quantum content is the facet register, the polarity superposition and the controlled operations between them."],
-                        footnote="Local reference circuit, fidelity-checked against the Qiskit circuit and Aer in the tests."),
+                        footnote=("Executed gate by gate on the Aer simulator on this laptop; every run is checked against the reference state (state.json, and the tests)." if prov.get("executed") == "aer"
+                                  else "Local reference circuit, fidelity-checked against the Qiskit circuit and Aer in the tests.")),
                  [("noise_set", dict(on=False)), ("dephased_set", dict(on=False)), ("auto_set", dict(on=False))], "End on this slide."),
         ]),
     ]

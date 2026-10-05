@@ -5,6 +5,7 @@
     python -m src.show --labels runs/scene/labels.json       # shapes drawn with the pen tool (projector space, no warp needed)
     python -m src.show --source relief --circuit FACETS.qasm # a Moth QDrive circuit for the facet qubits; polarity lifted locally
     python -m src.show --aer-run runs/studio/solve/aer       # the relief circuit as executed on Aer: every look is one measured shot of it
+    python -m src.show --echo-run runs/studio/solve/echo     # dynamic relief: one Aer-executed circuit per echo depth, each look steps to the next
     python -m src.show --source oracle                       # CLASSICAL rehearsal (the older pool-based sources: oracle, mock, circuit, complementary)
 
 In the relief source nothing chooses a look: the light, each panel's depth and the observation axis are drawn inside the circuit. The
@@ -42,6 +43,8 @@ def main(argv=None):
     ap.add_argument("--circuit", help="QASM3 file: for --source relief the FACET register (one qubit per facet); for --source circuit a whole classical-family register")
     ap.add_argument("--aer-run", help="folder of a saved Aer run (python -m src.quantum.aer_relief; the studio's Solve step makes <project>/solve/aer): every look of --source relief is then one measured shot of the "
                     "full relief circuit executed on Aer, instead of a draw from the numpy reference state (per-panel engine only)")
+    ap.add_argument("--echo-run", help="folder of a saved echo run (python -m src.quantum.echo_relief; the studio's Solve step makes <project>/solve/echo): dynamic relief, one Aer-executed circuit per echo depth, "
+                    "and every look steps to the next depth (per-panel engine only)")
     ap.add_argument("--kappa", type=float, default=1.0, help="relief tilt budget per panel: sum of tau^2 = kappa^2 (visibility ~ exp(-kappa^2/2))")
     ap.add_argument("--n-dirs", type=int, default=None, help="relief: slope-orientation facets per panel (default: the most that keeps facets + panels within 20 exact qubits, at most 4: 4 for three panels, 2 for the six panes of the built-in bay window, 1 for eight)")
     ap.add_argument("--entangle", type=float, default=0.8, help="relief: strength of the diagonal facet couplings (0 = product relief)")
@@ -96,7 +99,7 @@ def main(argv=None):
         session = Session(labels, cal, source=a.source, pol_basis=a.polarity_basis, circuit=a.circuit, coupling=a.coupling, calib_dir=a.calib,
                           run_dir=a.run, out_dir=out, projector_size=parse_size(a.projector_size) if a.projector_size else None, seed=a.seed,
                           pool_size=a.pool, allow_spend=a.allow_spend, log=lambda m: print("  " + m),
-                          kappa=a.kappa, n_dirs=a.n_dirs, entangle=a.entangle, contrast=a.contrast, engine=a.engine, aer_run=a.aer_run,
+                          kappa=a.kappa, n_dirs=a.n_dirs, entangle=a.entangle, contrast=a.contrast, engine=a.engine, aer_run=a.aer_run, echo_run=a.echo_run,
                           game=a.game, game_fraction=a.game_fraction, lamp_mode=a.lamp_mode, observations=a.observations,
                           domain=dict(seg_len=a.seg_len, group_size=a.group_size, tau=a.tau, pol_coupling=a.pol_coupling, lock=a.lock, tau_mix=a.tau_mix,
                                       pol_field=a.pol_field, crease_sign=a.crease_sign, backend=a.backend, crease_coupling=a.crease_coupling,

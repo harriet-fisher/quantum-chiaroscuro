@@ -121,7 +121,7 @@ class Session:
     def __init__(self, labels=None, calibration=None, *, source="relief", pol_basis=None, circuit=None, coupling="lamp2",
                  calib_dir=DEFAULT_CALIB_DIR, run_dir=DEFAULT_RUN_DIR, out_dir="runs/show", projector_size=None, seed=2026,
                  pool_size=60000, hub=None, allow_spend=False, solve_fn=None, log=None, complementary_report="runs/complementary/report.json",
-                 kappa=1.0, n_dirs=None, entangle=0.8, contrast=1.15, engine="panel", domain=None, game=False, game_fraction=0.5, lamp_mode="z", observations=None, aer_run=None):
+                 kappa=1.0, n_dirs=None, entangle=0.8, contrast=1.15, engine="panel", domain=None, game=False, game_fraction=0.5, lamp_mode="z", observations=None, aer_run=None, echo_run=None):
         self.labels = validate(fill_defaults(labels if labels is not None else bay_window_labels()))
         self.scene = build_scene(self.labels)
         g = self.labels["grid"]
@@ -156,6 +156,9 @@ class Session:
         self._dirty = False
         self.circuit = circuit
         self.aer_run = aer_run                                          # folder of a saved Aer run: the relief source then draws its looks from those shots
+        self.echo_run = echo_run                                        # folder of a saved echo run: one Aer-executed circuit per echo depth, looks step through the depths
+        if aer_run and echo_run:
+            raise ValueError("--aer-run and --echo-run both replace the relief state; give one")
         self.pol_basis = pol_basis
         self.source_kind = None
         if engine not in ("panel", "domain"):
@@ -333,6 +336,14 @@ class Session:
         qubits, else a matrix-product state) and takes no circuit file."""
         from src.quantum.relief_state import ReliefState
         spec = self.relief()["spec"]
+        if self.echo_run:
+            if circuit:
+                raise ValueError("--echo-run and --circuit both replace the relief state; give one")
+            if self.relief_params["engine"] != "panel":
+                raise ValueError("--echo-run executes the per-panel engine's circuits on Aer; the domain engine's qubits do not fit a statevector run")
+            from src.quantum.echo_relief import EchoReliefState
+            st = EchoReliefState(spec, self.echo_run)
+            return st, dict(label=st.label, quantum_backed=True, from_moth=False, untested=False, synthetic=False, executed="aer", echo=True, echo_moth=st.from_moth)
         if self.aer_run:
             if circuit:
                 raise ValueError("--aer-run and --circuit both replace the relief state; give one")
@@ -340,7 +351,7 @@ class Session:
                 raise ValueError("--aer-run executes the per-panel engine's circuit on Aer; the domain engine's qubits do not fit a statevector run")
             from src.quantum.aer_relief import AerReliefState
             st = AerReliefState(spec, self.aer_run)
-            return st, dict(label=st.label, quantum_backed=True, from_moth=False, untested=False, synthetic=False, executed="aer")
+            return st, dict(label=st.label, quantum_backed=True, from_moth=st.from_moth, untested=st.untested, synthetic=False, executed="aer")
         if self.relief_params["engine"] == "domain":
             if circuit:
                 raise ValueError("--circuit replaces the facet register of the per-panel engine; the domain engine prepares its own register")
@@ -414,7 +425,7 @@ class Session:
                 raise ValueError(f"unknown source {kind!r}; choose from {SOURCES}")
             if kind == "relief":
                 circuit = circuit if circuit is not None else (self.circuit if self.source_kind in (None, "relief") else None)
-                key = ("relief", circuit, self.relief_params["domain"]["floquet_steps"], bool(self.knobs.game), self.aer_run)
+                key = ("relief", circuit, self.relief_params["domain"]["floquet_steps"], bool(self.knobs.game), self.aer_run, self.echo_run)
                 if key not in self._pools:
                     t0 = time.time()
                     state, prov = self._build_relief(circuit)

@@ -211,7 +211,7 @@ class ShowKnobs(Base):
         with open(os.path.join(studio.ROOT, "src", "show.py")) as f:
             src = f.read()
         flags = set(re.findall(r'add_argument\("--([a-z0-9-]+)"', src))
-        owned = {"labels", "out", "run", "calib", "calibration", "circuit", "aer-run"} | {k["flag"][2:] for k in studio.knob_schema()}
+        owned = {"labels", "out", "run", "calib", "calibration", "circuit", "aer-run", "echo-run"} | {k["flag"][2:] for k in studio.knob_schema()}
         self.assertEqual(flags - owned, set())
         self.assertEqual({k["key"] for k in studio.knob_schema()} - {f.replace("-", "_") for f in flags}, set())
 
@@ -296,6 +296,340 @@ class ShowKnobs(Base):
         st = self.s.state()
         self.assertIn("lamp_mode", {k["key"] for k in st["knobs"]})
         self.assertEqual(st["engine"], "panel")
+
+
+class TomographySolve(Base):
+    """Verify on Moth: the reference circuit through tomography-api-v2, behind the same hash-and-cost gate as the other Moth engines."""
+
+    def setUp(self):
+        super().setUp()
+        self.with_targets()
+
+    def tomo_dir(self):
+        return os.path.join(self.s.solve, "tomography")
+
+    def test_the_plan_shows_the_request_its_hash_and_one_credit_and_sends_nothing(self):
+        p = self.s.plan("tomography")
+        self.assertEqual((p["credits"], p["cached"], p["problems"], p["engine_id"]), (1, False, [], "tomography-api-v2"))
+        self.assertEqual(len(p["sha256"]), 64)
+        self.assertIn("tomography-api-v2", p["describe"])
+        self.assertEqual(self.rec.calls, [])
+
+    def test_a_preview_only_studio_refuses_to_spend(self):
+        p = self.s.plan("tomography")
+        with self.assertRaises(PermissionError):
+            self.s.confirm("tomography", p["sha256"], 1)
+        self.assertEqual(self.rec.calls, [])
+
+    def test_a_matching_confirm_runs_the_verifier_with_exactly_the_shown_credit(self):
+        self.s.allow_spend = True
+        p = self.s.plan("tomography", dict(kappa=0.8))
+        self.s.confirm("tomography", p["sha256"], 1, dict(kappa=0.8))
+        argv = self.rec.calls[0]
+        self.assertEqual(argv[1:3], ["-m", "src.quantum.verify_moth"])
+        self.assertEqual(argv[argv.index("--approve-credits") + 1], "1")
+        self.assertEqual(argv[argv.index("--out") + 1], self.tomo_dir())
+        self.assertEqual(argv[argv.index("--aer-run") + 1], self.s.aer_dir)
+        self.assertEqual(argv[argv.index("--kappa") + 1], "0.8")
+        self.assertNotIn("--local", argv)
+
+    def test_a_confirm_for_a_different_request_or_cost_is_refused(self):
+        self.s.allow_spend = True
+        p = self.s.plan("tomography")
+        for sha, credits in (("0" * 64, 1), (p["sha256"], 0), (p["sha256"], 5)):
+            with self.assertRaises(StageError):
+                self.s.confirm("tomography", sha, credits)
+        with self.assertRaises(StageError):                                                   # the hash follows the circuit: other settings, other request
+            self.s.confirm("tomography", p["sha256"], 1, dict(kappa=0.8))
+        self.assertEqual(self.rec.calls, [])
+
+    def test_a_saved_result_is_free_and_sends_no_approval(self):
+        p = self.s.plan("tomography")
+        os.makedirs(self.tomo_dir())
+        with open(os.path.join(self.tomo_dir(), "payload.sha256"), "w") as f:
+            f.write(p["sha256"] + "\n")
+        with open(os.path.join(self.tomo_dir(), "raw_result_job.json"), "w") as f:
+            f.write("{}")
+        p = self.s.plan("tomography")
+        self.assertEqual((p["credits"], p["cached"]), (0, True))
+        self.s.confirm("tomography", p["sha256"], 0)
+        self.assertNotIn("--approve-credits", self.rec.calls[0])
+
+    def test_jobs_submitted_without_a_saved_result_are_reported_but_local_rehearsals_are_not(self):
+        os.makedirs(self.tomo_dir())
+        for name in ("job_aaaaaaaa-1.json", "job_local-bbbb.json"):
+            with open(os.path.join(self.tomo_dir(), name), "w") as f:
+                f.write("{}")
+        self.assertEqual(self.s.plan("tomography")["orphans"], ["aaaaaaaa-1"])
+
+    def test_what_the_check_cannot_cover_is_refused(self):
+        for show in (dict(engine="domain"), dict(source="oracle")):
+            with self.assertRaises(StageError):
+                self.s.plan("tomography", show)
+        for shots in (5, 10 ** 9, "many"):
+            with self.assertRaises(StageError):
+                self.s.plan("tomography", None, dict(shots=shots))
+
+    def write_state(self, **kw):
+        os.makedirs(self.tomo_dir(), exist_ok=True)
+        st = dict(kind="relief-tomography", labels_sha=studio.sha_file(self.s.labels_path), local=False, n_qubits=18,
+                  score=dict(rms_single=0.01, rms_pairs=0.02, n_pair_values=225), aer_comparison=dict(max_abs_difference=0.004))
+        st.update(kw)
+        with open(os.path.join(self.tomo_dir(), "state.json"), "w") as f:
+            json.dump(st, f)
+
+    def solve_stage(self):
+        return next(st for st in self.s.state()["stages"] if st["id"] == "solve")
+
+    def test_a_verified_circuit_is_shown_with_its_numbers_but_does_not_complete_step_4(self):
+        self.write_state()
+        st = self.solve_stage()
+        self.assertEqual(st["status"], "ready")                                                # tomography returns no shots, so it cannot drive Perform
+        self.assertIn("verified the reference circuit", st["verified"])
+        self.assertIn("0.004", st["verified"])
+        self.assertTrue(st["results"]["tomography"]["cached"])
+
+    def test_a_local_rehearsal_or_another_drawings_result_is_not_called_verified(self):
+        for kw in (dict(local=True), dict(labels_sha="0" * 64)):
+            self.write_state(**kw)
+            self.assertNotIn("verified", self.solve_stage())
+
+
+class QFacetSolve(Base):
+    """QDrive-prepared facet register: one chained job per confirm behind the spend gate, and the Aer run that can execute the relief on the finished chain."""
+
+    def setUp(self):
+        super().setUp()
+        self.with_targets()
+        from src.capture.labels import load_labels
+        from src.quantum import aer_relief as ar
+        self.ar = ar
+        self.spec = ar.build_spec(load_labels(self.s.labels_path))[2]
+
+    def run_chain(self, jobs=None):
+        """Advance the chain with the ideal local stand-in (what a finished chain looks like on disk), without spawning anything."""
+        from src.quantum import facet_qdrive as fq
+        for _ in range(jobs or len(fq.plan_chain(self.spec)["jobs"])):
+            fq.send_next(self.spec, self.s.qfacets_dir, self.s.labels_path, local=True, log=lambda m: None)
+
+    def test_the_plan_is_the_first_job_with_its_hash_and_one_credit_and_sends_nothing(self):
+        p = self.s.plan("qdrive-facets")
+        self.assertEqual((p["credits"], p["cached"], p["problems"]), (1, False, []))
+        self.assertIn("job 1 of", p["describe"])
+        self.assertEqual(len(p["sha256"]), 64)
+        self.assertEqual(self.rec.calls, [])
+
+    def test_each_confirm_is_one_job_behind_the_spend_gate(self):
+        p = self.s.plan("qdrive-facets")
+        with self.assertRaises(PermissionError):
+            self.s.confirm("qdrive-facets", p["sha256"], 1)
+        self.s.allow_spend = True
+        with self.assertRaises(StageError):
+            self.s.confirm("qdrive-facets", "0" * 64, 1)
+        with self.assertRaises(StageError):
+            self.s.confirm("qdrive-facets", p["sha256"], 5)
+        self.s.confirm("qdrive-facets", p["sha256"], 1)
+        argv = self.rec.calls[0]
+        self.assertEqual(argv[1:4], ["-m", "src.quantum.facet_qdrive", "send"])
+        self.assertEqual((argv[argv.index("--approve-credits") + 1], argv[argv.index("--jobs") + 1], argv[argv.index("--out") + 1]), ("1", "1", self.s.qfacets_dir))
+        self.assertNotIn("--local", argv)
+
+    def test_after_a_job_the_plan_offers_the_next_one_with_a_new_hash(self):
+        first = self.s.plan("qdrive-facets")
+        self.run_chain(1)
+        second = self.s.plan("qdrive-facets")
+        self.assertIn("job 2 of", second["describe"])
+        self.assertIn("continuing job 1", second["describe"])
+        self.assertNotEqual(first["sha256"], second["sha256"])
+
+    def test_a_job_with_no_saved_result_blocks_the_plan_until_it_is_looked_at(self):
+        from src.quantum import facet_qdrive as fq
+        chain = fq.plan_chain(self.spec)
+        st = fq.chain_state(self.s.qfacets_dir, chain, self.spec)
+        st["steps"]["0"] = dict(status="submitted", job_id="abc")
+        os.makedirs(self.s.qfacets_dir)
+        fq.save_chain(self.s.qfacets_dir, st)
+        self.s.allow_spend = True
+        p = self.s.plan("qdrive-facets")
+        self.assertTrue(p["problems"] and "abc" in p["problems"][0])
+        with self.assertRaises(StageError):
+            self.s.confirm("qdrive-facets", p["sha256"], 1)
+        self.assertEqual(self.rec.calls, [])
+
+    def test_a_finished_chain_is_free_to_load_and_shown_in_the_solve_step(self):
+        self.run_chain()
+        p = self.s.plan("qdrive-facets")
+        self.assertEqual((p["credits"], p["cached"]), (0, True))
+        self.s.confirm("qdrive-facets", p["sha256"], 0)                                      # no allow_spend needed: nothing is sent
+        self.assertNotIn("--approve-credits", self.rec.calls[0])
+        st = next(x for x in self.s.state()["stages"] if x["id"] == "solve")
+        self.assertTrue(any("QDrive facet register" in x and "LOCAL rehearsal" in x and "complete" in x for x in st["extras"]))
+        self.assertEqual(st["status"], "ready")                                              # a facet circuit alone is not yet a performance
+
+    def test_the_aer_run_can_execute_the_relief_on_the_finished_chain_and_only_then(self):
+        with self.assertRaises(StageError) as cm:
+            self.s.plan("aer", None, dict(facets="qdrive"))
+        self.assertIn("QDrive facet", str(cm.exception))
+        self.run_chain(2)                                                                    # unfinished is not enough either
+        with self.assertRaises(StageError):
+            self.s.plan("aer", None, dict(facets="qdrive"))
+        self.run_chain(len(__import__("src.quantum.facet_qdrive", fromlist=["x"]).plan_chain(self.spec)["jobs"]) - 2)
+        ideal, qd = self.s.plan("aer"), self.s.plan("aer", None, dict(facets="qdrive"))
+        self.assertNotEqual(ideal["sha256"], qd["sha256"])
+        self.assertIn("facet register:", qd["describe"])
+        self.assertEqual(qd["opts"]["facets"], "qdrive")
+        self.s.confirm("aer", qd["sha256"], 0, None, dict(facets="qdrive"))
+        argv = self.rec.calls[0]
+        self.assertEqual(argv[argv.index("--facet-circuit") + 1], os.path.join(self.s.qfacets_dir, "circuit.qasm"))
+        self.assertNotIn("--facet-circuit", self.s.plan("aer")["command"])
+        with self.assertRaises(StageError):
+            self.s.plan("aer", None, dict(facets="mystery"))
+
+    def test_a_chain_of_other_relief_settings_cannot_feed_the_aer_run(self):
+        self.run_chain()
+        with self.assertRaises(StageError):
+            self.s.plan("aer", dict(entangle=0.3), dict(facets="qdrive"))
+
+    def test_a_chain_of_an_earlier_drawing_is_not_shown(self):
+        self.run_chain()
+        with open(self.s.labels_path) as f:
+            labels = json.load(f)
+        labels["glass"] = labels["glass"][:-1]
+        with open(self.s.labels_path, "w") as f:
+            json.dump(labels, f)
+        st = next(x for x in self.s.state()["stages"] if x["id"] == "solve")
+        self.assertEqual(st["extras"], [])
+
+
+class EchoSolve(Base):
+    """Dynamic relief: taps from the local echo (free) or Moth's otoc-echo-v1 (1 credit, behind the spend gate), circuits executed on Aer, and the Perform choice that plays them."""
+
+    def setUp(self):
+        super().setUp()
+        self.with_targets()
+
+    def fake_run(self, source="local", labels_sha="current", flags=None, consistent=True, aer=False):
+        folder = self.s.echo_dir
+        os.makedirs(folder, exist_ok=True)
+        sha = studio.sha_file(self.s.labels_path) if labels_sha == "current" else labels_sha
+        with open(os.path.join(folder, "state.json"), "w") as f:
+            json.dump(dict(kind="relief-echo", sha256="e" * 64, labels_sha=sha, taps_source=source, depth=4, n_qubits=22, shots=1000, flags=flags or {}, consistent=consistent), f)
+        with open(os.path.join(folder, "shots.npz"), "wb") as f:
+            f.write(b"x")
+        if aer:
+            os.makedirs(self.s.aer_dir, exist_ok=True)
+            with open(os.path.join(self.s.aer_dir, "state.json"), "w") as f:
+                json.dump(dict(kind="relief-aer", sha256="f" * 64, labels_sha=sha, flags={}, n_qubits=22, shots=1000, score=dict(consistent=True)), f)
+            with open(os.path.join(self.s.aer_dir, "shots.npz"), "wb") as f:
+                f.write(b"x")
+
+    def test_the_local_plan_is_free_and_runs_without_allow_spend(self):
+        p = self.s.plan("echo-local")
+        self.assertEqual((p["credits"], p["cached"], p["problems"], p["opts"]), (0, False, [], dict(depth=4, width=4, height=4, shots=200_000)))
+        self.assertIn("LOCAL echo", p["describe"])
+        self.assertEqual(self.rec.calls, [])
+        self.s.confirm("echo-local", p["sha256"], 0)
+        argv = self.rec.calls[0]
+        self.assertEqual(argv[1:3], ["-m", "src.quantum.echo_relief"])
+        self.assertEqual(argv[argv.index("--source") + 1], "local")
+        self.assertEqual((argv[argv.index("--depth") + 1], argv[argv.index("--width") + 1], argv[argv.index("--out") + 1]), ("4", "4", self.s.echo_dir))
+        for banned in ("--approve-credits", "--allow-spend"):
+            self.assertNotIn(banned, argv)
+
+    def test_the_options_shape_the_request_and_bad_ones_are_refused(self):
+        a = self.s.plan("echo-local")["sha256"]
+        for opts in (dict(depth=3), dict(width=3, height=4), dict(shots=50_000)):
+            self.assertNotEqual(a, self.s.plan("echo-local", None, opts)["sha256"])
+        for opts in (dict(depth=0), dict(depth=99), dict(width=0), dict(shots=5), dict(depth="deep")):
+            with self.assertRaises(StageError):
+                self.s.plan("echo-local", None, opts)
+        big = self.s.plan("echo-local", None, dict(width=5, height=4))                          # 20 sites: more than the local echo can do
+        self.assertTrue(big["problems"])
+        with self.assertRaises(StageError):
+            self.s.confirm("echo-local", big["sha256"], 0, None, dict(width=5, height=4))
+        with self.assertRaises(StageError):
+            self.s.plan("echo-local", dict(engine="domain"))
+        self.assertEqual(self.rec.calls, [])
+
+    def test_the_moth_plan_costs_one_credit_behind_the_gate_and_asks_for_it_by_hash(self):
+        p = self.s.plan("echo-moth")
+        self.assertEqual((p["credits"], p["problems"]), (1, []))
+        self.assertIn("otoc-echo-v1", p["describe"])
+        with self.assertRaises(PermissionError):
+            self.s.confirm("echo-moth", p["sha256"], 1)
+        self.s.allow_spend = True
+        for sha, credits in (("0" * 64, 1), (p["sha256"], 0), (p["sha256"], 5)):
+            with self.assertRaises(StageError):
+                self.s.confirm("echo-moth", sha, credits)
+        self.assertEqual(self.rec.calls, [])
+        self.s.confirm("echo-moth", p["sha256"], 1)
+        argv = self.rec.calls[0]
+        self.assertEqual((argv[argv.index("--source") + 1], argv[argv.index("--approve-credits") + 1]), ("moth", "1"))
+
+    def test_the_engine_lattice_may_be_bigger_than_the_local_one_but_not_beyond_24_sites(self):
+        self.assertEqual(self.s.plan("echo-moth", None, dict(width=6, height=4))["problems"], [])
+        self.assertTrue(self.s.plan("echo-moth", None, dict(width=5, height=5))["problems"])
+
+    def test_a_saved_moth_result_is_free_to_reuse_and_unfinished_jobs_are_reported(self):
+        p = self.s.plan("echo-moth")
+        moth = os.path.join(self.s.echo_dir, "moth")
+        os.makedirs(moth)
+        with open(os.path.join(moth, "payload.sha256"), "w") as f:
+            f.write(self.shaof(p) + "\n")
+        with open(os.path.join(moth, "raw_result_x.json"), "w") as f:
+            f.write("{}")
+        p = self.s.plan("echo-moth")
+        self.assertEqual(p["credits"], 0)
+        self.assertTrue(p["local"])                                                             # the circuits are executed here
+        self.s.confirm("echo-moth", p["sha256"], 0)
+        self.assertNotIn("--approve-credits", self.rec.calls[-1])
+        with open(os.path.join(moth, "job_zzz.json"), "w") as f:
+            f.write("{}")
+        self.assertEqual(self.s.plan("echo-moth")["orphans"], ["zzz"])
+
+    def shaof(self, plan):
+        from src.quantum import echo_relief as er
+        return er.moth_job(plan["opts"]["width"], plan["opts"]["height"], plan["opts"]["depth"], plan["opts"]["width"] * plan["opts"]["height"] // 2)[1]
+
+    def test_a_finished_run_completes_step_4_and_unlocks_playing_it(self):
+        self.assertEqual(self.status()["final"], "blocked")
+        self.fake_run(flags=dict(kappa=0.8))
+        st = {x["id"]: x for x in self.s.state()["stages"]}
+        self.assertEqual((st["solve"]["status"], st["final"]["status"], st["final"]["choices"]), ("done", "ready", ["echo"]))
+        self.assertIn("Dynamic relief was executed on Aer", st["solve"]["note"])
+        self.s.start("final")
+        argv = self.rec.calls[-1]
+        self.assertEqual(argv[1:3], ["-m", "src.show"])
+        self.assertEqual((argv[argv.index("--echo-run") + 1], argv[argv.index("--kappa") + 1], argv[argv.index("--source") + 1]), (self.s.echo_dir, "0.8", "relief"))
+        for banned in ("--aer-run", "--circuit", "--allow-spend"):
+            self.assertNotIn(banned, argv)
+        self.assertEqual(self.s.jobs["show"].meta["mode"], "echo")
+        self.assertEqual(self.status()["final"], "done")
+
+    def test_a_run_that_disagrees_with_its_reference_says_so(self):
+        self.fake_run(consistent=False)
+        self.assertIn("does NOT agree", next(x for x in self.s.state()["stages"] if x["id"] == "solve")["note"])
+
+    def test_a_run_of_an_earlier_drawing_is_not_played(self):
+        self.fake_run(labels_sha="0" * 64)
+        st = {x["id"]: x for x in self.s.state()["stages"]}
+        self.assertEqual((st["solve"]["status"], st["final"]["status"]), ("ready", "blocked"))
+        self.assertIn("echo run was made from an earlier drawing", st["solve"]["warn"])
+        with self.assertRaises(StageError):
+            self.s.start("final", dict(**{"from": "echo"}))
+
+    def test_with_the_aer_run_too_both_are_offered_aer_first_and_each_starts_its_own_show(self):
+        self.fake_run(aer=True)
+        final = next(x for x in self.s.state()["stages"] if x["id"] == "final")
+        self.assertEqual(final["choices"], ["aer", "echo"])
+        self.s.start("final")
+        self.assertIn("--aer-run", self.rec.calls[-1])
+        self.s.start("final", dict(**{"from": "echo"}))
+        argv = self.rec.calls[-1]
+        self.assertIn("--echo-run", argv)
+        self.assertNotIn("--aer-run", argv)
+        with self.assertRaises(StageError):
+            self.s.start("final", dict(**{"from": "qdrive"}))
 
 
 class SpendGate(Base):
@@ -482,7 +816,7 @@ class AerSolve(Base):
         self.s.confirm("aer", b["sha256"], 0, dict(kappa=0.8, entangle=0.4))
         argv = self.rec.calls[0]
         self.assertEqual((argv[argv.index("--kappa") + 1], argv[argv.index("--entangle") + 1]), ("0.8", "0.4"))
-        self.assertNotEqual(a["sha256"], self.s.plan("aer", dict(), 20_000)["sha256"])             # the shot count is part of what is executed
+        self.assertNotEqual(a["sha256"], self.s.plan("aer", dict(), dict(shots=20_000))["sha256"])             # the shot count is part of what is executed
 
     def test_what_the_aer_run_cannot_cover_is_refused_up_front(self):
         for show in (dict(engine="domain"), dict(source="oracle")):
@@ -490,7 +824,7 @@ class AerSolve(Base):
                 self.s.plan("aer", show)
         for shots in (5, 10 ** 9, "many"):
             with self.assertRaises(StageError):
-                self.s.plan("aer", None, shots)
+                self.s.plan("aer", None, dict(shots=shots))
         self.s.engine = "domain"                                                                     # a studio started with --engine domain must say so, not run the wrong circuit
         with self.assertRaises(StageError):
             self.s.plan("aer")

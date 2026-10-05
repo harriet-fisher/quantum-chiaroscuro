@@ -67,7 +67,11 @@
 const TOKEN = "__TOKEN__";
 const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); kids.forEach(k => e.append(k)); return e; };
 const $ = id => document.getElementById(id);
-let S = null, plan = null, planEngine = "aer", busy = false;
+let S = null, plan = null, planEngine = "aer", aerFacets = "ideal", busy = false;
+const RELIEF = ["aer", "tomography", "qdrive-facets", "echo-local", "echo-moth"];
+const ECHO_ENGINES = ["echo-local", "echo-moth"];
+const echoOpts = { depth: "", width: "", height: "" };
+const PERFORM = { aer: "Open performance (Aer run)", echo: "Open performance (echo: dynamic relief)", qdrive: "Open performance (QDrive circuit)" };            // engines planned from the drawing and the show options (not from calib/)
 const inputs = { photo: "", nx: "", ny: "", sweeps: "" };
 const knobVals = {};                             // show options by key; blank/false = the show's own default
 const KNOB_STORE = "studio-knobs";
@@ -91,7 +95,7 @@ const LABELS = {
   targets: s => s.status === "running" ? null : (s.status === "done" ? "Re-run targets" : "Run targets"),
   preview: s => s.status === "running" ? null : "Open rehearsal",
   solve: s => s.status === "running" ? null : (planEngine === "aer" ? "Review circuit" : "Review payload"),
-  final: s => s.status === "running" ? null : ((s.choices || [])[0] === "qdrive" ? "Open performance (QDrive circuit)" : "Open performance (Aer run)"),
+  final: s => s.status === "running" ? null : (PERFORM[(s.choices || [])[0]] || PERFORM.aer),
 };
 
 function primary(stage) {                       // what the header's Next button does for the stage in focus
@@ -175,9 +179,14 @@ function applyKnobs() {                          // greying only: never rebuilds
     }
 }
 
+function planOpts() {                           // engine-specific options sent with the plan and repeated by the confirm
+  if (planEngine === "aer") return { facets: aerFacets };
+  if (ECHO_ENGINES.includes(planEngine)) { const o = {}; for (const k of Object.keys(echoOpts)) if (echoOpts[k] !== "") o[k] = Number(echoOpts[k]); return o; }
+  return undefined;
+}
 async function reviewPayload() {
   say("");
-  try { plan = (await post("/api/solve/plan", { engine: planEngine, show: planEngine === "aer" ? shownKnobs("preview") : undefined })).plan; } catch (e) { plan = null; say(e.message); }
+  try { plan = (await post("/api/solve/plan", { engine: planEngine, show: RELIEF.includes(planEngine) ? shownKnobs("preview") : undefined, opts: planOpts() })).plan; } catch (e) { plan = null; say(e.message); }
   render();
 }
 
@@ -199,9 +208,13 @@ function build() {                               // static skeleton, built once 
     el("label", {}, "grid", field("nx", "nx", "46px"), "x", field("ny", "ny", "46px"), el("span", { className: "dim", textContent: "(blank = from the drawing)" })),
     el("label", {}, "sweeps", field("sweeps", "200000", "80px")));
   $("preview-actions").append(el("span", { id: "preview-btns" }));
-  const eng = el("select", { id: "engine" }, el("option", { value: "aer", textContent: "Relief on Aer (quantum circuit, local, 0 credits)" }), el("option", { value: "qdrive", textContent: "QDrive (1 credit)" }), el("option", { value: "graph-v1", textContent: "graph-v1 (5 credits)" }));
-  eng.onchange = () => { planEngine = eng.value; plan = null; for (const k of Object.keys(sigs)) delete sigs[k]; render(); };
-  $("solve-actions").append(eng, el("span", { id: "solve-btns" }));
+  const eng = el("select", { id: "engine" }, el("option", { value: "aer", textContent: "Relief on Aer (quantum circuit, local, 0 credits)" }), el("option", { value: "tomography", textContent: "Verify on Moth: tomography-api-v2 (1 credit)" }), el("option", { value: "qdrive-facets", textContent: "QDrive facet register (1 credit per job)" }), el("option", { value: "echo-local", textContent: "Echo dynamic relief on Aer (local echo taps, 0 credits)" }), el("option", { value: "echo-moth", textContent: "Echo dynamic relief: Moth otoc-echo-v1 taps (1 credit)" }), el("option", { value: "qdrive", textContent: "QDrive (1 credit)" }), el("option", { value: "graph-v1", textContent: "graph-v1 (5 credits)" }));
+  const fac = el("select", { id: "aerFacets", title: "Aer run: where the facet register comes from" },
+    el("option", { value: "ideal", textContent: "facet register: hand-built circuit" }), el("option", { value: "qdrive", textContent: "facet register: QDrive chain circuit" }));
+  fac.onchange = () => { aerFacets = fac.value; plan = null; render(); };
+  const echo = el("span", { id: "echoOpts", hidden: true }, ...["depth", "width", "height"].map(k => { const i = el("input", { type: "text", placeholder: k + (k === "depth" ? " (4)" : " (4)"), value: echoOpts[k] }); i.style.width = "92px"; i.oninput = () => { echoOpts[k] = i.value; plan = null; render(); }; return i; }));
+  eng.onchange = () => { planEngine = eng.value; plan = null; fac.hidden = eng.value !== "aer"; echo.hidden = !ECHO_ENGINES.includes(eng.value); for (const k of Object.keys(sigs)) delete sigs[k]; render(); };
+  $("solve-actions").append(eng, fac, echo, el("span", { id: "solve-btns" }));
   $("solve-actions").after(el("div", { id: "plan", className: "plan", hidden: true }));
   $("final-actions").append(el("span", { id: "final-btns" }));
 }
@@ -216,8 +229,9 @@ function buttons(host, stage) {                  // rebuilt only when something 
   sigs[host] = sig;
   h.replaceChildren();
   if (label) h.append(el("button", { textContent: label, disabled: blocked, className: S.next === stage.id ? "primary" : "", onclick: primary(stage) }));
-  if (label && stage.id === "final" && (stage.choices || []).length > 1)
-    h.append(el("button", { textContent: "Open performance (QDrive circuit)", disabled: blocked, onclick: () => start("final", { show: shownKnobs("final"), from: "qdrive" }) }));
+  if (label && stage.id === "final")
+    for (const c of (stage.choices || []).slice(1))
+      h.append(el("button", { textContent: PERFORM[c], disabled: blocked, onclick: () => start("final", { show: shownKnobs("final"), from: c }) }));
   const job = stage.job;
   const stopName = { draw: "pen", preview: "show", final: "show", targets: "targets", solve: "solve" }[stage.id];
   if (job && job.running) {
@@ -236,7 +250,7 @@ function render() {
     card.className = "stage " + st.status + (S.next === st.id ? " next" : "");
     $(st.id + "-title").textContent = st.title;
     const sb = $(st.id + "-status"); sb.textContent = st.status; sb.className = "status " + st.status;
-    $(st.id + "-note").textContent = st.note || "";
+    $(st.id + "-note").textContent = (st.note || "") + ((st.extras || []).filter(x => !(st.note || "").includes(x)).map(x => " " + x).join(""));
     $(st.id + "-warn").textContent = st.warn || "";
     buttons(st.id + "-btns", st);
     const log = $(st.id + "-log"), box = $(st.id + "-logbox");
@@ -263,17 +277,17 @@ function renderPlan() {
   if (!plan) { box.hidden = true; return; }
   box.hidden = false;
   box.replaceChildren(
-    el("div", {}, el("strong", { textContent: plan.engine_id }), plan.engine === "aer" ? " circuit sha256 " : " payload sha256 ", el("code", { textContent: plan.sha256 })),
+    el("div", {}, el("strong", { textContent: plan.engine_id }), " " + (plan.hash_label || "payload") + " sha256 ", el("code", { textContent: plan.sha256 })),
     el("div", { className: "cost " + (plan.credits ? "warn" : "ok"), textContent: plan.credits ? plan.credits + " credit(s) will be spent" : "0 credits: nothing will be sent" }),
     el("div", { className: "dim", textContent: plan.note }),
-    ...(plan.problems.length ? [el("div", { className: "bad", textContent: (plan.engine === "aer" ? "Cannot be run: " : "Cannot be sent: ") + plan.problems.join("; ") })] : []),
+    ...(plan.problems.length ? [el("div", { className: "bad", textContent: (plan.local ? "Cannot be run: " : "Cannot be sent: ") + plan.problems.join("; ") })] : []),
     ...(plan.orphans.length ? [el("div", { className: "warn", textContent: plan.orphans.length + " earlier job(s) have no saved result: " + plan.orphans.map(o => o.slice(0, 8)).join(", ") })] : []),
-    el("details", {}, el("summary", { textContent: plan.engine === "aer" ? "Show what will run" : "Show the request" }), el("pre", { textContent: plan.describe })),
+    el("details", {}, el("summary", { textContent: plan.local ? "Show what will run" : "Show the request" }), el("pre", { textContent: plan.describe })),
     el("div", { className: "actions", style: "margin-left:0" },
       el("button", {
         className: "primary", disabled: !!plan.problems.length || (plan.credits > 0 && !plan.allow_spend) || S.busy,
-        textContent: plan.credits ? "Send to Moth: spend " + plan.credits + " credit(s)" : plan.cached ? "Load the saved result" : "Run on Aer here (0 credits)",
-        onclick: () => act(async () => { const p = plan; plan = null; await post("/api/solve/confirm", { engine: p.engine, sha256: p.sha256, credits: p.credits, show: p.engine === "aer" ? shownKnobs("preview") : undefined, aer_shots: p.engine === "aer" ? p.shots : undefined }); })
+        textContent: plan.credits ? "Send to Moth: spend " + plan.credits + " credit(s)" : plan.cached ? "Load the saved result" : (plan.action || "Run here (0 credits)"),
+        onclick: () => act(async () => { const p = plan; plan = null; await post("/api/solve/confirm", { engine: p.engine, sha256: p.sha256, credits: p.credits, show: RELIEF.includes(p.engine) ? shownKnobs("preview") : undefined, opts: p.opts }); })
       }),
       el("button", { textContent: "Cancel", onclick: () => { plan = null; render(); } })));
 }

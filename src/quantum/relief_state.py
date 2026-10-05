@@ -537,9 +537,38 @@ class ReliefState:
 
 
 # ------------------------------------------------------------------ qiskit circuits (hardware-ready, cross-checked in tests)
-def reference_circuit(spec, measure=False):
+def facet_block(spec, edges=None):
+    """The facet register's preparation as a Qiskit circuit on F qubits: Ry(tau) Rz(phi) on every facet, the couplings (`edges` replaces spec.edges, e.g. a
+    prefix of them), then the Floquet steps. Its statevector is facet_state(spec) up to a global phase."""
+    from qiskit import QuantumCircuit
+    F = spec.F
+    edges = spec.edges if edges is None else edges
+    qc = QuantumCircuit(F, name="facets")
+    for i in range(F):
+        qc.ry(float(spec.tau[i]), i)
+        qc.rz(float(spec.phi[i]), i)
+    for i, j, kind, th in edges:
+        if kind == "xy":
+            qc.rxx(float(th), i, j)
+            qc.ryy(float(th), i, j)
+    for i, j, kind, th in edges:
+        if kind == "zz":
+            qc.rzz(float(th), i, j)
+    fl = spec.floquet
+    if fl and fl.get("steps"):                                      # kicked-Ising dynamics on the facet graph: entanglement grows with every step
+        for _ in range(int(fl["steps"])):
+            for i, j, kind, th in edges:
+                if kind == "zz":
+                    qc.rzz(float(np.sign(th) * fl["theta_zz"]), i, j)
+            for i in range(F):
+                qc.rx(float(fl["theta_x"]), i)
+    return qc
+
+
+def reference_circuit(spec, measure=False, facet_circuit=None):
     """The simulated register as a Qiskit circuit (F facet qubits, then P polarity qubits): H on each polarity qubit, Ry(tau) Rz(phi) on each
-    facet, the couplings, then CZ(B_p, f) for every facet of panel p. Its statevector equals full_state(spec) up to a global phase."""
+    facet, the couplings, then CZ(B_p, f) for every facet of panel p. Its statevector equals full_state(spec) up to a global phase.
+    `facet_circuit` (F qubits, no measurements, e.g. one QDrive returned) replaces the facet block; the polarity superposition is lifted on top as ever."""
     from qiskit import QuantumCircuit
     F, P = spec.F, spec.P
     qc = QuantumCircuit(F + P, name="superposed_relief")
@@ -556,24 +585,9 @@ def reference_circuit(spec, measure=False):
                 for d, b in enumerate(layer["rx"]):
                     if b:
                         qc.rx(float(b), F + d)
-    for i in range(F):
-        qc.ry(float(spec.tau[i]), i)
-        qc.rz(float(spec.phi[i]), i)
-    for i, j, kind, th in spec.edges:
-        if kind == "xy":
-            qc.rxx(float(th), i, j)
-            qc.ryy(float(th), i, j)
-    for i, j, kind, th in spec.edges:
-        if kind == "zz":
-            qc.rzz(float(th), i, j)
-    fl = spec.floquet
-    if fl and fl.get("steps"):                                      # kicked-Ising dynamics on the facet graph: entanglement grows with every step
-        for _ in range(int(fl["steps"])):
-            for i, j, kind, th in spec.edges:
-                if kind == "zz":
-                    qc.rzz(float(np.sign(th) * fl["theta_zz"]), i, j)
-            for i in range(F):
-                qc.rx(float(fl["theta_x"]), i)
+    if facet_circuit is not None and facet_circuit.num_qubits != F:
+        raise ValueError(f"the facet circuit has {facet_circuit.num_qubits} qubits, the facet register has {F}")
+    qc.compose(facet_block(spec) if facet_circuit is None else facet_circuit, qubits=list(range(F)), inplace=True)
     for i in range(F):
         qc.cz(F + int(spec.panel_of[i]), i)
     if measure:
@@ -581,7 +595,7 @@ def reference_circuit(spec, measure=False):
     return qc
 
 
-def full_circuit(spec, lamp_mode="z"):
+def full_circuit(spec, lamp_mode="z", facet_circuit=None):
     """The whole performance circuit, ready for a QPU or Aer: relief register, lamp register (H, then per-world controlled rotations of every
     facet to its light axis), observe register (H, then per-value controlled rotations of every polarity qubit to its depth-sphere axis),
     and measurement of everything into registers facets / pol / lamp / obs."""
@@ -591,7 +605,7 @@ def full_circuit(spec, lamp_mode="z"):
     fq, pq, lq, oq = QuantumRegister(F, "f"), QuantumRegister(P, "b"), QuantumRegister(2, "lamp"), QuantumRegister(2, "obs")
     cf, cp, cl, co = ClassicalRegister(F, "cf"), ClassicalRegister(P, "cb"), ClassicalRegister(2, "cl"), ClassicalRegister(2, "co")
     qc = QuantumCircuit(fq, pq, lq, oq, cf, cp, cl, co, name="standing_light_v2")
-    qc.compose(reference_circuit(spec), qubits=list(fq) + list(pq), inplace=True)
+    qc.compose(reference_circuit(spec, facet_circuit=facet_circuit), qubits=list(fq) + list(pq), inplace=True)
     qc.h(lq), qc.h(oq)
     lock = spec.lock_array()
     if lock is not None:                                            # lamp L1 coupled to the polarity qubits: the light side and the depth are entangled

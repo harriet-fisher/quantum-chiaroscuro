@@ -93,9 +93,22 @@ On the page, press **Next step** each time (it always offers the first step that
 |---|---|---|
 | **1 Draw the shapes** | opens the pen tool: draw the panels and glass on the projector's own screen, press **Save** in it. Or press **Use the built-in demo scene** (the six-pane bay window above) to try everything with no projector and no drawing | nothing |
 | **2 Calibrate targets** | estimates the classical correlation targets for your drawing and writes the Moth payloads. Sends nothing, takes up to a minute | step 1 |
-| **3 Rehearse the show** | **opens the show on Superposed Relief**, the quantum circuit simulated exactly on your laptop. No Moth call, no credits | step 2 |
-| **4 Solve: execute the circuit** | **default: Relief on Aer.** Shows the circuit (qubits, gates, shots) and its hash, then executes the whole relief circuit on Aer here: 1,000,000 shots with the lamp read in Z and again in X, checked against the reference state, plus a witness run. Free, no key, no network. The Moth engines (QDrive, graph-v1) are in the same dropdown; they send only if you started the studio with `--allow-spend` *and* press the send button | step 2 |
-| **5 Perform with the result** | opens the show on the Aer run: every look is one measured shot of the circuit, and the witness button measures on Aer too. If a QDrive result also exists, a second button opens the older classical-family flow on its circuit | an Aer run (or a QDrive result) |
+| **3 Rehearse the show** | **opens the show on Superposed Relief**: every look is drawn from the exact numpy statevector of the relief circuit (sampled analytically, no circuit is executed). No Moth call, no credits | step 2 |
+| **4 Solve: execute the circuit** | pick an engine in the dropdown, press **Review**, read the card (what runs, its hash, its cost), then confirm. **Default: Relief on Aer**, free and local. The other engines are below; the ones that cost credits send only if you started the studio with `--allow-spend` *and* press the send button | step 2 |
+| **5 Perform with the result** | one button per result that exists, the first one primary: **the Aer run** (every look is one measured shot of the circuit), **the echo run** (dynamic relief: every look steps to the next echo depth), **the QDrive circuit** (the older classical-family flow) | any of those |
+
+**Step 4's engines** (the dropdown; every one shows its request, hash and cost first, and a request whose result is already on disk costs nothing):
+
+| Engine | Credits | What it does | Leaves in `<project>/solve/` |
+|---|---|---|---|
+| **Relief on Aer** (default) | 0 | transpiles the whole relief circuit (facet, polarity, lamp and observe registers) for Aer and runs 1,000,000 shots with the lamp read in Z and again in X; checks the shots against the reference state (total variation and facet marginals, each against the shot-noise floor) and runs a witness measurement (polarity in X, facets in Z). A select next to it chooses the facet register: the hand-built circuit, or the finished QDrive chain's circuit | `aer/`: `shots.npz`, `circuit.qasm`, `state.json` (+ `facet_circuit.qasm`) |
+| **Verify on Moth: tomography-api-v2** | 1 | sends the reference circuit (facet and polarity qubits, 18 for the default scene) and scores what comes back against the exact moments, with the polarity visibilities beside the Aer witness run's. Tomography returns moments, not shots, so it confirms the state but cannot drive Perform | `tomography/` |
+| **QDrive facet register** | 1 per job | prepares the facet register in small chained jobs (one target per coupled pair with every Pauli word of its reduced state, two layers per job, job *k* continues job *k-1*'s output asset). **Each confirm sends one job**; the returned circuit is scored against the ideal facet state (fidelity, moment error) before the next is offered. When the chain is finished the Aer run can execute the relief on it | `qdrive_facets/`: `chain.json`, `circuit.qasm`, `state.json` |
+| **Echo dynamic relief on Aer (local taps)** | 0 | the echo lattice's taps scale each facet's tilt and turn its slope direction; one relief circuit per echo depth is executed on Aer and checked against its own reference. Taps from `moth_engines.local_echo`, our reading of the engine's description | `echo/`: `shots.npz`, `taps.json`, `state.json` |
+| **Echo dynamic relief: Moth otoc-echo-v1 taps** | 1 | the same, with the taps from Moth's engine (machine aer, at most 24 sites; the dynamics are Moth's, the circuits are Aer's). The Moth result is saved first and reused, so changing only the Aer shots costs nothing | `echo/` and `echo/moth/` |
+| **QDrive / graph-v1** | 1 / 5 | the older classical-target flow: calibrated `<Z>`, `<ZZ>` targets (step 2) in, a circuit (QDrive) or tomography (graph-v1) out | `qdrive/`, `graph_v1/` |
+
+**How the Aer path relates to Moth's engines.** The Aer run executes the same circuit that `tomography-api-v2` would be sent, on the same simulator Moth's engines use for machine `aer`, so the two should agree on every moment the engine returns; the difference is what comes back (tomography returns moments with shot noise, the Aer run keeps the shots, which is what frames are made of). No engine we know of returns the raw shots of an arbitrary circuit: `graph-v1` returns the 20 likeliest bitstrings of at most 20 qubits (the full circuit has 22), `qdrive-api-v1` builds circuits from correlations rather than executing them, and `otoc-echo-v1` returns taps. So the pieces fit like this: **Moth engines supply a state (QDrive's facet register), a verdict (tomography) or dynamics (the echo taps); Aer executes and measures**. When the service is back, each engine's request is the one its card shows; until then every Moth path has a local stand-in that is labelled as such and never writes the files the show prints as Moth results (see "Moth engines and spending credits").
 
 Step 3 prints a URL and opens the show. That is where you see and use Superposed Relief: the operator panel (`/`), the projector window (`/output`, drag it to the projector display and press `F`) and the audience screen (`/audience`). Press `Space` for a new frame, `A` for auto-cycle, `W` for the entanglement witness, `?` for every key. Stop ends any tool the studio started; Ctrl+C stops everything.
 
@@ -107,12 +120,14 @@ python -m src.studio --allow-spend             # lets step 4 submit to Moth (it 
 python -m src.studio --engine domain           # step 3 opens the domain relief (a few seconds to build) instead of the per-panel one
 ```
 
-The studio writes to its project folder: `labels.json` (the drawing), `calib/` (targets and payloads), `solve/` (`aer/`: the Aer run, `shots.npz` + `circuit.qasm` + `state.json`; Moth results beside it), `studio.json` (which drawing the targets came from, so a changed drawing marks later steps stale).
+The studio writes to its project folder: `labels.json` (the drawing), `calib/` (targets and payloads), `solve/` (one folder per step-4 engine: `aer/`, `tomography/`, `qdrive_facets/`, `echo/`, `qdrive/`, `graph_v1/`), `studio.json` (which drawing the targets came from, so a changed drawing marks later steps stale).
 
 **What to know about the current studio** (accurate as of the Superposed Relief build):
-- Steps 3, 4 and 5 now run the relief circuit: step 3 draws from the numpy reference state, step 4 executes the circuit on Aer and saves the shots, step 5 performs from those shots. Step 2 and the Moth engines in step 4 are the earlier classical-target flow (QDrive needs a circuit for the project; no whole-scene job has finished yet; `python -m src.quantum.qdrive_rounds` builds one in small chained jobs and the studio recognises its finished result).
-- The Aer run is the per-panel engine only (exact statevector, at most 26 qubits; the default six-pane scene is 22). The domain engine's 69 qubits are beyond it, so with `--engine domain` step 4 refuses and says so. It is a simulation on this laptop: quantum in what is executed and measured, not in being hard to simulate, and not a Moth result. Independent noise and dephased depth stay classical by definition.
+- Steps 3, 4 and 5 run the relief circuit: step 3 draws from the numpy reference state, step 4 executes circuits on Aer (static relief, or one per echo depth) and saves the shots, step 5 performs from those shots. Step 2 and the QDrive / graph-v1 engines in step 4 are the earlier classical-target flow (QDrive needs a circuit for the project; no whole-scene job has finished yet; `python -m src.quantum.qdrive_rounds` builds one in small chained jobs and the studio recognises its finished result).
+- A saved Aer or echo run belongs to the drawing it was made from (and, for the Aer run, to the facet circuit it used): change the drawing and step 4 says the run is from an earlier drawing and Perform stays blocked until you run it again. Perform replays the relief settings the run was made with.
+- The Aer run is the per-panel engine only (exact statevector, at most 26 qubits; the default six-pane scene is 22). The domain engine's 128 qubits (132 in its circuit) are beyond it, so with `--engine domain` step 4 refuses and says so. It is a simulation on this laptop: quantum in what is executed and measured, not in being hard to simulate, and not a Moth result. Independent noise and dephased depth stay classical by definition.
 - Step 3 is gated behind step 2 even though the relief engine does not use those targets: it builds its facets straight from your drawing. So to reach relief you must run step 2 once, even with the demo scene.
+- Even though relief ignores the classical patch grid (4 x 4: 12 patches, 2 lamps, 6 polarity = 20 qubits, the graph-v1 cap), `Session` still builds it and a classical sampler at start-up, because the older sources and steps 2 and 4's QDrive and graph-v1 engines use it. The 20-qubit figure belongs to that family; the relief engines are 18/22 (per-panel) and 128/132 (domain).
 - Step 2 for the demo scene writes the same calibration as `runs/calibration_bay_4x4/` (12 patches, 20 qubits), which is what the pipeline's CLIs (`solver`, `qdrive_rounds`, `show`...) use as their default `--calib`.
 - Nothing from Moth is involved in what step 3 shows. Its header chip says `local reference circuit`.
 
@@ -337,8 +352,8 @@ This is why the project is not just a renderer: each knob changes the state, not
 | 1 Draw | `python -m src.capture.pen_tool draw --out <project>` |
 | 2 Targets | `python -m src.targets.calibrate_from_mock --labels <project>/labels.json --out <project>/calib` |
 | 3 Rehearse | `python -m src.show --labels <project>/labels.json --calib <project>/calib --run <project>/solve --out <project> --source relief` |
-| 4 Solve | `python -m src.quantum.aer_relief --labels <project>/labels.json --out <project>/solve/aer` (free; `--shots`, `--kappa`, `--n-dirs`, `--entangle`, `--observations`), or the Moth route: `python -m src.quantum.solver qdrive\|graph-v1 --calib <project>/calib --out <project>/solve` (add `--approve-credits N` to actually send) |
-| 5 Perform | `python -m src.show --labels <project>/labels.json --source relief --aer-run <project>/solve/aer` (use the same relief flags as step 4), or the older `--source circuit --circuit <project>/solve/qdrive/circuit.qasm` |
+| 4 Solve | the default: `python -m src.quantum.aer_relief --labels <project>/labels.json --out <project>/solve/aer` (free; `--shots`, `--facet-circuit FILE`, `--kappa`, `--n-dirs`, `--entangle`, `--observations`); verify on Moth: `python -m src.quantum.verify_moth --labels <project>/labels.json --out <project>/solve/tomography [--aer-run <project>/solve/aer]` (previews; `--approve-credits 1` sends; `--local` rehearses with an ideal stand-in); QDrive facet register: `python -m src.quantum.facet_qdrive plan\|send --labels ... --out <project>/solve/qdrive_facets` (`send` previews the next job; `--approve-credits 1` sends it; `--local` rehearses); echo: `python -m src.quantum.echo_relief --labels ... --out <project>/solve/echo [--source moth] [--depth 4 --width 4 --height 4]`; the older route: `python -m src.quantum.solver qdrive\|graph-v1 --calib <project>/calib --out <project>/solve` (add `--approve-credits N` to actually send) |
+| 5 Perform | `python -m src.show --labels <project>/labels.json --source relief --aer-run <project>/solve/aer` (use the same relief flags as step 4), or `--echo-run <project>/solve/echo`, or the older `--source circuit --circuit <project>/solve/qdrive/circuit.qasm` |
 
 ### 3. Drawing the real scene
 
@@ -381,7 +396,7 @@ Done from the operator panel (Calibrate and Photo test tabs): outline pattern, f
 | facets | 12 (+6 classical) | one per band facet; state = the facet's surface normal `b = (sin τ cos φ, sin τ sin φ, cos τ)` in the panel's own frame. Each panel's flat plateau has τ≈0, so it would be a constant \|0⟩ that nothing couples to: it is a *classical* facet, lit by its deterministic Lambert value |
 | polarity | 6 | one per panel (pane), in the state "plus"; controls whether that panel's relief is raised (`h`) or sunk (`-h`) |
 | lamp | 2 | four light directions; controls the axis each facet is measured along |
-| observe | 2 | four observation axes (γ, χ) on each polarity qubit's Bloch sphere: by default the ring (0°, 0°), (60°, 0°), (60°, 90°), (90°, 180°); `--observations line` restores γ = 0°, 30°, 60°, 90° at χ = 0°, or give four `γ,χ` pairs in degrees |
+| observe | 2 | four observation axes (γ, χ) on each polarity qubit's Bloch sphere: by default, in the per-panel engine, the ring (0°, 0°), (60°, 0°), (60°, 90°), (90°, 180°) (the domain engine with the lamp lock on, the launcher default, uses its own four, (0°, 0°), (45°, 90°), (90°, 0°), (90°, 90°), `DOMAIN_OBSERVATIONS`); `--observations line` restores γ = 0°, 30°, 60°, 90° at χ = 0°, or give four `γ,χ` pairs in degrees |
 
 Facets + polarity = **18 simulated qubits** (12 facets + 6 polarity); the full circuit has **22** (+ 2 lamp + 2 observe). Two band facets per pane is `--n-dirs`' default for six panes: it is the most that keeps the exact statevector within 20 qubits, and the three-panel window the first build used got four per panel (15 simulated, 19 in the circuit). Historical note, so that the numbers are not confused: the first build kept the constant plateau qubits too and counted 18 and 22 *for three panels*; the plateaus are now classical facets, and the six-pane default happens to total 18 and 22 again with a different make-up. An earlier slope computation also halved the slope on the shared edge between two panels, so no tilted facet of one panel touched a tilted facet of its neighbour and the panels were exactly unentangled with each other; fixed, tests pin it.
 
@@ -410,7 +425,7 @@ The per-panel engine is six independent-ish 3-facet systems (two band facets and
 - Lamp + three leaf domains (one per wing, domains 8, 29 and 50): **Mermin value 6.94 against a local bound of 4** (dephased depth: 1.0). No lamp-depth *pair* violates CHSH (best 1.85) and no depth-depth pair is certified to (best 2.008, which is inside the matrix-product truncation error of 1.8e-2): monogamy. Lock the lamp to *every* domain with a crater-gauge sign (37 of them) and the Mermin violation disappears (0.75; `tests.test_domains`).
 - The signed domain graph is *balanced* on its own, so there is no frustration from creases alone, and the three-leaf lock does not frustrate it (0 frustrated cycles with or without the lamp). The Necker-style competition is a property of the lock you choose, not of the geometry.
 - Frame-level interference signature: measured on the three-panel window (not repeated on the six-pane one), the K-photon frame statistics of the coherent state and of control B were identical at the decided observation and differed at the equatorial ones by up to 0.12 against a photon noise of 0.06. Single frames do not show it; an ensemble of a few hundred does.
-- Speed: Aer builds ONE state (about 2-3 s, about 5 s for the whole domain session); the lock, the light and the observation are single-qubit gates on its tensors. A look costs about 0.07 s (0.04 s for the per-panel engine).
+- Speed: Aer builds ONE state (about 2-3 s, about 5 s for the whole domain session); the lock, the light and the observation are single-qubit gates on its tensors. Look time depends on the machine: the figures once quoted here (0.07 s per domain look, 0.04 s per-panel) were not reproduced when re-measured on 5 Oct 2026 in a cloud sandbox, which gave about 0.7 s per domain frame and 2.6 s per parity-game round. Time a few rounds on your own machine before setting an auto-cycle interval for a run.
 
 ### The parity game: the frames certify the state
 
@@ -436,6 +451,39 @@ Every look can be one round of a four-party Mermin (GHZ-style) game between the 
 - The lamp read in X (`I`, the exact engine's experiment) makes the lamp *control the light coherently*, so the facets record the light side and dephase the lamp–depth coherence. The Mermin numbers above are for the *feed-forward* lamp (read first, then it picks the light), which is what the parity game and every Z-read frame do. The two semantics are separate in the code (`lamp_mode` against `game_axis`). The lamp read in X now also runs on the matrix-product backend (tested against the exact engine).
 
 Advanced preparations (`src/quantum/ground_state.py`, `domain_moth.py`): the polarity register's state can be the ground state of the geometry-set Ising model on the domain graph (a QAOA-style fit, 4 to 6 angles, as a circuit), or a circuit returned by a Moth engine for the target moments (`spec.pol_circuit`); a *patch* of the wall (≤ 20 qubits, boundary couplings cut) can be sent to `tomography-api-v2`; echo taps from `otoc-echo-v1` modulate each facet's tilt frame by frame (`dynamic_specs`, **not wired into the live show**).
+
+### Order of events: who builds what, and when
+
+The two relief engines share one construction order. Nothing here is saved between runs: facets, spec and state are rebuilt in every process that needs them.
+
+| # | Where | What happens | Qubits exist yet? |
+|---|---|---|---|
+| 1 | `Session.__init__` (`src/ui/session.py`) | `build_scene(labels)`: masks, planes, windows, adjacency. Also the classical patch grid and sampler (left over from the first build; relief ignores them) | no |
+| 2 | `Session.set_source("relief")` then `relief()` | **facets**: `build_facets` (per-panel, `geometry/facets.py`) or `build_domains` (domain, `geometry/domains.py`) | no, only geometry |
+| 3 | same | **spec**: `spec_from_facets` or `spec_from_domains` produce a `ReliefSpec`: tilts, azimuths, couplings, which polarity qubit controls which facets, lamp lock, observation axes. Pure numbers | no |
+| 4 | same | **composer**: `make_composer` (`texture/relief_compose.py`, dense or sparse) | no |
+| 5 | same | **state**: per-panel, `ReliefState` (exact numpy statevector, 18 qubits); domain, `MPSReliefState.warm()` builds the matrix-product state on Aer from `reference_circuit` (about 2-3 s, 128 simulated qubits) | yes |
+| 6 | each look, `Session._new_look` | draw the lamp world and observation, then the polarity outcome and K photons from the state, giving the lit fraction per facet | yes |
+| 7 | each look | compose (contrast stretch, value `lo + (hi-lo)S`, masked blur, multiply by the mask), warp, exact-black glass check, publish | no |
+
+Qubit numbering is an index scheme, not objects: facets `0..F-1`, then polarity `F..F+P-1`, then 2 lamp and 2 observe. Qiskit circuits exist only in `full_circuit` (the Aer run and the tomography payload) and in `reference_circuit` (the domain MPS build and the tomography payload); every other path is numpy or MPS arithmetic.
+
+**Through the studio.** Each step spawns a child process that rebuilds the scene from `labels.json`: step 3 runs `src.show`; step 4's Aer engine is a separate process that rebuilds the spec, builds `full_circuit`, transpiles it, runs 1,000,000 shots with the lamp read in Z and again in X, checks them against the reference state and writes `shots.npz`; step 5 starts `src.show --aer-run`, whose `AerReliefState` replays one measured shot per look. So the facets are built again in each of those processes.
+
+**Per-panel versus domain, in one table.**
+
+| | Per-panel (`--engine panel`, v2) | Domain (`--engine domain`, v3) |
+|---|---|---|
+| One polarity qubit per | panel (pane): 6 | depth domain (`--group-size` consecutive bevel facets along a polygon edge): 64 |
+| Facets | slope-orientation classes per panel (`--n-dirs`, 2 on six panes), anywhere in the pane | bevel-strip pieces about `--seg-len` px long (150): 64 |
+| Qubits, simulated / in circuit | 18 / 22 | 128 / 132 |
+| Simulation | exact statevector | matrix-product state, bond cap 32, exact conditional sampling |
+| Entanglement between panels | only through facet couplings across shared edges | Ising layer on the domain graph: weak 0.3 coplanar, strong -1.0 across a crease; all 4 creases entangled |
+| Lamp | uniform draw, or read in X (`I`) | locked by `rzz(pi/2)` to one leaf per plane (3 leaves) |
+| Parity game, Evolve | not available | available (`G`, `E`) |
+| Aer run, echo, tomography | yes | no (refused) |
+
+"v4" in older notes means the seam and parity-game revisions of v3, not a separate engine. "Standing Light" is the code's name for the same project.
 
 ### The properties that make it more than a render
 
@@ -496,6 +544,10 @@ The first build (still present, selectable with `--source oracle|mock|circuit|co
 | `ground_state.py` | ground state of the geometry-set transverse Ising model as a fitted circuit; classical ground-state degeneracy |
 | `domain_moth.py` | payloads: polarity register via QDrive targets, patch tomography, echo-driven dynamic relief |
 | `classical_baselines.py` | two-branch sampler, excitation truncation, MPS bond dimension vs size: where classical simulation stops being cheap |
+| `aer_relief.py` | **the quantum Solve and Perform**: executes the whole relief circuit on Aer (`run`, `execute`), keeps the shots, checks them against the reference state (`score`) and measures the witness; `AerReliefState` draws looks from the saved shots; `--facet-circuit` executes the relief on a facet register prepared elsewhere |
+| `verify_moth.py` | the tomography-api-v2 check of the reference circuit: request, scoring against exact moments, comparison with the Aer witness run, `--local` ideal stand-in |
+| `facet_qdrive.py` | the facet register through QDrive: plan (one target per coupled pair, full reduced state), chained jobs one spend decision at a time, scoring and assembling, `--local` stand-in that enforces the chaining contract |
+| `echo_relief.py` | dynamic relief: echo taps (local or Moth's `otoc-echo-v1`) modulate the relief, one Aer-executed circuit per echo depth, `EchoReliefState` steps through them |
 | `relief_report.py` | figures and `report.json` for a talk |
 | `moth_client.py` | Moth Atlas API client: gated submit, never retries a POST, saves job id and raw result first |
 | `moth_engines.py` | per-engine fit, payload builders (tomography, QDrive, echo, Qpixl, shader), defensive parsers, scoring against exact moments |
@@ -533,7 +585,7 @@ The first build (still present, selectable with `--source oracle|mock|circuit|co
 | `session.py` | **everything the operator controls**: sources, draws, knobs, history, calibration, controls, witness, re-solve gate. No HTTP in it |
 | `operator_panel.py` | the local HTTP/SSE server for `/`, `/output`, `/audience`, `/api/*` |
 | `keys.py` | one key table (tagged `relief` / `classical` / `both`) used by the page and by tests |
-| `caption.py`, `demo.py`, `overlay.py` | audience wording that follows provenance; the seven-beat demo; the facet-graph overlay with depth-sphere dots |
+| `caption.py`, `demo.py`, `overlay.py` | audience wording that follows provenance; the demo (seven steps, nine beats); the facet-graph overlay with depth-sphere dots |
 | `web/` | `operator.html`, `audience.html`, `studio.html`, `common.css` |
 
 ### Top level
@@ -571,7 +623,7 @@ Keys on the operator page (press `?` for the live table). In the relief family t
 
 The science section also shows, per panel, a **depth-sphere dot** (where the observation landed: top = decided raised, bottom = decided sunk, middle = undecided/flat), the tilt budget and per-panel visibility, and the last witness certificate. The header chip always says what the frames come from: `local reference circuit`, `Moth QDrive circuit`, or `classical rehearsal`.
 
-`D` starts the demo (seven beats): one flat wall → the wall as qubits → photons (Lambert is Born) → bump, hollow and flat → control B beside the quantum state → the visibility law → an honest scorecard that lists what has and has not been run on Moth.
+`D` starts the demo (seven steps, nine beats; the control step is three beats: witness, control B, control A): one flat wall → the wall as qubits → photons (Lambert is Born) → bump, hollow and flat → control B beside the quantum state → the visibility law → an honest scorecard that lists what has and has not been run on Moth.
 
 ---
 
@@ -596,7 +648,18 @@ python -m src.quantum.moth_client send    PAYLOAD.json --engine tomography-api-v
 | `entanglement-shader-v1` | 1 | angle-phase reflectance table as a quantum-made tone response (not wired in) |
 | `graph-v1` | 5 | exact tomography of ≤ 20 qubits (existing; tomography-api-v2 is 1/5 the price) |
 
-**Spending rules, enforced in code:** `send` needs `--approve-credits N` equal to the estimated cost; a POST is never retried (a retry could bill twice); the job id is written before polling and the raw response before parsing; the show's re-solve dialog and the studio refuse to spend unless started with `--allow-spend` *and* the confirm repeats the payload hash and credits it showed; a payload with a saved result costs nothing and sends nothing; IBM credentials are never sent by this client. Local checks block unknown parameters, over-size QDrive jobs and `mode: "qpu"`.
+**Where each engine sits in the quantum pipeline** (studio step 4; each has a module you can also run by hand, and a local stand-in so the whole path can be rehearsed, tested and driven from the page with no key and no credits):
+
+| Engine | Role | Module | If the service answers | Local stand-in (never called a Moth result) |
+|---|---|---|---|---|
+| `tomography-api-v2` | **verdict** on the reference circuit | `verify_moth.py` | `solve/tomography/state.json` and `score.json` (the show prints `score.json` as a Moth result); polarity visibilities compared with the Aer witness run | `--local`: the exact moments in the shape the parser reads; writes no `score.json` |
+| `qdrive-api-v1` | **state**: the facet register | `facet_qdrive.py` | a finished chain's `circuit.qasm` and provenance (`from_moth`); the Aer run executes the relief on it and the caption says Moth's QDrive prepared the facets | `--local`: job *j* returns the ideal preparation with the first (j+1) layers of couplings, so fidelity climbs job by job (0.52 → 1.00 on the default scene); it refuses a job that does not continue the previous asset |
+| `otoc-echo-v1` | **dynamics**: the taps | `echo_relief.py --source moth` | `echo/moth/raw_result_*.json` and the taps parsed from it; one Aer circuit per depth | the local echo (`--source local`): our reading of the engine's description |
+| `qdrive-api-v1` / `graph-v1` | the older targets-in route | `solver.py`, `qdrive_rounds.py` | `solve/qdrive/`, `solve/graph_v1/` | `qdrive_rounds --engine local` |
+
+Honest status of the three new paths: each is built, unit-tested against a recording fake and driven end to end through the studio with its local stand-in, **and none has met a real Moth response**. The tap list, the tomography result and the QDrive output are parsed defensively (the docs say "not documented yet"), the raw result is always saved before parsing, and a result that does not parse stops with the keys it saw, not a guess. The service has failed every job since 4 Oct 2026 about 21:13Z, including a 2-qubit control; send one control job (see below) before anything larger.
+
+**Spending rules, enforced in code:** `send` needs `--approve-credits N` equal to the estimated cost; a POST is never retried (a retry could bill twice); the job id is written before polling and the raw response before parsing; the show's re-solve dialog and the studio refuse to spend unless started with `--allow-spend` *and* the confirm repeats the payload hash and credits it showed (the Aer path and the local stand-ins cost nothing and need no `--allow-spend`; a QDrive facet chain is one confirm per job, and a job recorded as submitted with no result blocks the next until you look at it); a payload with a saved result costs nothing and sends nothing; IBM credentials are never sent by this client. Local checks block unknown parameters, over-size QDrive jobs and `mode: "qpu"`.
 
 **What the default scene sends** (all of it previewable with no key and no credits):
 
@@ -609,16 +672,18 @@ python -m src.quantum.moth_client send    PAYLOAD.json --engine tomography-api-v
 | `python -m src.quantum.moth_engines build qdrive-facets` | the 12-qubit facet register, 62 targets cut into jobs of at most 24 | 1 per job |
 | `python -m src.quantum.domain_moth build ...` | polarity register of the domain relief (builds with `--group-size 2`, 34 domain qubits, *not* the show's 64: a 64-qubit QDrive job is far beyond anything that has run), a patch of at most 20 qubits for tomography, the echo | 1 each |
 
-**The first day the servers are back** (a suggested order, cheapest and most informative first; every command previews unless you add `--approve-credits N`): (1) `python -m src.quantum.qdrive_rounds canary --out runs/bay_run --approve-credits 1` tells a service problem from a payload problem for one credit; (2) `moth_engines build tomography` and send it: it verifies the circuit the show actually runs, 1 credit; (3) `qdrive_rounds run --max-steps 2` for the first two rounds, then `qdrive_rounds assemble`; (4) only then `solver graph-v1` (5 credits). `python -m unittest tests.test_moth_pipeline` rehearses every one of these paths against a fake Moth server on localhost (payloads accepted, jobs recorded before polling, circuits downloaded without the key, results parsed and scored, the show switching to the returned circuit, nothing paid twice); if it passes, the first real call differs only in who answers.
+**The first day the servers are back** (a suggested order, cheapest and most informative first; every command previews unless you add `--approve-credits N`): (1) `python -m src.quantum.qdrive_rounds canary --out runs/bay_run --approve-credits 1` tells a service problem from a payload problem for one credit; (2) the studio's **Verify on Moth** (or `python -m src.quantum.verify_moth --out ... --approve-credits 1`): it verifies the circuit the show actually runs, 1 credit, and puts Moth's visibilities beside the Aer witness run's; (3) `qdrive_rounds run --max-steps 2` for the first two rounds, then `qdrive_rounds assemble`; (4) only then `solver graph-v1` (5 credits). `python -m unittest tests.test_moth_pipeline` rehearses every one of these paths against a fake Moth server on localhost (payloads accepted, jobs recorded before polling, circuits downloaded without the key, results parsed and scored, the show switching to the returned circuit, nothing paid twice); if it passes, the first real call differs only in who answers.
 
 ---
 
 ## Tests
 
 ```bash
-python -m pytest tests -q                   # everything: 316 tests, about 7 minutes (pytest is in the venv; unittest runs the same files)
+python -m pytest tests -q                   # everything: 417 tests (count not re-checked on 5 Oct 2026), about 10 minutes when nothing else is running (pytest is in the venv; unittest runs the same files).
+                                            # Run alone: test_domains takes ~4 min, test_studio ~2, test_moth_pipeline ~1.5; with other heavy jobs at the same time it can look hung.
 for m in test_fast test_projector test_ui test_studio test_complementary test_pen_geom test_frames test_payloads test_moth_client \
-         test_relief test_moth_engines test_domains test_qdrive_plan test_qdrive_rounds test_moth_pipeline; do
+         test_relief test_moth_engines test_domains test_qdrive_plan test_qdrive_rounds test_moth_pipeline \
+         test_aer_relief test_verify_moth test_facet_qdrive test_echo_relief; do
   python -m unittest tests.$m
 done
 python -m tests.check_port_matches_mock     # the src/ port still reproduces the original three-panel mock exactly, and the six-pane default is the same wall
@@ -629,11 +694,15 @@ python -m pytest qdrive_lab/test_offline.py -q   # the QDrive lab's scorer again
 | Module | Covers |
 |---|---|
 | `test_domains` (60) | domain geometry on the six-pane default (creases touch, rails coplanar, per-domain budget, one leaf per plane and at most three, balanced vs frustrated graph), circuits (Qiskit = numpy, Aer sampling = exact with the lamp lock), the MPS tools against the statevector, exact vs MPS frames (both controls, lamp in X), the parity game (classical bound, exact joint distribution, win rate), the lamp lock's monogamy, seams and Floquet dynamics, certificates (exact = MPS, operator insertion = a real lamp qubit), ground state, Moth payloads, baselines, the session |
-| `test_relief` (46) | refsim table, Lambert = Born, conventions, Qiskit circuit = numpy state, **Aer sampling of the full circuit = exact distribution**, the default scene (six panes, three planes, 12 + 6 = 18 qubits) and the three-panel layout it replaced, facets, couplings, visibility law, which-depth/visibility, controls, witnesses, no toggles in performance mode, honest provenance |
+| `test_aer_relief` (16) | **the quantum Solve and Perform**: one 22-qubit run on Aer (shots saved, checked against the reference state within shot noise, a wrong circuit caught, witness stabilizer 1 and visibility matching), reuse by plan hash, looks drawn from the shots match the reference distribution and carry the outcomes of one measured shot, the controls stay classical, a run for another drawing is refused, witnesses measured on Aer and said so, a session that plays it |
+| `test_verify_moth` (10) | the tomography request (reference circuit, pairs, priced), preview sends nothing, approval must equal the cost, a faithful result scores zero and agrees with the Aer witness, a poor one is reported, cached results cost nothing, an unrecognised result keeps the raw file, the local rehearsal is never called Moth's and writes no `score.json` |
+| `test_facet_qdrive` (20) | the facet chain plan (one pair target per coupling, full reduced state, layers without overlap, valid chained jobs), one confirm = one job continuing the previous asset, died and orphaned jobs, a stale chain not continued, the local stand-in's fidelity climbing to 1 and refusing a broken chain, the Aer run on that circuit (checked against the state it executed, not the ideal one; tampering, wrong width and non-QASM refused; a Moth-made chain is named in the caption) |
+| `test_echo_relief` (16) | facets to lattice sites, the tap parser, lattice limits per source, depth circuits that differ and keep the geometry, one Aer circuit per depth each consistent with its own reference, reuse by hash, the Moth taps through a recording fake (preview, approval, cached result, unrecognised result), the sampler stepping through depths, a session captioning the depth |
+| `test_relief` (47) | refsim table, Lambert = Born, conventions, Qiskit circuit = numpy state, **Aer sampling of the full circuit = exact distribution**, the default scene (six panes, three planes, 12 + 6 = 18 qubits) and the three-panel layout it replaced, facets, couplings, visibility law, which-depth/visibility, controls, witnesses, no toggles in performance mode, honest provenance |
 | `test_moth_pipeline` (16) | **the whole Moth path against a fake Moth server on localhost**: the default calibration and its payloads, the solver for graph-v1 and QDrive end to end (job recorded, circuit downloaded without the key, parsed, scored, loaded by the show), the show's re-solve gate over real HTTP, every engine builder's payload accepted by the fake API's schema check, tomography scored against itself, the domain payloads, a calibration for another scene refused, a new payload never inheriting an old result, and every README command (previews and the local rounds rehearsal) run as a subprocess |
 | `test_qdrive_plan` (15), `test_qdrive_rounds` (22) | QDrive growth plans, cutting into chained rounds, resuming, failing, assembling, provenance (against an ideal fake engine) |
 | `test_moth_engines` (12), `test_moth_client` (19) | payloads valid and priced, QASM2 round-trip, parsers and scoring, the 201-target payload refused, echo tap mapping; the client's safety properties (never retries a POST, key never printed, gate before any HTTP) |
-| `test_ui` (27), `test_studio` (37) | key table, captions, session actions, demo, calibration, spend gate, the HTTP servers, the studio's five steps with fake child processes |
+| `test_ui` (27), `test_studio` (75) | key table, captions, session actions, demo, calibration, spend gate, the HTTP servers, the studio's five steps with fake child processes, and one class per step-4 engine: Aer (plan, hash, no spend gate, Perform from it), tomography, the QDrive facet chain, echo (spend gate and hash on the Moth ones, stale runs, the Perform choices) |
 | `test_projector` (20) | homography, warp, exact-black guarantee, photographed check (synthetic) |
 | `test_frames` (14), `test_complementary` (15), `test_fast` (4), `test_payloads` (5), `test_pen_geom` (4) | the classical family: sampler, oracle, frames, composers (six panes and the original three), the polarity stand-in |
 
@@ -647,25 +716,25 @@ Offline demo of the classical solve/compare flow without Moth: `python -m tests.
 
 - **Glass is exactly 0.** Glass gets no qubit and no correlation; blur is mask-aware; the final frame is multiplied by the mask; and every frame is checked to be exactly 0 on the protected pixels *in projector pixels after the warp*. A frame that fails is refused and replaced with black.
 - **A software check cannot see a projector that crept.** So the photographed check reports NOT CHECKED without an independent trace of the real glass, and never passes by default.
-- **Nothing is called a Moth result unless a Moth job produced it.** Captions, the header chip and the demo scorecard follow the source's provenance.
-- **No credits without an explicit, matching confirmation** (above).
+- **Nothing is called a Moth result unless a Moth job produced it.** Captions, the header chip and the demo scorecard follow the source's provenance. An Aer run is "executed on the Aer simulator on this laptop"; a facet register is called Moth's only when every job of its chain was real; the echo run says whether its taps were Moth's or a local echo's; a local stand-in never writes `score.json`, the file the scorecard prints as a Moth result.
+- **No credits without an explicit, matching confirmation** (above): every Moth engine in step 4 (tomography, each QDrive facet job, the echo request) shows its request, hash and cost first, repeats them in the confirm, needs `--allow-spend`, and a job recorded as submitted with no result blocks the next one until you look at it.
 - **The API key is never printed and `.env` is git-ignored.** Operator actions need a per-run token, a loopback client and a loopback `Host` header; `--lan` exposes only the read-only pages.
 
 ---
 
 ## Status and limits
 
-**Done and tested:** the relief engines (per-panel and domain) on the six-pane default window, their circuits and witnesses; the parity game, the seam regime and the kicked-Ising dynamics; the show, controls, demo and studio; the classical pipeline; the Moth client and engine builders and the whole Moth path against a fake server; offline. The whole suite (`tests/`, 15 modules, 316 tests) and the mock-port check pass.
+**Done and tested:** the relief engines (per-panel and domain) on the six-pane default window, their circuits and witnesses; the parity game, the seam regime and the kicked-Ising dynamics; the show, controls, demo and studio; the classical pipeline; the Moth client and engine builders and the whole Moth path against a fake server; offline. The whole suite (`tests/`, 19 modules, 417 tests as last counted; not re-run on 5 Oct 2026, and the working tree has uncommitted changes to tracked files plus the new `echo_relief`, `facet_qdrive` and `verify_moth` modules) and the mock-port check pass, except the two `LivingRoom` tests in `test_qdrive_plan`, which expect the untracked `runs/harrietlivingroom` data to split into components `[11, 8]` and currently get `[14, 6]` (not touched by the Aer work). The Aer path (`aer_relief`), the Moth tomography check, the QDrive facet chain and the echo run are each tested against the reference state, against recording fakes for Moth, and through the studio with fake child processes; the real page was driven through Aer, echo and Perform.
 
 **Not verified (needs you or credits):**
 - Any real Moth result for the relief design (either engine). Tomography, echo and QDrive result shapes are mostly "not documented yet", so parsers are defensive and raw results are saved first. The domain payloads (`domain_moth`) are built, validated locally and **not sent**; the qubit cap of `tomography-api-v2` is undocumented, which is why only patches of ≤ 20 qubits are offered.
 - The domain relief on a projector: the frames are simulated and rendered, the glass-black checks pass, but the look on a real wall (six or so times as many facets, each with its own bevel strip) has not been judged by eye.
 - The parity game's win rate is the *simulated* state's prediction, confirmed by sampling the simulation (370 of 400 rounds against a predicted 93.4%). It has not been measured on a device.
-- The kicked-Ising evolution is wired into the show (`E`, `--evolve-steps`), but the echo engine's own taps (`otoc-echo-v1`, `domain_moth.dynamic_specs`) are a module and a test, not a live mode, and not run on Moth. Evolution and the parity game conflict: the game falls below 75% by step 4.
+- The kicked-Ising evolution is wired into the show (`E`, `--evolve-steps`). The echo is now a live mode for the per-panel engine (`--echo-run`, studio step 4) with local taps, and with Moth's `otoc-echo-v1` taps through the same path, but that engine has not been run on Moth; the domain engine still has only `domain_moth.dynamic_specs` (a module and a test). Evolution and the parity game conflict: the game falls below 75% by step 4.
 - QDrive has returned circuits for small jobs only (a 2-qubit Bell state, a 3-qubit GHZ state, chained jobs: 21 of 28 jobs completed on 2 and 4 Oct 2026) and never for a whole scene: every 19-qubit job and every 8-body target timed out. Chaining through an output asset UUID works, the docs' PNG/JPEG-only asset limit does not hold, and mixed Pauli words work as a mapping (all recorded in `docs/qdrive-field-notes.md`); what is untested is anything near 20 qubits, which is why the default scene is sent in rounds of two components (14 + 6 qubits).
 - `local_echo` is *our reading* of the echo engine's description, not its definition.
 - A real projector, a real window, real photos. The glass-check thresholds were reasoned, not calibrated.
-- The studio's Solve and Perform steps run the relief circuit on Aer, a statevector simulation on this laptop; nothing in the relief design has run on a Moth engine or a QPU. The Moth QDrive route into Perform remains the classical-family flow.
+- The studio's Solve and Perform steps run the relief circuit on Aer, a statevector simulation on this laptop; nothing in the relief design has run on a Moth engine or a QPU. The Aer path covers the per-panel engine only (26 qubits at most; the domain engine's 128 qubits (132 in its circuit) do not fit). Aer cannot run the dephased control, so the controls stay classical draws. The QDrive facet chain's convergence is unknown: the engine takes one gate layer per update with no guarantee, the lab never got a 12-qubit job to completion, and the local stand-in's fidelity curve says nothing about it; the Aer run records the fidelity of whatever circuit it executed and reports it whatever it is. The echo mapping from taps to tilt and azimuth is ours, not the engine's definition, and the echo animation has not been judged by eye on a wall.
 
 **What is and is not quantum** (an audit of the code, with the numbers):
 - The facet register, the polarity superposition and the controlled operations between them are quantum content, simulated exactly or as a matrix-product state. The lamp and observation registers are uniform draws, equivalent to coin flips, except where the lamp is locked to a polarity qubit (`--lock`) or read in X (both backends).

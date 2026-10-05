@@ -19,12 +19,25 @@ def hardness_word(K):
     return "very soft"
 
 
+def _relief_where(prov):
+    """What the relief draws came from, as a phrase: the circuit, where it was executed, and what Moth did (if anything) for it."""
+    if prov.get("echo"):
+        taps = "the taps of Moth's otoc-echo-v1 engine" if prov.get("echo_moth") else "taps of a local echo (our own reading, not Moth's engine)"
+        return ("one of a series of quantum circuits, one per echo depth, each executed gate by gate on the Aer simulator on this laptop (not a Moth result), "
+                f"with the relief modulated by {taps}")
+    if prov.get("from_moth") and prov.get("executed") == "aer":
+        return "a quantum circuit whose facet register Moth's QDrive prepared, executed gate by gate on the Aer simulator on this laptop"
+    if prov.get("from_moth"):
+        return "a circuit returned by Moth's QDrive for the facet qubits"
+    if prov.get("executed") == "aer":
+        return "a quantum circuit built and executed gate by gate on the Aer simulator on this laptop (not a Moth result)"
+    return "a quantum circuit built and simulated exactly on this laptop (not a Moth result)"
+
+
 def provenance_line(prov):
     """One honest sentence about where the draws come from."""
     if prov.get("relief") and prov["quantum_backed"]:
-        where = ("a circuit returned by Moth's QDrive for the facet qubits" if prov.get("from_moth")
-                 else "a quantum circuit built and executed gate by gate on the Aer simulator on this laptop (not a Moth result)" if prov.get("executed") == "aer"
-                 else "a quantum circuit built and simulated exactly on this laptop (not a Moth result)")
+        where = _relief_where(prov)
         status = " This design is untested against a real Moth circuit." if prov.get("untested") else ""
         return (f"Each look is one run of {where}: every patch of the wall is a qubit whose state is its surface normal, each panel's depth is a qubit in "
                 f"superposition of raised and sunk, and the light and the observation are drawn inside the circuit.{status}")
@@ -102,6 +115,8 @@ def describe_relief(draw, panel_names, K, prov, control="coherent"):
         look = "The observation landed between a pole and the equator: the more decided the depth, the stronger the bevel, and the less the two depths can interfere."
         if abs(dot["chi_deg"] % 180) > 1:
             look += " It also landed off the x axis, so this frame samples the phase between raised and sunk, not only their weight."
+    if getattr(draw, "echo_depth", None):
+        headline += f"  ·  echo depth {draw.echo_depth} of {draw.echo_total}"
     cap = dict(
         headline=headline, panels=panels, hardness=f"{K} photon{'s' if K != 1 else ''} averaged: {hardness_word(K)}", lamp_bits=lamp_bits,
         provenance=provenance_line(prov), observation=dict(text=look, **dot),
