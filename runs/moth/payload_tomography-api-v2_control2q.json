@@ -1,0 +1,13 @@
+{
+  "params": {
+    "circuit_qasm": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\ncx q[0],q[1];",
+    "provider_name": "aer",
+    "shots": 1024,
+    "single_tomography": true,
+    "double_tomography": true,
+    "mutual_information": false,
+    "classical_mutual_information": false,
+    "qubit_list": [0, 1],
+    "qubit_pair_list": [[0, 1]]
+  }
+}

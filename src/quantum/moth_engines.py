@@ -146,6 +146,33 @@ def score_tomography(parsed, spec):
     return out
 
 
+def score_folder(folder, spec):
+    """Score the newest raw_result_*.json in `folder`, print the numbers, write score.json beside it (numeric top-level fields only, which is what the
+    show's scorecard prints). Raises with the result's top-level keys if no Bloch vectors can be found; the raw file is never touched."""
+    import glob
+    import json
+    files = sorted(glob.glob(os.path.join(folder, "raw_result_*.json")), key=os.path.getmtime)
+    if not files:
+        raise SystemExit(f"no raw_result_*.json in {folder}: send the job first (moth_client send ... --out {folder})")
+    with open(files[-1]) as f:
+        result = json.load(f)
+    parsed = parse_tomography(result)
+    sc = score_tomography(parsed, spec)
+    vis = [v for v in sc["visibility"] if v["measured"] is not None]
+    flat = {k: v for k, v in sc.items() if isinstance(v, (int, float)) and not isinstance(v, bool)}
+    if vis:
+        flat["visibility_measured_mean"] = float(np.mean([v["measured"] for v in vis]))
+        flat["visibility_exact_mean"] = float(np.mean([v["exact"] for v in vis]))
+    with open(os.path.join(folder, "score.json"), "w") as f:
+        json.dump(flat, f, indent=1)
+    print(f"scored {os.path.basename(files[-1])}")
+    for v in sc["visibility"]:
+        print(f"  panel {v['panel']}: Moth <X> {v['measured']}  exact {v['exact']:.3f}  isolated product law {v['isolated']:.3f}")
+    print("  " + ", ".join(f"{k} {v:.3g}" for k, v in flat.items()))
+    print(f"wrote {os.path.join(folder, 'score.json')}")
+    return flat
+
+
 # ------------------------------------------------------------------ qdrive-api-v1
 def qdrive_probe_payload():
     """Smallest job that tests the one unverified syntax: a mixed Pauli word on two qubits. 2 qubits, 4 entries (1 credit). Compare the returned
@@ -303,6 +330,10 @@ def main(argv=None):
     b.add_argument("--out", default="runs/moth")
     b.add_argument("--labels")
     b.add_argument("--entangle", type=float, default=0.8)
+    sc = sub.add_parser("score", help="score a saved tomography-api-v2 result against the exact moments and write score.json (the demo scorecard reads it)")
+    sc.add_argument("folder", help="directory holding raw_result_<job>.json (the `send --out` directory)")
+    sc.add_argument("--labels")
+    sc.add_argument("--entangle", type=float, default=0.8)
     a = ap.parse_args(argv)
     if a.cmd == "plan":
         print(f"{'engine':24s}{'credits':>8s}  {'fit':26s}role")
@@ -310,6 +341,8 @@ def main(argv=None):
             print(f"{eid:24s}{cr:>8d}  {fit:26s}{role}")
         print("\nNothing here sends anything. Preview: python -m src.quantum.moth_client preview FILE --engine ID")
         return
+    if a.cmd == "score":
+        return score_folder(a.folder, _spec(a))
     from src.quantum.moth_client import MothClient
     os.makedirs(a.out, exist_ok=True)
     c = MothClient()

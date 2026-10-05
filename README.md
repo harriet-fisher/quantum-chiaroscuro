@@ -94,8 +94,8 @@ On the page, press **Next step** each time (it always offers the first step that
 | **1 Draw the shapes** | opens the pen tool: draw the panels and glass on the projector's own screen, press **Save** in it. Or press **Use the built-in demo scene** (the six-pane bay window above) to try everything with no projector and no drawing | nothing |
 | **2 Calibrate targets** | estimates the classical correlation targets for your drawing and writes the Moth payloads. Sends nothing, takes up to a minute | step 1 |
 | **3 Rehearse the show** | **opens the show on Superposed Relief**, the quantum circuit simulated exactly on your laptop. No Moth call, no credits | step 2 |
-| **4 Solve on Moth** | shows the exact payload, its hash and cost. Sends only if you started the studio with `--allow-spend` *and* press the send button | step 2 |
-| **5 Perform with the result** | opens the show on the circuit step 4 returned (classical QDrive flow) | a QDrive result |
+| **4 Solve: execute the circuit** | **default: Relief on Aer.** Shows the circuit (qubits, gates, shots) and its hash, then executes the whole relief circuit on Aer here: 1,000,000 shots with the lamp read in Z and again in X, checked against the reference state, plus a witness run. Free, no key, no network. The Moth engines (QDrive, graph-v1) are in the same dropdown; they send only if you started the studio with `--allow-spend` *and* press the send button | step 2 |
+| **5 Perform with the result** | opens the show on the Aer run: every look is one measured shot of the circuit, and the witness button measures on Aer too. If a QDrive result also exists, a second button opens the older classical-family flow on its circuit | an Aer run (or a QDrive result) |
 
 Step 3 prints a URL and opens the show. That is where you see and use Superposed Relief: the operator panel (`/`), the projector window (`/output`, drag it to the projector display and press `F`) and the audience screen (`/audience`). Press `Space` for a new frame, `A` for auto-cycle, `W` for the entanglement witness, `?` for every key. Stop ends any tool the studio started; Ctrl+C stops everything.
 
@@ -107,10 +107,11 @@ python -m src.studio --allow-spend             # lets step 4 submit to Moth (it 
 python -m src.studio --engine domain           # step 3 opens the domain relief (a few seconds to build) instead of the per-panel one
 ```
 
-The studio writes to its project folder: `labels.json` (the drawing), `calib/` (targets and payloads), `solve/` (Moth results), `studio.json` (which drawing the targets came from, so a changed drawing marks later steps stale).
+The studio writes to its project folder: `labels.json` (the drawing), `calib/` (targets and payloads), `solve/` (`aer/`: the Aer run, `shots.npz` + `circuit.qasm` + `state.json`; Moth results beside it), `studio.json` (which drawing the targets came from, so a changed drawing marks later steps stale).
 
 **What to know about the current studio** (accurate as of the Superposed Relief build):
-- Only step 3 opens the new relief engine. Steps 2, 4 and 5 are the earlier, classical QDrive flow, and step 5 stays blocked until there is a QDrive circuit for the project (no whole-scene job has finished yet; `python -m src.quantum.qdrive_rounds` builds one in small chained jobs and the studio recognises its finished result).
+- Steps 3, 4 and 5 now run the relief circuit: step 3 draws from the numpy reference state, step 4 executes the circuit on Aer and saves the shots, step 5 performs from those shots. Step 2 and the Moth engines in step 4 are the earlier classical-target flow (QDrive needs a circuit for the project; no whole-scene job has finished yet; `python -m src.quantum.qdrive_rounds` builds one in small chained jobs and the studio recognises its finished result).
+- The Aer run is the per-panel engine only (exact statevector, at most 26 qubits; the default six-pane scene is 22). The domain engine's 69 qubits are beyond it, so with `--engine domain` step 4 refuses and says so. It is a simulation on this laptop: quantum in what is executed and measured, not in being hard to simulate, and not a Moth result. Independent noise and dephased depth stay classical by definition.
 - Step 3 is gated behind step 2 even though the relief engine does not use those targets: it builds its facets straight from your drawing. So to reach relief you must run step 2 once, even with the demo scene.
 - Step 2 for the demo scene writes the same calibration as `runs/calibration_bay_4x4/` (12 patches, 20 qubits), which is what the pipeline's CLIs (`solver`, `qdrive_rounds`, `show`...) use as their default `--calib`.
 - Nothing from Moth is involved in what step 3 shows. Its header chip says `local reference circuit`.
@@ -336,8 +337,8 @@ This is why the project is not just a renderer: each knob changes the state, not
 | 1 Draw | `python -m src.capture.pen_tool draw --out <project>` |
 | 2 Targets | `python -m src.targets.calibrate_from_mock --labels <project>/labels.json --out <project>/calib` |
 | 3 Rehearse | `python -m src.show --labels <project>/labels.json --calib <project>/calib --run <project>/solve --out <project> --source relief` |
-| 4 Solve | `python -m src.quantum.solver qdrive\|graph-v1 --calib <project>/calib --out <project>/solve` (add `--approve-credits N` to actually send) |
-| 5 Perform | `python -m src.show ... --source circuit --circuit <project>/solve/qdrive/circuit.qasm` |
+| 4 Solve | `python -m src.quantum.aer_relief --labels <project>/labels.json --out <project>/solve/aer` (free; `--shots`, `--kappa`, `--n-dirs`, `--entangle`, `--observations`), or the Moth route: `python -m src.quantum.solver qdrive\|graph-v1 --calib <project>/calib --out <project>/solve` (add `--approve-credits N` to actually send) |
+| 5 Perform | `python -m src.show --labels <project>/labels.json --source relief --aer-run <project>/solve/aer` (use the same relief flags as step 4), or the older `--source circuit --circuit <project>/solve/qdrive/circuit.qasm` |
 
 ### 3. Drawing the real scene
 
@@ -664,7 +665,7 @@ Offline demo of the classical solve/compare flow without Moth: `python -m tests.
 - QDrive has returned circuits for small jobs only (a 2-qubit Bell state, a 3-qubit GHZ state, chained jobs: 21 of 28 jobs completed on 2 and 4 Oct 2026) and never for a whole scene: every 19-qubit job and every 8-body target timed out. Chaining through an output asset UUID works, the docs' PNG/JPEG-only asset limit does not hold, and mixed Pauli words work as a mapping (all recorded in `docs/qdrive-field-notes.md`); what is untested is anything near 20 qubits, which is why the default scene is sent in rounds of two components (14 + 6 qubits).
 - `local_echo` is *our reading* of the echo engine's description, not its definition.
 - A real projector, a real window, real photos. The glass-check thresholds were reasoned, not calibrated.
-- The studio's Solve and Perform steps are still the classical QDrive flow.
+- The studio's Solve and Perform steps run the relief circuit on Aer, a statevector simulation on this laptop; nothing in the relief design has run on a Moth engine or a QPU. The Moth QDrive route into Perform remains the classical-family flow.
 
 **What is and is not quantum** (an audit of the code, with the numbers):
 - The facet register, the polarity superposition and the controlled operations between them are quantum content, simulated exactly or as a matrix-product state. The lamp and observation registers are uniform draws, equivalent to coin flips, except where the lamp is locked to a polarity qubit (`--lock`) or read in X (both backends).

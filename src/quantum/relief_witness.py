@@ -75,7 +75,9 @@ def sample_witness_run(state, rng, shots=20000, control="coherent"):
         xs = rng.choice([-1, 1], (shots, P))
         zs = rng.choice([-1, 1], (shots, F))
     else:
-        if control == "coherent":
+        if control == "coherent" and hasattr(state, "measure_witness"):      # a state that is a circuit executed elsewhere (Aer): its own measurement, not numpy's
+            xs, zs = state.measure_witness(shots, rng)
+        elif control == "coherent":
             psi = state.Psi.reshape(-1).copy()
             for p in range(P):
                 psi = sl.apply_1q(psi, sl.H, F + p, n)
@@ -112,7 +114,8 @@ def certificate(state, rng=None, shots=20000, chsh=True):
     F_coh = fidelity(psi, ref)
     V = parity_visibility(psi, sp)
     S = stabilizers(psi, sp)
-    out = dict(provenance=state.label, n_qubits=sp.n_sim, panels=[], controls={})
+    out = dict(provenance=state.label, n_qubits=sp.n_sim, panels=[], controls={},
+               sampled_by=f"the circuit executed on {state.executed_by}" if hasattr(state, "measure_witness") else "numpy sampling of the reference state")
     for p in range(sp.P):
         bound = entanglement_bound(sp.visibility(p))
         out["panels"].append(dict(panel=p, visibility=float(V[p]), visibility_product_law=sp.visibility(p), stabilizer=float(S[p]),
@@ -134,6 +137,8 @@ def certificate(state, rng=None, shots=20000, chsh=True):
 def describe_certificate(cert):
     """Plain-language lines for the operator's science panel."""
     lines = [f"state: {cert['provenance']} ({cert['n_qubits']} simulated qubits, exact statevector)"]
+    if cert.get("sampled_by") and not cert["sampled_by"].startswith("numpy"):
+        lines.append(f"sampled quantities (visibility, stabilizer with error bars) were measured by {cert['sampled_by']}; the exact values are the reference statevector's")
     for r in cert["panels"]:
         verdict = "ENTANGLED (witness violated)" if r["entangled"] else "no entanglement certified"
         lines.append(f"panel {r['panel']}: visibility <X_B> = {r['visibility']:.3f} (product law {r['visibility_product_law']:.3f}); stabilizer <X_B Z^F> = "

@@ -568,6 +568,19 @@ class Azimuth(unittest.TestCase):
                 got[(i >> (F + P)) & 3, (i >> F) & (2 ** P - 1), i & (2 ** F - 1)] += probs[i]
             np.testing.assert_allclose(got * 4, cell, atol=1e-9)
 
+    def test_sphere_dot_height_is_the_panels_depth(self):
+        """Each panel's dot sits at +axis for a raised-ish outcome and -axis for a sunk-ish one, so its height is the lean its depth word is read from
+        (at gamma 0 a sunk panel is on the south pole, not the north pole)."""
+        from src.quantum.relief_state import depth_word
+        from src.ui.caption import panel_dot
+        for gdeg in (0, 30, 60, 90, 150, 180):
+            for pol in (1, -1):
+                d = panel_dot(np.deg2rad(gdeg), 0.7, pol)
+                self.assertAlmostEqual(d["z"], pol * np.cos(np.deg2rad(gdeg)), places=9)
+                self.assertEqual(d["outcome"], 0 if pol > 0 else 1)
+        self.assertEqual(depth_word(panel_dot(0.0, 0.0, -1)["z"]), "sunk")
+        self.assertEqual(depth_word(panel_dot(0.0, 0.0, 1)["z"]), "raised")
+
 
 if __name__ == "__main__":
     unittest.main()

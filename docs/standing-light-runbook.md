@@ -27,8 +27,8 @@ One local page walks the steps you used to run by hand, each one running the sam
 | 1 Draw | `src.capture.pen_tool draw` (opens in your browser; press Save in it) | `labels.json`, `mask.png` |
 | 2 Targets | `src.targets.calibrate_from_mock` (optional grid and sweeps) | `calib/` (targets and both payloads) |
 | 3 Rehearse | `src.show --source relief` (Superposed Relief, the quantum circuit simulated exactly here; no Moth call, no credits) | `calibration.json` if you align |
-| 4 Solve | `src.quantum.solver qdrive` or `graph-v1` | `solve/` |
-| 5 Perform | `src.show --source circuit` on the circuit step 4 returned (the classical QDrive flow) | |
+| 4 Solve | default: `src.quantum.aer_relief` (the whole relief circuit executed on Aer, 1M shots, checked against the reference state; free); or `src.quantum.solver qdrive` / `graph-v1` on Moth | `solve/aer/` (`shots.npz`, `circuit.qasm`, `state.json`) or `solve/` |
+| 5 Perform | `src.show --source relief --aer-run solve/aer` (every look is one measured shot); or `src.show --source circuit` on the circuit QDrive returned (the older classical-family flow) | |
 
 The **Next** button does the right thing for the first step that is not done. A step is blocked until the one it needs is current: change the drawing and steps 2 to 5 say so (the studio remembers which drawing the targets came from, in `studio.json`). Stop ends a tool; Ctrl+C or closing the terminal stops everything the studio started. "Use the built-in demo scene" fills step 1 with the six-pane bay window so the rest can be tried before anything is drawn.
 
@@ -182,7 +182,7 @@ python -m unittest tests.test_relief tests.test_moth_engines
 Reference numbers: the engine reproduces the handoff's check-4 table (contrast +.332 +.238 +.122 0 ..., P(outcome 0) .500 .603 .678 .706 ...). The Qiskit reference circuit equals the numpy state to 1e-10 with both coupling kinds; **the full circuit (lamp and observation registers inside) sampled by Aer matches the exact distribution** (total variation 0.013, sampling floor 0.020). the tests are in `tests/test_relief.py` and `tests/test_moth_engines.py` (their counts are in the README's Tests table).
 
 ### Not done
-No real projector, no Moth engine run on this design, QDrive has returned circuits only for small jobs (never for a whole scene), the studio's Solve/Perform steps are still the classical QDrive flow, and the lamp/observation registers are uniform draws (physical randomness only on a QPU).
+No real projector, no Moth engine run on this design, QDrive has returned circuits only for small jobs (never for a whole scene), the studio's Solve/Perform steps run the relief circuit on Aer (a simulation here, per-panel engine only), not on a Moth engine or a QPU, and the lamp/observation registers are uniform draws (physical randomness only on a QPU).
 
 ## 8. Moth engines for this project
 

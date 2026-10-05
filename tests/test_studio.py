@@ -211,7 +211,7 @@ class ShowKnobs(Base):
         with open(os.path.join(studio.ROOT, "src", "show.py")) as f:
             src = f.read()
         flags = set(re.findall(r'add_argument\("--([a-z0-9-]+)"', src))
-        owned = {"labels", "out", "run", "calib", "calibration", "circuit"} | {k["flag"][2:] for k in studio.knob_schema()}
+        owned = {"labels", "out", "run", "calib", "calibration", "circuit", "aer-run"} | {k["flag"][2:] for k in studio.knob_schema()}
         self.assertEqual(flags - owned, set())
         self.assertEqual({k["key"] for k in studio.knob_schema()} - {f.replace("-", "_") for f in flags}, set())
 
@@ -429,6 +429,162 @@ class Http(Base):
         self.assertEqual(code, 403)
         self.assertIn("allow-spend", json.loads(data)["error"])
         self.assertEqual(self.rec.calls, [])
+
+
+class AerSolve(Base):
+    """Steps 4 and 5 on the quantum path: the relief circuit executed on Aer (local, free) and the show performing from its shots."""
+
+    def setUp(self):
+        super().setUp()
+        self.with_targets()
+
+    def fake_run(self, flags=None, labels_sha="current", consistent=True):
+        """What src.quantum.aer_relief leaves behind, without running it."""
+        folder = self.s.aer_dir
+        os.makedirs(folder, exist_ok=True)
+        sha = studio.sha_file(self.s.labels_path) if labels_sha == "current" else labels_sha
+        with open(os.path.join(folder, "state.json"), "w") as f:
+            json.dump(dict(kind="relief-aer", sha256="f" * 64, labels_sha=sha, flags=flags or {}, n_qubits=22, shots=1000, score=dict(consistent=consistent)), f)
+        with open(os.path.join(folder, "shots.npz"), "wb") as f:
+            f.write(b"x")
+
+    def test_the_plan_is_free_local_and_names_the_circuit(self):
+        p = self.s.plan("aer")
+        self.assertEqual((p["credits"], p["cached"], p["problems"], p["orphans"]), (0, False, [], []))
+        self.assertEqual(len(p["sha256"]), 64)
+        self.assertIn("22 qubits", p["describe"])
+        self.assertIn("no credits", p["describe"])
+        self.assertEqual(self.rec.calls, [])
+
+    def test_it_runs_without_allow_spend_and_never_asks_for_credits(self):
+        self.assertFalse(self.s.allow_spend)
+        p = self.s.plan("aer")
+        self.assertTrue(self.s.confirm("aer", p["sha256"], 0)["started"])
+        argv = self.rec.calls[0]
+        self.assertEqual(argv[1:3], ["-m", "src.quantum.aer_relief"])
+        self.assertEqual(argv[argv.index("--labels") + 1], self.s.labels_path)
+        self.assertEqual(argv[argv.index("--out") + 1], self.s.aer_dir)
+        self.assertEqual(argv[argv.index("--shots") + 1], str(p["shots"]))
+        for banned in ("--approve-credits", "--allow-spend", "--calib"):
+            self.assertNotIn(banned, argv)
+        self.assertNotIn("MOTH", " ".join(argv))
+
+    def test_a_confirm_for_a_different_circuit_is_refused(self):
+        p = self.s.plan("aer")
+        for sha, credits in (("0" * 64, 0), (p["sha256"], 1)):
+            with self.assertRaises(StageError):
+                self.s.confirm("aer", sha, credits)
+        self.assertEqual(self.rec.calls, [])
+
+    def test_relief_settings_change_the_circuit_and_reach_the_command(self):
+        a, b = self.s.plan("aer"), self.s.plan("aer", dict(kappa=0.8, entangle=0.4))
+        self.assertNotEqual(a["sha256"], b["sha256"])
+        self.s.confirm("aer", b["sha256"], 0, dict(kappa=0.8, entangle=0.4))
+        argv = self.rec.calls[0]
+        self.assertEqual((argv[argv.index("--kappa") + 1], argv[argv.index("--entangle") + 1]), ("0.8", "0.4"))
+        self.assertNotEqual(a["sha256"], self.s.plan("aer", dict(), 20_000)["sha256"])             # the shot count is part of what is executed
+
+    def test_what_the_aer_run_cannot_cover_is_refused_up_front(self):
+        for show in (dict(engine="domain"), dict(source="oracle")):
+            with self.assertRaises(StageError):
+                self.s.plan("aer", show)
+        for shots in (5, 10 ** 9, "many"):
+            with self.assertRaises(StageError):
+                self.s.plan("aer", None, shots)
+        self.s.engine = "domain"                                                                     # a studio started with --engine domain must say so, not run the wrong circuit
+        with self.assertRaises(StageError):
+            self.s.plan("aer")
+        self.assertEqual(self.s.plan("aer", dict(engine="panel"))["problems"], [])
+        self.assertEqual(self.rec.calls, [])
+
+    def test_a_run_for_exactly_this_circuit_is_reported_as_saved(self):
+        p = self.s.plan("aer")
+        self.fake_run()
+        with open(os.path.join(self.s.aer_dir, "state.json")) as f:
+            st = json.load(f)
+        st["sha256"] = p["sha256"]
+        with open(os.path.join(self.s.aer_dir, "state.json"), "w") as f:
+            json.dump(st, f)
+        self.assertTrue(self.s.plan("aer")["cached"])
+
+    def test_two_solves_cannot_run_at_once(self):
+        self.s.spawn = lambda argv, **kw: type("Hang", (FakeProc,), dict(wait=lambda self, timeout=None: time.sleep(5)))()
+        p = self.s.plan("aer")
+        self.s.confirm("aer", p["sha256"], 0)
+        with self.assertRaises(StageError):
+            self.s.confirm("aer", p["sha256"], 0)
+
+    def test_a_finished_run_completes_step_4_and_unlocks_performing_from_it(self):
+        self.assertEqual((self.status()["solve"], self.status()["final"]), ("ready", "blocked"))
+        self.fake_run(flags=dict(kappa=0.8, observations="line"))
+        self.assertEqual((self.status()["solve"], self.status()["final"]), ("done", "ready"))
+        final = next(st for st in self.s.state()["stages"] if st["id"] == "final")
+        self.assertEqual(final["choices"], ["aer"])
+        self.s.start("final")
+        argv = self.rec.calls[-1]
+        self.assertEqual(argv[1:3], ["-m", "src.show"])
+        self.assertEqual(argv[argv.index("--source") + 1], "relief")
+        self.assertEqual(argv[argv.index("--aer-run") + 1], self.s.aer_dir)
+        self.assertEqual((argv[argv.index("--kappa") + 1], argv[argv.index("--observations") + 1]), ("0.8", "line"))   # performed with the settings that were executed
+        self.assertNotIn("--circuit", argv)
+        self.assertNotIn("--allow-spend", argv)
+        self.assertEqual(self.s.jobs["show"].meta["mode"], "aer")
+        self.assertEqual(self.status()["final"], "done")
+
+    def test_a_run_from_an_earlier_drawing_is_not_performed(self):
+        self.fake_run(labels_sha="0" * 64)
+        st = {s["id"]: s for s in self.s.state()["stages"]}
+        self.assertEqual((st["solve"]["status"], st["final"]["status"]), ("ready", "blocked"))
+        self.assertIn("earlier drawing", st["solve"]["warn"])
+        with self.assertRaises(StageError):
+            self.s.start("final")
+
+    def test_with_both_results_the_aer_run_is_first_and_the_qdrive_circuit_is_one_click_away(self):
+        run = os.path.join(self.s.solve, "qdrive")
+        os.makedirs(run)
+        with open(os.path.join(run, "circuit.qasm"), "w") as f:
+            f.write("OPENQASM 3.0;\n")
+        with open(os.path.join(run, "payload.sha256"), "w") as f:
+            f.write(self.s.plan("qdrive")["sha256"] + "\n")
+        with open(os.path.join(run, "raw_result_x.json"), "w") as f:
+            f.write("{}")
+        self.assertEqual(next(st for st in self.s.state()["stages"] if st["id"] == "final")["choices"], ["qdrive"])
+        self.fake_run()
+        self.assertEqual(next(st for st in self.s.state()["stages"] if st["id"] == "final")["choices"], ["aer", "qdrive"])
+        self.s.start("final")
+        self.assertIn("--aer-run", self.rec.calls[-1])
+        self.s.start("final", dict(**{"from": "qdrive"}))
+        argv = self.rec.calls[-1]
+        self.assertEqual(argv[argv.index("--source") + 1], "circuit")
+        self.assertNotIn("--aer-run", argv)
+        with self.assertRaises(StageError):
+            self.s.start("final", dict(**{"from": "graph"}))
+
+    def test_a_run_nobody_made_cannot_be_performed_from(self):
+        with self.assertRaises(StageError):
+            self.s.start("final", dict(**{"from": "aer"}))
+        self.assertEqual(self.rec.calls, [])
+
+    def test_over_http_the_plan_and_the_confirm_carry_the_show_options(self):
+        server, token, url = make_server(self.s)
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            def post(path, body):
+                c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+                c.request("POST", path, json.dumps(body), {"Host": f"127.0.0.1:{port}", "X-Token": token})
+                r = c.getresponse()
+                out = r.status, json.loads(r.read())
+                c.close()
+                return out
+            code, out = post("/api/solve/plan", dict(engine="aer", show=dict(kappa=0.8)))
+            self.assertEqual((code, out["plan"]["flags"]), (200, dict(kappa=0.8)))
+            code, out = post("/api/solve/confirm", dict(engine="aer", sha256=out["plan"]["sha256"], credits=0, show=dict(kappa=0.8)))
+            self.assertEqual((code, out["started"]), (200, True))
+            self.assertIn("--kappa", self.rec.calls[0])
+        finally:
+            server.shutdown()
+            server.server_close()
 
 
 if __name__ == "__main__":

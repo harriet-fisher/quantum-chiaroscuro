@@ -10,14 +10,18 @@ One local page (printed URL, opened for you) walks the five steps in the order y
     1 Draw     the pen tool           -> <project>/labels.json
     2 Targets  calibrate_from_mock    -> <project>/calib/        (targets + both engine payloads)
     3 Rehearse show on Superposed Relief (local reference circuit; the classical sources remain via `src.show --source oracle`)
-    4 Solve    solver (QDrive / graph-v1) -> <project>/solve/    (the only step that can spend credits)
-    5 Perform  show, driven by the circuit step 4 returned
+    4 Solve    the relief circuit executed on Aer (free, local) -> <project>/solve/aer/, or QDrive / graph-v1 on Moth -> <project>/solve/ (the only way to spend credits)
+    5 Perform  show, driven by the Aer run's measured shots (quantum), or by the circuit QDrive returned (the older classical-family flow)
 
 Each step runs the existing module as a child process, so every module still works on its own with the same flags. The studio only
 decides what runs next, with which paths, and whether the step before it is still current (change the drawing and everything
 downstream says so). Long-running tools (pen tool, show) are started on a free port and opened in your browser; Stop ends them.
 
-Spending. Step 4 cannot submit unless the studio was started with --allow-spend AND you press the send button on the plan it shows
+The Aer path is the default for steps 4 and 5: step 4 transpiles the whole relief circuit (facet, polarity, lamp and observe registers) for Aer, runs it for a
+million shots, saves the measured bitstrings and checks them against the reference state; step 5 draws every look from one of those shots. It needs no key and
+no credits. The per-panel engine only (the domain engine's 69 qubits are beyond a statevector run).
+
+Spending. The Moth engines of step 4 cannot submit unless the studio was started with --allow-spend AND you press the send button on the plan it shows
 (payload hash and credits); the request must repeat that hash and cost, so a payload that changed after you read it is refused. A
 payload that already has a result on disk is free and sends nothing. The show started here is given --allow-spend only if the studio has it too and you tick it in the show options (the show's own
 re-solve dialog still asks, with hash and cost), and the Moth key is read by the solver itself, never by this file.
@@ -46,7 +50,8 @@ MAX_BODY = 20_000
 LOG_LINES = 300
 
 STAGES = ("draw", "targets", "preview", "solve", "final")
-TITLES = dict(draw="Draw the shapes", targets="Calibrate targets", preview="Rehearse the show", solve="Solve on Moth", final="Perform with the result")
+TITLES = dict(draw="Draw the shapes", targets="Calibrate targets", preview="Rehearse the show", solve="Solve: execute the circuit", final="Perform with the result")
+AER = "aer"                                                                  # step 4's local engine: the relief circuit executed on Aer (no Moth call)
 ENGINES = {"qdrive": ("payload_qdrive.json", "qdrive-api-v1", "qdrive"), "graph-v1": ("payload_graph_v1.json", "graph-v1", "graph_v1")}
 
 
@@ -231,6 +236,17 @@ class Studio:
         except (OSError, ValueError):
             return None
 
+    @property
+    def aer_dir(self):
+        return os.path.join(self.solve, "aer")
+
+    def aer_info(self):
+        """state.json of the Aer run in <project>/solve/aer when it was made from the current drawing, else None."""
+        from src.quantum.aer_relief import read_state
+        st = read_state(self.aer_dir)
+        sha = sha_file(self.labels_path)
+        return st if st and sha and st.get("labels_sha") == sha else None
+
     def circuit_path(self):
         p = os.path.join(self.solve, "qdrive", "circuit.qasm")
         return p if os.path.exists(p) else None
@@ -286,7 +302,7 @@ class Studio:
         views["preview"] = v
 
         # 4 solve (a result is "current" when the payload on disk now has a saved result)
-        v = dict(status="ready" if ok_targets else "blocked", note="Shows the exact payload, its hash and its cost first. Nothing is sent until you confirm." if ok_targets else blocked_targets)
+        v = dict(status="ready" if ok_targets else "blocked", note="Shows exactly what will run, its hash and its cost first. Nothing runs or is sent until you confirm: the default runs the relief circuit on Aer here (free); QDrive and graph-v1 are Moth engines that cost credits." if ok_targets else blocked_targets)
         results = {}
         if ok_targets:
             for eng in ENGINES:
@@ -308,6 +324,15 @@ class Studio:
             elif q and q["orphans"]:
                 v["warn"] = (f"{len(q['orphans'])} QDrive job(s) were submitted for this project but no result was saved ({', '.join(o[:8] for o in q['orphans'])}). "
                              "Credits may have been spent; check the job in Moth before sending again.")
+        aer = self.aer_info() if ok_targets else None
+        if aer:
+            sc = aer["score"]
+            text = (f"Superposed Relief was executed on Aer: {aer['n_qubits']} qubits, {aer['shots']:,} shots per lamp reading; "
+                    + ("the shots agree with the reference state within shot noise." if sc["consistent"] else "the shots do NOT agree with the reference state (see state.json)."))
+            v.update(status="done", note=(v["note"] + " " if v["status"] == "done" else "") + text)
+            results[AER] = dict(cached=True, orphans=[])
+        elif ok_targets and read_aer_exists(self.aer_dir):
+            v["warn"] = (v.get("warn", "") + " " if v.get("warn") else "") + "The saved Aer run was made from an earlier drawing; run it again."
         if solve and solve.running:
             v.update(status="running", note="Running the solver.")
         elif solve and solve.returncode not in (None, 0):
@@ -317,20 +342,24 @@ class Studio:
 
         # 5 final
         circuit = self.circuit_path()
-        done = ok_targets and circuit and views["solve"].get("results", {}).get("qdrive", {}).get("cached")
-        v = dict(status="ready" if done else "blocked", note="Opens the show on the circuit QDrive returned (simulated locally)." if done else
-                 "Needs a QDrive result for the current payload (step 4); graph-v1 returns no circuit to draw from.")
-        if done and rec.get("final") == sha_file(circuit):
-            v.update(status="done", note="Performed with this circuit. Open it again any time.")
-        if show and show.running and show.meta.get("mode") == "circuit":
-            v.update(status="running", note="The show is open on the QDrive circuit.")
+        choices = ([AER] if aer else []) + (["qdrive"] if ok_targets and circuit and views["solve"].get("results", {}).get("qdrive", {}).get("cached") else [])
+        used = (sha_file(os.path.join(self.aer_dir, "shots.npz")) if choices[0] == AER else sha_file(circuit)) if choices else None
+        both = " The QDrive circuit is also available (second button)." if len(choices) > 1 else ""
+        v = dict(status="ready" if choices else "blocked", choices=choices,
+                 note=("Opens the show on the Aer run: every look is one measured shot of the relief circuit executed on Aer (a statevector simulation here, not a Moth result)." + both if choices[:1] == [AER] else
+                       "Opens the show on the circuit QDrive returned (simulated locally; the older classical-family flow)." if choices else
+                       "Needs a result from step 4: the Aer run (free, local) or a QDrive result for the current payload; graph-v1 returns no circuit to draw from."))
+        if choices and rec.get("final") == used:
+            v.update(status="done", note="Performed with this result. Open it again any time." + both)
+        if show and show.running and show.meta.get("mode") in ("circuit", "aer"):
+            v.update(status="running", note=("The show is open on the Aer run." if show.meta.get("mode") == "aer" else "The show is open on the QDrive circuit."))
         views["final"] = v
 
         for name, job_name in dict(draw="pen", targets="targets", solve="solve").items():
             j = self.jobs.get(job_name)
             views[name]["job"] = j.view() if j else None
-        for name, mode in dict(preview="oracle", final="circuit").items():
-            views[name]["job"] = show.view() if show and show.meta.get("mode") == mode else None
+        for name, modes in dict(preview=("oracle",), final=("circuit", "aer")).items():
+            views[name]["job"] = show.view() if show and show.meta.get("mode") in modes else None
         order = [s for s in STAGES if views[s]["status"] not in ("done", "blocked")]
         return [dict(id=s, title=TITLES[s], **views[s]) for s in STAGES], (order[0] if order else None)
 
@@ -507,11 +536,22 @@ class Studio:
         return dict(url=self.jobs["show"].url)
 
     def _start_final(self, opts):
-        circuit = self.circuit_path()
-        knobs = self._knob_values("final", (opts or {}).get("show"))
+        opts = opts or {}
+        knobs = self._knob_values("final", opts.get("show"))
+        choices = next(s for s in self.stage_views()[0] if s["id"] == "final")["choices"]
+        want = opts.get("from") or choices[0]
+        if want not in choices:
+            raise StageError(f"there is no current {'Aer run' if want == AER else 'QDrive result' if want == 'qdrive' else repr(want)} to perform with; step 4 makes one")
         port = self._show_port(knobs)
-        self._server_job("show", self._show_argv(port, "circuit", knobs, ("--circuit", circuit)), port, open_browser=False if knobs.get("no_browser") else None, mode="circuit")
-        self._remember(final=sha_file(circuit))
+        no_browser = False if knobs.get("no_browser") else None
+        if want == AER:
+            flags = [x for k, v in (self.aer_info().get("flags") or {}).items() for x in ("--" + k.replace("_", "-"), str(v))]
+            self._server_job("show", self._show_argv(port, "relief", knobs, ("--aer-run", self.aer_dir, *flags)), port, open_browser=no_browser, mode="aer")
+            self._remember(final=sha_file(os.path.join(self.aer_dir, "shots.npz")))
+        else:
+            circuit = self.circuit_path()
+            self._server_job("show", self._show_argv(port, "circuit", knobs, ("--circuit", circuit)), port, open_browser=no_browser, mode="circuit")
+            self._remember(final=sha_file(circuit))
         return dict(url=self.jobs["show"].url)
 
     def _start_solve(self, opts):
@@ -538,7 +578,43 @@ class Studio:
             save_labels(fill_defaults(bay_window_labels()), self.labels_path)
 
     # ------------------------------------------------------------------ solve: plan, then an explicit matching confirm
-    def plan(self, engine):
+    def plan_aer(self, show=None, shots=None):
+        """Step 4's local engine: what the Aer run would execute, its hash, and whether a run for exactly this is already on disk. Costs nothing and sends nothing."""
+        from src.capture.labels import load_labels
+        from src.quantum import aer_relief as ar
+        from src.quantum.relief_state import full_circuit
+        if not os.path.exists(self.labels_path):
+            raise StageError("needs a saved drawing (step 1)")
+        raw = {k: v for k, v in (show or {}).items() if k in ar.RELIEF_FLAGS or k in ("engine", "source")}
+        if (raw.get("engine") or self.engine) != "panel" or (raw.get("source") or "relief") != "relief":
+            raise StageError("the Aer run executes the per-panel relief circuit; the domain engine's 69 qubits and the classical sources are not part of it (set show option engine to panel)")
+        given = self._knob_values("preview", raw)
+        flags = {k: given[k] for k in ar.RELIEF_FLAGS if k in given}
+        try:
+            shots = ar.DEFAULT_SHOTS if shots in (None, "") else int(shots)
+        except (TypeError, ValueError):
+            raise StageError("shots must be a whole number")
+        if not 10_000 <= shots <= 20_000_000:
+            raise StageError("shots must be between 10,000 and 20,000,000")
+        _, _, spec = ar.build_spec(load_labels(self.labels_path), flags.get("kappa", 1.0), flags.get("n_dirs"), flags.get("entangle", 0.8), flags.get("observations"))
+        qc = full_circuit(spec)
+        sha = ar.plan_sha(spec, shots, ar.DEFAULT_SEED)
+        have = ar.read_state(self.aer_dir)
+        cached = bool(have and have["sha256"] == sha)
+        ops = ", ".join(f"{n} x{c}" for n, c in sorted(qc.count_ops().items()))
+        describe = (f"Superposed Relief, per-panel engine: {spec.F} facet qubits + {spec.P} polarity + 2 lamp + 2 observe = {spec.n_full} qubits"
+                    + (f"; {spec.n_classical} flat facets stay classical (no qubit)" if spec.n_classical else "") + "\n"
+                    f"circuit: {qc.size()} operations ({ops})\n"
+                    f"{shots:,} shots on Aer's statevector simulator with seed {ar.DEFAULT_SEED}, once with the lamp register read in Z and once in X; then a check of the shots against the "
+                    "reference state and a witness run (polarity in X, facets in Z).\nExecuted here by qiskit-aer: no network, no key, no credits.")
+        return dict(engine=AER, engine_id="relief-aer (this laptop)", sha256=sha, credits=0, cached=cached, problems=ar.check_size(spec), describe=describe,
+                    allow_spend=self.allow_spend, orphans=[], flags=flags, shots=shots,
+                    note=("A run for exactly this circuit, shot count and seed is already on disk: nothing is executed." if cached else
+                          "Executes this circuit on Aer on this machine (a few seconds) and saves the measured shots. Nothing is sent anywhere and no credits are spent."))
+
+    def plan(self, engine, show=None, aer_shots=None):
+        if engine == AER:
+            return self.plan_aer(show, aer_shots)
         from src.quantum.moth_client import MothClient
         from src.store.cache import cached_result
         from src.targets.payloads import payload_sha256
@@ -562,9 +638,11 @@ class Studio:
                           f"Sends this payload to Moth and spends {job.credits} credit(s)." + ("" if self.allow_spend else
                           " Disabled: the studio was started without --allow-spend (preview only). Restart it with --allow-spend to send.")))
 
-    def confirm(self, engine, sha256, credits):
+    def confirm(self, engine, sha256, credits, show=None, aer_shots=None):
         with self.lock:
             self._require_idle()
+            if engine == AER:
+                return self._confirm_aer(sha256, credits, show, aer_shots)
             plan = self.plan(engine)
             if plan["problems"]:
                 raise StageError("this payload cannot be sent: " + "; ".join(plan["problems"]))
@@ -579,6 +657,24 @@ class Studio:
                 argv += ["--approve-credits", str(plan["credits"])]
             self.jobs["solve"] = Job("solve", argv, self.spawn, engine=engine, credits=plan["credits"], sha256=plan["sha256"])
             return dict(started=True, plan=plan)
+
+
+    def _confirm_aer(self, sha256, credits, show, aer_shots):
+        plan = self.plan_aer(show, aer_shots)
+        if plan["problems"]:
+            raise StageError("this circuit cannot be run here: " + "; ".join(plan["problems"]))
+        if sha256 != plan["sha256"] or credits != 0:
+            raise StageError("the circuit or the shot count changed since it was shown: review it again before running")
+        from src.quantum import aer_relief as ar
+        argv = self._py("src.quantum.aer_relief", "--labels", self.labels_path, "--out", self.aer_dir, "--shots", str(plan["shots"]), "--seed", str(ar.DEFAULT_SEED))
+        for k, v in plan["flags"].items():
+            argv += ["--" + k.replace("_", "-"), str(v)]
+        self.jobs["solve"] = Job("solve", argv, self.spawn, engine=AER, credits=0, sha256=plan["sha256"])
+        return dict(started=True, plan=plan)
+
+
+def read_aer_exists(folder):
+    return os.path.exists(os.path.join(folder, "state.json"))
 
 
 def _glob(d, pattern):
@@ -647,9 +743,9 @@ def make_handler(studio, token, hosts):
                     studio.use_demo_scene()
                     return self._json(200, dict(ok=True))
                 if path == "/api/solve/plan":
-                    return self._json(200, dict(ok=True, plan=studio.plan(body.get("engine", "qdrive"))))
+                    return self._json(200, dict(ok=True, plan=studio.plan(body.get("engine", "qdrive"), body.get("show"), body.get("aer_shots"))))
                 if path == "/api/solve/confirm":
-                    return self._json(200, dict(ok=True, **studio.confirm(body["engine"], body["sha256"], body["credits"])))
+                    return self._json(200, dict(ok=True, **studio.confirm(body["engine"], body["sha256"], body["credits"], body.get("show"), body.get("aer_shots"))))
                 self._json(404, dict(ok=False, error="not found"))
             except PermissionError as e:
                 self._json(403, dict(ok=False, error=str(e)))

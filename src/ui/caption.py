@@ -23,6 +23,7 @@ def provenance_line(prov):
     """One honest sentence about where the draws come from."""
     if prov.get("relief") and prov["quantum_backed"]:
         where = ("a circuit returned by Moth's QDrive for the facet qubits" if prov.get("from_moth")
+                 else "a quantum circuit built and executed gate by gate on the Aer simulator on this laptop (not a Moth result)" if prov.get("executed") == "aer"
                  else "a quantum circuit built and simulated exactly on this laptop (not a Moth result)")
         status = " This design is untested against a real Moth circuit." if prov.get("untested") else ""
         return (f"Each look is one run of {where}: every patch of the wall is a qubit whose state is its surface normal, each panel's depth is a qubit in "
@@ -67,6 +68,16 @@ def sphere_dot(gamma, chi):
     return dict(x=math.sin(gamma) * math.cos(chi), y=math.sin(gamma) * math.sin(chi), z=math.cos(gamma), gamma_deg=round(math.degrees(gamma), 1), chi_deg=round(math.degrees(chi), 1))
 
 
+def panel_dot(gamma, chi, pol):
+    """Where one panel's observation landed: measuring along the axis (gamma, chi) leaves the qubit at +axis for outcome 0 (pol +1, raised-ish) and at
+    -axis for outcome 1 (pol -1, sunk-ish). So the dot's height is pol * cos(gamma), the same number the panel's depth word is read from; gamma_deg and
+    chi_deg stay the observation axis itself."""
+    d = sphere_dot(gamma, chi)
+    if pol < 0:
+        d.update(x=-d["x"], y=-d["y"], z=-d["z"])
+    return dict(d, outcome=0 if pol > 0 else 1)
+
+
 def describe_relief(draw, panel_names, K, prov, control="coherent"):
     """The audience caption for a ReliefDraw. Same keys as describe() plus the depth-sphere dots."""
     from src.quantum.relief_state import WORLD_NAMES, depth_word
@@ -94,7 +105,7 @@ def describe_relief(draw, panel_names, K, prov, control="coherent"):
     cap = dict(
         headline=headline, panels=panels, hardness=f"{K} photon{'s' if K != 1 else ''} averaged: {hardness_word(K)}", lamp_bits=lamp_bits,
         provenance=provenance_line(prov), observation=dict(text=look, **dot),
-        spheres=[dict(name=n, **dot, outcome=0 if p > 0 else 1) for n, p in zip(panel_names, draw.pol)],
+        spheres=[dict(name=n, **panel_dot(draw.gamma, draw.chi, p)) for n, p in zip(panel_names, draw.pol)],
         explain=("Lambert's cosine law is the Born rule: a patch is bright with the probability that its surface normal faces the light, so a frame is a measurement, "
                  "not a render. " + look))
     if control == "noise":

@@ -121,7 +121,7 @@ class Session:
     def __init__(self, labels=None, calibration=None, *, source="relief", pol_basis=None, circuit=None, coupling="lamp2",
                  calib_dir=DEFAULT_CALIB_DIR, run_dir=DEFAULT_RUN_DIR, out_dir="runs/show", projector_size=None, seed=2026,
                  pool_size=60000, hub=None, allow_spend=False, solve_fn=None, log=None, complementary_report="runs/complementary/report.json",
-                 kappa=1.0, n_dirs=None, entangle=0.8, contrast=1.15, engine="panel", domain=None, game=False, game_fraction=0.5, lamp_mode="z", observations=None):
+                 kappa=1.0, n_dirs=None, entangle=0.8, contrast=1.15, engine="panel", domain=None, game=False, game_fraction=0.5, lamp_mode="z", observations=None, aer_run=None):
         self.labels = validate(fill_defaults(labels if labels is not None else bay_window_labels()))
         self.scene = build_scene(self.labels)
         g = self.labels["grid"]
@@ -155,6 +155,7 @@ class Session:
         self._batch_depth = 0
         self._dirty = False
         self.circuit = circuit
+        self.aer_run = aer_run                                          # folder of a saved Aer run: the relief source then draws its looks from those shots
         self.pol_basis = pol_basis
         self.source_kind = None
         if engine not in ("panel", "domain"):
@@ -332,6 +333,14 @@ class Session:
         qubits, else a matrix-product state) and takes no circuit file."""
         from src.quantum.relief_state import ReliefState
         spec = self.relief()["spec"]
+        if self.aer_run:
+            if circuit:
+                raise ValueError("--aer-run and --circuit both replace the relief state; give one")
+            if self.relief_params["engine"] != "panel":
+                raise ValueError("--aer-run executes the per-panel engine's circuit on Aer; the domain engine's qubits do not fit a statevector run")
+            from src.quantum.aer_relief import AerReliefState
+            st = AerReliefState(spec, self.aer_run)
+            return st, dict(label=st.label, quantum_backed=True, from_moth=False, untested=False, synthetic=False, executed="aer")
         if self.relief_params["engine"] == "domain":
             if circuit:
                 raise ValueError("--circuit replaces the facet register of the per-panel engine; the domain engine prepares its own register")
@@ -405,7 +414,7 @@ class Session:
                 raise ValueError(f"unknown source {kind!r}; choose from {SOURCES}")
             if kind == "relief":
                 circuit = circuit if circuit is not None else (self.circuit if self.source_kind in (None, "relief") else None)
-                key = ("relief", circuit, self.relief_params["domain"]["floquet_steps"], bool(self.knobs.game))
+                key = ("relief", circuit, self.relief_params["domain"]["floquet_steps"], bool(self.knobs.game), self.aer_run)
                 if key not in self._pools:
                     t0 = time.time()
                     state, prov = self._build_relief(circuit)
@@ -1301,7 +1310,7 @@ class Session:
         look = getattr(self, "current", None)
         sph = None
         if look is not None and look.source == "relief":
-            sph = [caption_mod.sphere_dot(look.draw.gamma, look.draw.chi) | dict(outcome=0 if p > 0 else 1) for p in look.draw.pol]
+            sph = [caption_mod.panel_dot(look.draw.gamma, look.draw.chi, p) for p in look.draw.pol]
         return dict(kappa=self._kappa(), panels=[dict(panel=k, name=self.panel_names[k], facets=pb[k]["n"], sum_tau2=pb[k]["sum_tau2"], visibility=pb[k]["visibility"])
                                                 for k in sorted(pb)], engine=self._engine_info(),
                     spheres=sph, controls=dict(noise=self.knobs.noise, dephased=self.knobs.dephased, light_interference=self.knobs.light_interference),

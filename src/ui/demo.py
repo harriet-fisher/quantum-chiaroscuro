@@ -51,6 +51,7 @@ def build_relief_steps(ctx):
     from src.quantum.relief_witness import visibility_table
     table = visibility_table()
     where = ("a circuit returned by Moth's QDrive for the facet qubits" if prov.get("from_moth") else
+             "a circuit executed gate by gate on the Aer simulator on this laptop; no Moth result is involved" if prov.get("executed") == "aer" else
              "a circuit simulated exactly on this laptop; no Moth result is involved")
     moth = ctx.get("moth_lines") or ["Nothing has been run on a Moth engine for this scene yet: no tomography, no QDrive circuit."]
     return [
